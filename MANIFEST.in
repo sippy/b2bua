@@ -1,0 +1,5 @@
+# $Id: MANIFEST.in,v 1.1 2009/02/25 06:44:43 sobomax Exp $
+
+include COPYING
+include README
+include sippy/dictionary
