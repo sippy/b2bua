@@ -1,0 +1,4 @@
+sippy/*.pyc
+dist
+build
+MANIFEST
