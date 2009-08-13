@@ -24,12 +24,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #
-# $Id: setup.py,v 1.1 2009/02/25 06:44:43 sobomax Exp $
+# $Id: setup.py,v 1.2 2009/08/13 21:02:12 sobomax Exp $
 
 from distutils.core import setup
 
 setup(name = 'sippy',
-  version = '1.0',
+  version = '1.1-dev',
   description = 'SIP RFC3261 Back-to-back User Agent (B2BUA)',
   author = 'Sippy Software, Inc.',
   author_email = 'sales@sippysoft.com',
