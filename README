@@ -36,5 +36,3 @@ Features:
 
  o B2BUA could be easily combined with other Open Source software, such as SIP
    Express Router / OpenSIPS to build complete softswitch solution.
-
-$Id: README,v 1.1 2009/02/25 06:44:43 sobomax Exp $
