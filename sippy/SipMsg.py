@@ -60,7 +60,7 @@ class SipMsg(object):
         self.setSL(lines[0])
         i = 2
         while i < len(lines):
-            if lines[i][0] in (' ', '\t'):
+            if len(lines[i]) == 0 or lines[i][0] in (' ', '\t'):
                 lines[i - 1] += ' ' + lines[i].strip()
                 del lines[i]
             else:
