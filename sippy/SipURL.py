@@ -122,15 +122,16 @@ class SipURL(object):
         ear = url.find('@') + 1
         parts = url[ear:].split(';')
         userdomain, params = url[0:ear] + parts[0], parts[1:]
-        if len(params) == 0 and '?' in userdomain:
+        if len(params) == 0 and '?' in userdomain[ear:]:
             self.headers = {}
-            userdomain, headers = userdomain.split('?', 1)
+            userdomain_suff, headers = userdomain[ear:].split('?', 1)
+            userdomain = userdomain[:ear] + userdomain_suff
             for header in headers.split('&'):
                 k, v = header.split('=')
                 self.headers[k.lower()] = unquote(v)
-        udparts = userdomain.split('@', 1)
-        if len(udparts) == 2:
-            userpass, hostport = udparts
+        if ear > 0:
+            userpass = userdomain[:ear - 1]
+            hostport = userdomain[ear:]
             upparts = userpass.split(':', 1)
             if len(upparts) > 1:
                 self.password = upparts[1]
@@ -139,7 +140,7 @@ class SipURL(object):
                 self.userparams = uparts[1:]
             self.username = unquote(uparts[0])
         else:
-            hostport = udparts[0]
+            hostport = userdomain
         if relaxedparser and len(hostport) == 0:
             self.host = ''
         elif hostport[0] == '[':
