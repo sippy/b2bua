@@ -141,6 +141,7 @@ class SipURL(object):
             self.username = unquote(uparts[0])
         else:
             hostport = userdomain
+        parseport = None
         if relaxedparser and len(hostport) == 0:
             self.host = ''
         elif hostport[0] == '[':
@@ -150,26 +151,7 @@ class SipURL(object):
             if len(hpparts[1]) > 0:
                 hpparts = hpparts[1].split(':', 1)
                 if len(hpparts) > 1:
-                    try:
-                        self.port = int(hpparts[1])
-                    except Exception, e:
-                        # Can't parse port number, check why
-                        port = hpparts[1].strip()
-                        if len(port) == 0:
-                            # Bug on the other side, work around it
-                            print 'WARNING: non-compliant URI detected, empty port number, ' \
-                              'assuming default: %s' % str(original_uri)
-                        elif port.find(':') > 0:
-                            pparts = port.split(':', 1)
-                            if pparts[0] == pparts[1]:
-                                # Bug on the other side, work around it
-                                print 'WARNING: non-compliant URI detected, duplicate port number, ' \
-                                  'taking "%s": %s' % (pparts[0], str(original_uri))
-                                self.port = int(pparts[0])
-                            else:
-                                raise e
-                        else:
-                            raise e
+                    parseport = hpparts[1]
         else:
             # IPv4 host
             hpparts = hostport.split(':', 1)
@@ -177,15 +159,30 @@ class SipURL(object):
                 self.host = hpparts[0]
             else:
                 self.host = hpparts[0]
-                try:
-                    self.port = int(hpparts[1])
-                except Exception as e:
-                    # XXX: some bad-ass devices send us port number twice
-                    # While not allowed by the RFC, deal with it
-                    portparts = hpparts[1].split(':', 1)
-                    if len(portparts) != 2 or portparts[0] != portparts[1]:
+                parseport = hpparts[1]
+
+        if parseport != None:
+            try:
+                self.port = int(parseport)
+            except Exception as e:
+                # Can't parse port number, check why
+                port = parseport.strip()
+                if len(port) == 0:
+                    # Bug on the other side, work around it
+                    print 'WARNING: non-compliant URI detected, empty port number, ' \
+                      'assuming default: "%s"' % str(original_uri)
+                elif port.find(':') > 0:
+                    pparts = port.split(':', 1)
+                    if pparts[0] == pparts[1]:
+                        # Bug on the other side, work around it
+                        print 'WARNING: non-compliant URI detected, duplicate port number, ' \
+                          'taking "%s": %s' % (pparts[0], str(original_uri))
+                        self.port = int(pparts[0])
+                    else:
                         raise e
-                    self.port = int(portparts[0])
+                else:
+                    raise e
+
         for p in params:
             if p == params[-1] and '?' in p:
                 self.headers = {}
