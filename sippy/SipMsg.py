@@ -30,6 +30,7 @@ from SipContentType import SipContentType
 from MsgBody import MsgBody
 from ESipHeaderCSV import ESipHeaderCSV
 from ESipHeaderIgnore import ESipHeaderIgnore
+from ESipParseException import ESipParseException
 
 class SipMsg(object):
     headers = None
@@ -39,21 +40,20 @@ class SipMsg(object):
     source = None
     nated = False
     rtime = None
-    ignorebody = False
 
     def __init__(self, buf = None):
         self.headers = []
         if buf == None:
             return
         # Locate a body
-        mbody = None
+        self.__mbody = None
         for bdel in ('\r\n\r\n', '\r\r', '\n\n'):
             boff = buf.find(bdel)
             if boff != -1:
-                mbody = buf[boff + len(bdel):]
+                self.__mbody = buf[boff + len(bdel):]
                 buf = buf[:boff]
-                if len(mbody) == 0:
-                    mbody = None
+                if len(self.__mbody) == 0:
+                    self.__mbody = None
                 break
         # Split message into lines and put aside start line
         lines = buf.splitlines()
@@ -66,16 +66,16 @@ class SipMsg(object):
             else:
                 i += 1
         # Parse headers
-        content_type = None
-        content_length = None
+        self.__content_type = None
+        self.__content_length = None
         header_names = []
         for line in lines[1:]:
             try:
                 header = SipHeader(line, fixname = True)
                 if header.name == 'content-type':
-                    content_type = header
+                    self.__content_type = header
                 elif header.name == 'content-length':
-                    content_length = header
+                    self.__content_length = header
                 else:
                     self.headers.append(header)
                     header_names.append(header.name)
@@ -83,9 +83,9 @@ class SipMsg(object):
                 for body in einst.bodys:
                     header = SipHeader(name = einst.name, bodys = body)
                     if header.name == 'content-type':
-                        content_type = header
+                        self.__content_type = header
                     elif header.name == 'content-length':
-                        content_length = header
+                        self.__content_length = header
                     else:
                         self.headers.append(header)
                         header_names.append(header.name)
@@ -99,54 +99,54 @@ class SipMsg(object):
             raise Exception('From HF is missed')
         if 'cseq' not in header_names:
             raise Exception('CSeq HF is missed')
-        if self.ignorebody:
-            return
-        if content_length != None:
-            blen = content_length.getBody().number
-            if mbody == None:
+
+    def init_body(self):
+        if self.__content_length != None:
+            blen = self.__content_length.getBody().number
+            if self.__mbody == None:
                 mblen = 0
             else:
-                mblen = len(mbody)
+                mblen = len(self.__mbody)
             if blen == 0:
-                mbody = None
+                self.__mbody = None
                 mblen = 0
-            elif mbody == None:
+            elif self.__mbody == None:
                 # XXX: Should generate 400 Bad Request if such condition
                 # happens with request
-                raise Exception('Missed SIP body, %d bytes expected' % blen)
+                raise ESipParseException('Missed SIP body, %d bytes expected' % blen)
             elif blen > mblen:
-                if blen - mblen < 7 and mblen > 7 and mbody[-4:] == '\r\n\r\n':
+                if blen - mblen < 7 and mblen > 7 and self.__mbody[-4:] == '\r\n\r\n':
                     # XXX: we should not really be doing this, but it appears to be
                     # a common off-by-one/two/.../six problem with SDPs generates by
                     # the consumer-grade devices.
                     print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
                     blen = mblen
-                elif blen - mblen == 2 and mbody[-2:] == '\r\n':
+                elif blen - mblen == 2 and self.__mbody[-2:] == '\r\n':
                     # Missed last 2 \r\n is another common problem.
                     print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
-                    mbody += '\r\n'
-                elif blen - mblen == 1 and mbody[-3:] == '\r\n\n':
+                    self.__mbody += '\r\n'
+                elif blen - mblen == 1 and self.__mbody[-3:] == '\r\n\n':
                     # Another possible mishap
                     print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
-                    mbody = mbody[:-3] + '\r\n\r\n'
-                elif blen - mblen == 1 and mbody[-2:] == '\r\n':
+                    self.__mbody = self.__mbody[:-3] + '\r\n\r\n'
+                elif blen - mblen == 1 and self.__mbody[-2:] == '\r\n':
                     # One more
                     print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
-                    mbody += '\r\n'
+                    self.__mbody += '\r\n'
                     blen += 1
                     mblen += 2
                 else:
                     # XXX: Should generate 400 Bad Request if such condition
                     # happens with request
-                    raise Exception('Truncated SIP body, %d bytes expected, %d received' % (blen, mblen))
+                    raise ESipParseException('Truncated SIP body, %d bytes expected, %d received' % (blen, mblen))
             elif blen < mblen:
-                mbody = mbody[:blen]
+                self.__mbody = self.__mbody[:blen]
                 mblen = blen
-        if mbody != None:
-            if content_type != None:
-                self.body = MsgBody(mbody, str(content_type.getBody()).lower())
+        if self.__mbody != None:
+            if self.__content_type != None:
+                self.body = MsgBody(self.__mbody, str(self.__content_type.getBody()).lower())
             else:
-                self.body = MsgBody(mbody)
+                self.body = MsgBody(self.__mbody)
 
     def __str__(self):
         s = self.getSL() + '\r\n'

@@ -32,6 +32,7 @@ from SipResponse import SipResponse
 from SipURL import SipURL
 from SipAddress import SipAddress
 from SipExpires import SipExpires
+from ESipParseException import ESipParseException
 
 class SipRequest(SipMsg):
     method = None
@@ -44,6 +45,14 @@ class SipRequest(SipMsg):
                  user_agent = None, expires = None):
         SipMsg.__init__(self, buf)
         if buf != None:
+            try:
+                SipMsg.init_body(self)
+            except ESipParseException, e:
+                try:
+                    e.sip_response = self.genResponse(400, 'Bad Request - %s' % str(e))
+                except Exception, e1:
+                    print 'BUG: Double exception, should not be happening:\n', str(e1)
+                raise e
             return
         self.method = method
         self.ruri = ruri
