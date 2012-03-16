@@ -158,6 +158,13 @@ class ClusterCLI(object):
                     rtpp.status = 'ACTIVE'
                 clim.send('OK\n')
                 return False
+        if cmd.startswith('help'):
+                clim.send('Supported commands:\n' \
+                  '\tls [CLUSTER_NAME]\n' \
+                  '\tmodify CLUSTER_NAME [add|remove|delete|pause|resume] ARGS\n' \
+                  '\treload\n' \
+                  '\tquit\n')
+                return False
         if cmd.startswith('quit'):
             clim.close()
             return False
