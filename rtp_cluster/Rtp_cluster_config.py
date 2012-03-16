@@ -87,6 +87,8 @@ class ValidateHandler(ContentHandler):
                     raise Exception("rtpproxy protocol should be either 'udp' or 'unix'")
             elif self.element == 'address':
                 self.rtpproxy['address'] = content
+            elif self.element == 'wan_address':
+                self.rtpproxy['wan_address'] = content
             elif self.element == 'weight':
                 try:
                     self.rtpproxy['weight'] = int(content)
@@ -180,6 +182,8 @@ def gen_cluster_config(config):
             xml += '      <name>%s</name>\n' % escape(proxy['name'])
             xml += '      <protocol>%s</protocol>\n' % escape(proxy['protocol'])
             xml += '      <address>%s</address>\n' % escape(proxy['address'])
+            if proxy['wan_address'] != None:
+                xml += '      <wan_address>%s</wan_address>\n' % escape(proxy['wan_address'])
             xml += '      <weight>%s</weight>\n' % escape(str(proxy['weight']))
             xml += '      <capacity>%s</capacity>\n' % escape(str(proxy['capacity']))
             xml += '      <status>%s</status>\n' % escape(proxy['status'])

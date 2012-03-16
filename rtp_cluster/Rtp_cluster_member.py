@@ -32,6 +32,7 @@ class Rtp_cluster_member(Rtp_proxy_client):
     status = 'ACTIVE'
     capacity = 4000
     weight = 100
+    wan_address = None
     call_id_map = None
     call_id_map_old = None
     on_state_change = None

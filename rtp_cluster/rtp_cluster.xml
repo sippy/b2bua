@@ -9,6 +9,7 @@
       <name>RTPPROXY1</name>
       <protocol>UDP</protocol>
       <address>192.168.222.1:4444</address>
+      <wan_address>1.2.3.4</wan_address>
       <weight>100</weight>
       <capacity>2500</capacity>
       <status>ACTIVE</status>
