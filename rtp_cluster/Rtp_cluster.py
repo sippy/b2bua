@@ -95,10 +95,10 @@ class Rtp_cluster(object):
 
     def up_command(self, clim, cmd):
         #print 'up_command', cmd
-        if len(self.active) == 0:
-            self.down_command('E999', clim)
-            return
         cmd_type = cmd[0].upper()
+        if len(self.active) == 0:
+            self.down_command('E999', clim, cmd_type)
+            return
         if cmd_type in ('U', 'L', 'D', 'P', 'S', 'R', 'C', 'Q'):
             command, call_id, args = cmd.split(None, 2)
             print 'up', call_id, cmd
@@ -134,10 +134,15 @@ class Rtp_cluster(object):
         else:                
             rtpp = self.active[0]
             print 'up', cmd
-        rtpp.send_command(cmd, self.down_command, clim)
+        rtpp.send_command(cmd, self.down_command, clim, cmd_type)
 
-    def down_command(self, result, clim):
-        print 'down', result
+    def down_command(self, result, clim, cmd_type):
+        if result == None:
+            result = 'E999'
+        #elif cmd_type in ('U', 'L') and not result[0].upper() == 'E':
+        #    print 'down', result
+        #    result_parts = result.strip().split()
+        #    result = '%s %s' % (result_parts[0], '192.168.1.22')
         clim.send(result + '\n')
         clim.close()
 
@@ -151,14 +156,14 @@ class Rtp_cluster(object):
             return
         if len(br.results) == 1:
             rtpp.bind_session(br.call_id, br.cmd_type)
-            self.down_command(br.results[0], br.clim)            
+            self.down_command(br.results[0], br.clim, br.cmd_type)
         else:
             # No results or more than one proxy returns positive
             # XXX: more than one result can probably be handled
             if br.cmd_type in ('U', 'L'):
-                self.down_command('0', br.clim)
+                self.down_command('0', br.clim, br.cmd_type)
             else:
-                self.down_command('E999', br.clim)
+                self.down_command('E999', br.clim, br.cmd_type)
 
     def pick_proxy(self, call_id):
         active = list(self.active)
