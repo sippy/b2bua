@@ -74,6 +74,7 @@ class Rtp_cluster(object):
             self.ccm = Udp_server(address, self.up_command_udp)
         else:
             self.ccm = Cli_server_local(self.up_command, address, (80, 80))
+            self.ccm.protocol.expect_lf = False
         self.global_config = global_config
         self.name = name
         self.address = address
