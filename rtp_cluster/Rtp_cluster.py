@@ -29,20 +29,24 @@ sys.path.append('..')
 
 from sippy.Cli_server_local import Cli_server_local
 from sippy.Udp_server import Udp_server
+from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd
+
+def is_dst_local(destination_ip):
+    #if destination_ip == '192.168.22.11':
+    #    return True
+    return False
 
 class Broadcaster(object):
     bcount = None
     results = None
     clim = None
-    cmd_type = None
-    call_id = None
+    cmd = None
 
-    def __init__(self, bcount, clim, cmd_type, call_id):
+    def __init__(self, bcount, clim, cmd):
         self.results = []
         self.bcount = bcount
         self.clim = clim
-        self.cmd_type = cmd_type
-        self.call_id = call_id
+        self.cmd = cmd
 
 class UdpCLIM(object):
     cookie = None
@@ -94,77 +98,83 @@ class Rtp_cluster(object):
         clim = UdpCLIM(address, cookie, server)
         return self.up_command(clim, cmd)
 
-    def up_command(self, clim, cmd):
-        #print 'up_command', cmd
-        cmd_type = cmd[0].upper()
+    def up_command(self, clim, orig_cmd):
+        #print 'up_command', orig_cmd
+        cmd = Rtp_proxy_cmd(orig_cmd)
+        #print cmd
         if len(self.active) == 0:
-            self.down_command('E999', clim, cmd_type)
+            self.down_command('E999', clim, cmd, None)
             return
-        if cmd_type in ('U', 'L', 'D', 'P', 'S', 'R', 'C', 'Q'):
-            command, call_id, args = cmd.split(None, 2)
-            print 'up', call_id, cmd
+        if cmd.type in ('U', 'L', 'D', 'P', 'S', 'R', 'C', 'Q'):
+            #print 'up', cmd.call_id, str(cmd)
             for rtpp in self.active:
-                if rtpp.isYours(call_id):
-                    if cmd_type == 'D':
-                        rtpp.unbind_session(call_id)
+                if rtpp.isYours(cmd.call_id):
+                    if cmd.type == 'D':
+                        rtpp.unbind_session(cmd.call_id)
                     break
             else:
                 rtpp = None
-            if rtpp == None and cmd_type == 'U' and len(args.split()) == 3:
+            if rtpp == None and cmd.type == 'U' and len(cmd.args.split()) == 3:
                 # New session
-                rtpp = self.pick_proxy(call_id)
-                rtpp.bind_session(call_id, cmd_type)
+                rtpp = self.pick_proxy(cmd.call_id)
+                rtpp.bind_session(cmd.call_id, cmd.type)
             elif rtpp == None:
                 # Existing session we know nothing about
-                if cmd_type == 'U':
+                if cmd.type == 'U':
                     # Do a forced lookup
-                    cmd = 'L%s %s' % (command[1:], call_id)
-                    u_args = args.split(None, 4)
+                    orig_cmd = 'L%s %s' % (cmd.ul_opts, cmd.call_id)
+                    u_args = cmd.args.split(None, 4)
                     from_tag = u_args[2]
                     u_args[2] = u_args[3]
                     u_args[3] = from_tag
                     if len(u_args) == 4:
-                        cmd += '%s %s %s %s' % tuple(u_args)
+                        orig_cmd += '%s %s %s %s' % tuple(u_args)
                     else:
-                        cmd += '%s %s %s %s %s' % tuple(u_args)
+                        orig_cmd += '%s %s %s %s %s' % tuple(u_args)
                 active = [x for x in self.active if x.online]
-                br = Broadcaster(len(active), clim, cmd_type, call_id)
+                br = Broadcaster(len(active), clim, cmd)
                 for rtpp in active:
-                    rtpp.send_command(cmd, self.merge_results, br, rtpp)
+                    rtpp.send_command(orig_cmd, self.merge_results, br, rtpp)
                 return
-        else:                
+        else:
             rtpp = self.active[0]
-            print 'up', cmd
-        rtpp.send_command(cmd, self.down_command, clim, cmd_type)
+            #print 'up', cmd
+        #print 'rtpp.send_command'
+        rtpp.send_command(orig_cmd, self.down_command, clim, cmd, rtpp)
 
-    def down_command(self, result, clim, cmd_type):
+    def down_command(self, result, clim, cmd, rtpp):
+        #print 'down', result
         if result == None:
             result = 'E999'
-        #elif cmd_type in ('U', 'L') and not result[0].upper() == 'E':
-        #    print 'down', result
-        #    result_parts = result.strip().split()
+        elif cmd.type in ('U', 'L') and not result[0].upper() == 'E':
+            #print 'down', cmd.ul_opts.destination_ip, rtpp.wan_address
+            if cmd.ul_opts.destination_ip != None and rtpp.wan_address != None:
+               if not is_dst_local(cmd.ul_opts.destination_ip):
+                   result_parts = result.strip().split()
+                   result = '%s %s' % (result_parts[0], rtpp.wan_address)
         #    result = '%s %s' % (result_parts[0], '192.168.1.22')
+        #print 'down clim.send', result
         clim.send(result + '\n')
         clim.close()
 
     def merge_results(self, result, br, rtpp):
         if br != None and not result[0].upper() == 'E' and not \
-          (br.cmd_type in ('U', 'L') and result == '0'):
+          (br.cmd.type in ('U', 'L') and result == '0'):
             br.results.append(result)
         br.bcount -= 1
         if br.bcount > 0:
             # More results to come
             return
         if len(br.results) == 1:
-            rtpp.bind_session(br.call_id, br.cmd_type)
-            self.down_command(br.results[0], br.clim, br.cmd_type)
+            rtpp.bind_session(br.cmd.call_id, br.cmd.type)
+            self.down_command(br.results[0], br.clim, br.cmd, rtpp)
         else:
             # No results or more than one proxy returns positive
             # XXX: more than one result can probably be handled
-            if br.cmd_type in ('U', 'L'):
-                self.down_command('0', br.clim, br.cmd_type)
+            if br.cmd.type in ('U', 'L'):
+                self.down_command('0', br.clim, br.cmd, rtpp)
             else:
-                self.down_command('E999', br.clim, br.cmd_type)
+                self.down_command('E999', br.clim, br.cmd, rtpp)
 
     def pick_proxy(self, call_id):
         active = list(self.active)
