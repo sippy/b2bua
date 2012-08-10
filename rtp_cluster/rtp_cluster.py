@@ -239,13 +239,17 @@ if __name__ == '__main__':
         opts, args = getopt.getopt(sys.argv[1:], 'fP:c:')
     except getopt.GetoptError:
         usage()
+
+    sip_logger = SipLogger('rtp_cluster')
+
+    sip_logger.write('Starting up...')
+
     foreground = False
     dsn = 'postgres://ser:secr3tpa33w0rD@/tmp/sippy'
     pidfile = '/var/run/rtp_cluster.pid'
     logfile = '/var/log/rtp_cluster.log'
     global_config['conffile'] = '/usr/local/etc/rtp_cluster.xml'
     global_config['_sip_address'] = MyAddress()
-    global_config['_sip_logger'] = SipLogger('rtp_cluster')
     for o, a in opts:
         if o == '-f':
             foreground = True
@@ -257,18 +261,32 @@ if __name__ == '__main__':
             global_config['conffile'] = a.strip()
             continue
 
+    sip_logger.write(' o reading config "%s"...' % \
+      global_config['conffile'])
+
     f = open(global_config['conffile'])
     config = read_cluster_config(global_config, f.read())
 
     if not foreground:
+        # Shut down the logger and reopen it again to make sure it's worker
+        # thread won't be affected by the fork()
+        sip_logger.shutdown()
         daemonize(logfile = logfile)
         file(pidfile, 'w').write(str(os.getpid()) + '\n')
+        sip_logger = SipLogger('rtp_cluster')
+
+    global_config['_sip_logger'] = sip_logger
+
+    sip_logger.write(' o initializing CLI...')
 
     cli = ClusterCLI(global_config)
+
     for c in config:
         #print 'Rtp_cluster', global_config, c['name'], c['address']
+        sip_logger.write(' o initializing cluster "%s" at <%s>' % (c['name'], c['address']))
         rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'])
         for rtpp_config in c['rtpproxies']:
+            sip_logger.write('  - adding RTPproxy member %s at <%s>' % (rtpp_config['name'], rtpp_config['address']))
             #Rtp_cluster_member('rtpproxy1', global_config, ('127.0.0.1', 22222))
             if rtpp_config['protocol'] not in ('unix', 'udp'):
                 raise Exception('Unsupported RTPproxy protocol: "%s"' % rtpp_config['protocol'])
@@ -288,5 +306,5 @@ if __name__ == '__main__':
             rtp_cluster.add_member(rtpp)
         cli.rtp_clusters.append(rtp_cluster)
     #rtp_cluster = Rtp_cluster(global_config, 'supercluster')
+    sip_logger.write('Initialization complete, have a good flight.')
     reactor.run(installSignalHandlers = True)
-
