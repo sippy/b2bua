@@ -126,7 +126,7 @@ class ValidateHandler(ContentHandler):
     def fatalError(self, exception):
         self.errors.append(exception)
 
-def read_cluster_config(config, debug = False):
+def read_cluster_config(global_config, config, debug = False):
     parsed_config = []
 
     parser = make_parser('xml.sax.drivers2.drv_xmlproc')
@@ -155,17 +155,15 @@ def read_cluster_config(config, debug = False):
     if h.warnings:
         for warning in h.warnings:
             if debug:
-                print 'warning: %s' % str(warning)
+                global_config['_sip_logger'].write('read_cluster_config:warning: %s' % str(warning))
 
     if h.errors:
         for error in h.errors:
-            if debug:
-                print 'error: %s' % str(error)
+            global_config['_sip_logger'].write('read_cluster_config:error: %s' % str(error))
         raise Exception('validation failed')
 
     if debug:
-        print 'Parsed:'
-        print parsed_config[0]['rtpproxies'][0]
+        global_config['_sip_logger'].write('Parsed:\n%s' % parsed_config[0]['rtpproxies'][0])
     return parsed_config
 
 def gen_cluster_config(config):
@@ -175,18 +173,23 @@ def gen_cluster_config(config):
         xml += '  <rtp_cluster>\n'
         xml += '    <name>%s</name>\n' % escape(cluster['name'])
         xml += '    <protocol>%s</protocol>\n' % escape(cluster['protocol'])
-        xml += '    <address>%s</address>\n\n' % escape(cluster['address'])
+
+        address = cluster['address']
+        if cluster['protocol'] == 'udp':
+            xml += '    <address>%s:%d</address>\n\n' % (escape(address[0]), address[1])
+        else:
+            xml += '    <address>%s</address>\n\n' % escape(address)
 
         for proxy in cluster['rtpproxies']:
             xml += '    <rtpproxy>\n'
             xml += '      <name>%s</name>\n' % escape(proxy['name'])
             xml += '      <protocol>%s</protocol>\n' % escape(proxy['protocol'])
             xml += '      <address>%s</address>\n' % escape(proxy['address'])
-            if proxy['wan_address'] != None:
-                xml += '      <wan_address>%s</wan_address>\n' % escape(proxy['wan_address'])
             xml += '      <weight>%s</weight>\n' % escape(str(proxy['weight']))
             xml += '      <capacity>%s</capacity>\n' % escape(str(proxy['capacity']))
             xml += '      <status>%s</status>\n' % escape(proxy['status'])
+            if proxy.has_key('wan_address'):
+                xml += '      <wan_address>%s</wan_address>\n' % escape(proxy['wan_address'])
             xml += '    </rtpproxy>\n'
 
         xml += '  </rtp_cluster>\n\n'
@@ -196,18 +199,25 @@ def gen_cluster_config(config):
     return xml
 
 if __name__ == '__main__':
-    import sys
-    try:
-        print 'Reading config...'
-        f = open('rtp_cluster.xml')
-        config = read_cluster_config(f.read(), True)
+    import sys, traceback
 
-        print 'Generating config...'
+    sys.path.append('sippy')
+
+    from sippy.SipLogger import SipLogger
+
+    global_config = {}
+    global_config['_sip_logger'] = SipLogger('Rtp_cluster_config::selftest')
+    try:
+        global_config['_sip_logger'].write('Reading config...')
+        f = open('rtp_cluster.xml')
+        config = read_cluster_config(global_config, f.read(), True)
+
+        global_config['_sip_logger'].write('Generating config...')
         config = gen_cluster_config(config)
         
-        print 'Reading generated config...'
-        config = read_cluster_config(config, True)
+        global_config['_sip_logger'].write('Reading generated config...')
+        config = read_cluster_config(global_config, config, True)
         
     except Exception, detail:
-        print >> sys.stderr, 'error: %s' % detail
-
+        global_config['_sip_logger'].write('error: %s' % detail)
+        traceback.print_exc(file = sys.stderr)
