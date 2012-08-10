@@ -36,6 +36,8 @@ sys.path.append('sippy')
 
 from sippy.SipConf import MyAddress
 from sippy.Cli_server_local import Cli_server_local
+from sippy.SipLogger import SipLogger
+from sippy.misc import daemonize
 
 class ClusterCLI(object):
     ccm = None
@@ -176,7 +178,7 @@ class ClusterCLI(object):
             return False
         if cmd.startswith('reload'):
             f = open(self.global_config['conffile'])
-            config = read_cluster_config(f.read())
+            config = read_cluster_config(self.global_config, f.read())
             new_rtp_clusters = []
             new_rtpps_count = 0
             for c in config:
@@ -243,6 +245,7 @@ if __name__ == '__main__':
     logfile = '/var/log/rtp_cluster.log'
     global_config['conffile'] = '/usr/local/etc/rtp_cluster.xml'
     global_config['_sip_address'] = MyAddress()
+    global_config['_sip_logger'] = SipLogger('rtp_cluster')
     for o, a in opts:
         if o == '-f':
             foreground = True
@@ -255,25 +258,10 @@ if __name__ == '__main__':
             continue
 
     f = open(global_config['conffile'])
-    config = read_cluster_config(f.read())
+    config = read_cluster_config(global_config, f.read())
 
     if not foreground:
-        #print 'foobar'
-        # Fork once
-        if os.fork() != 0:
-            os._exit(0)
-        # Create new session
-        os.setsid()
-        if os.fork() != 0:
-            os._exit(0)
-        #os.chdir('/')
-        fd = os.open('/dev/null', os.O_RDONLY)
-        os.dup2(fd, sys.__stdin__.fileno())
-        os.close(fd)
-        fd = os.open(logfile, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-        os.dup2(fd, sys.__stdout__.fileno())
-        os.dup2(fd, sys.__stderr__.fileno())
-        os.close(fd)
+        daemonize(logfile = logfile)
         file(pidfile, 'w').write(str(os.getpid()) + '\n')
 
     cli = ClusterCLI(global_config)
