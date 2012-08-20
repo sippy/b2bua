@@ -1,0 +1,51 @@
+<rtp_cluster_config>
+
+  <rtp_cluster>
+    <name>Supercluster#1</name>
+    <protocol>UDP</protocol>
+    <address>192.168.222.1:44</address>
+
+    <rtpproxy>
+      <name>RTPPROXY1</name>
+      <protocol>UDP</protocol>
+      <address>192.168.222.1:4444</address>
+      <weight>100</weight>
+      <capacity>2500</capacity>
+      <status>ACTIVE</status>
+      <wan_address>1.2.3.4</wan_address>
+    </rtpproxy>
+
+    <rtpproxy>
+      <name>RTPPROXY2</name>
+      <protocol>UNIX</protocol>
+      <address>/var/run/pr2.sock</address>
+      <weight>3</weight>
+      <capacity>1500</capacity>
+      <status>SUSPENDED</status>
+    </rtpproxy>
+  </rtp_cluster>
+
+  <rtp_cluster>
+    <name>Supercluster#2</name>
+    <protocol>UNIX</protocol>
+    <address>/var/run/cl2.sock</address>
+
+    <rtpproxy>
+      <name>RTPPROXY1</name>
+      <protocol>UDP</protocol>
+      <address>192.168.222.1:4444</address>
+      <weight>100</weight>
+      <capacity>2500</capacity>
+      <status>ACTIVE</status>
+    </rtpproxy>
+    <rtpproxy>
+      <name>RTPPROXY2</name>
+      <protocol>UNIX</protocol>
+      <address>/var/run/pr2.sock</address>
+      <weight>80</weight>
+      <capacity>1500</capacity>
+      <status>SUSPENDED</status>
+    </rtpproxy>
+  </rtp_cluster>
+
+</rtp_cluster_config>

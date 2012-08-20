@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rtp_cluster_config [
+
+<!ELEMENT rtp_cluster_config (rtp_cluster+)>
+
+<!ELEMENT rtp_cluster (name, protocol, address, rtpproxy+)>
+
+<!ELEMENT rtpproxy (name, protocol, address, weight, capacity, status, wan_address?)>
+
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT protocol (#PCDATA)>
+<!ELEMENT address (#PCDATA)>
+<!ELEMENT weight (#PCDATA)>
+<!ELEMENT capacity (#PCDATA)>
+<!ELEMENT status (#PCDATA)>
+<!ELEMENT wan_address (#PCDATA)>
+
+]>

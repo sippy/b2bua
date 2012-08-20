@@ -1,0 +1,38 @@
+Sippy B2BUA is a RFC3261-compliant Session Initiation Protocol (SIP)
+Back-to-back user agent (B2BUA) server software. 
+
+The B2BUA is a SIP call controlling component. Unlike a SIP proxy server,
+which only maintains transaction state, the B2BUA maintains complete call
+state and participates in all call requests. For this reason it can perform
+number of functions that are not possible to implement using SIP proxy, such
+as for example accurate call accounting, pre-paid rating and billing, fail
+over call routing etc. Unlike PBX-type solutions such as Asterisk for example,
+the B2BUA doesn't perform any media relaying or processing, therefore it
+doesn't introduce any additional packet loss, delay or jitter into the
+media path. 
+
+Features:
+
+ o 5,000-10,000 simultaneous sessions per server;
+
+ o 150-200 call setups/tear-downs per second;
+
+ o Realtime calls control and call data records (CDRs) generation;
+
+ o Optional ability to use Sippy RTPproxy for media relaying;
+
+ o Optional ability to perform Cisco-compatible RADIUS AAA (Authentication,
+   Authorization and Accounting);
+
+ o RFC3261 compliance;
+
+ o Seamless compatibility with majority of popular SIP software and hardware on
+   the market today;
+
+ o Robustness and Resilience;
+
+ o Simple and clean, yet flexible, internal design making implementing new
+   features and services easy;
+
+ o B2BUA could be easily combined with other Open Source software, such as SIP
+   Express Router / OpenSIPS to build complete softswitch solution.

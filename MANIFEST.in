@@ -1,0 +1,3 @@
+include COPYING
+include README
+include sippy/dictionary
