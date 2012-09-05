@@ -207,6 +207,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.lSDP = body
             self.ua.tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.ua.recvResponse, \
               laddress = self.ua.source_address, cb_ifver = 2, compact = self.ua.compact_sip)
+            self.ua.tr.outbound_proxy = self.ua.outbound_proxy
             return (UacStateUpdating,)
         if isinstance(event, CCEventInfo):
             body = event.getData()
@@ -246,6 +247,7 @@ class UaStateConnected(UaStateGeneric):
         self.triedauth = False
         self.ka_tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.keepAliveResp, \
           laddress = self.ua.source_address, compact = self.ua.compact_sip)
+        self.ka_tr.outbound_proxy = self.ua.outbound_proxy
 
     def keepAliveResp(self, resp):
         if self.ua.state != self:
@@ -258,6 +260,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.lCSeq += 1
             self.ka_tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.keepAliveResp, \
               laddress = self.ua.source_address, compact = self.ua.compact_sip)
+            self.ka_tr.outbound_proxy = self.ua.outbound_proxy
             self.triedauth = True
             return
         if code == 407 and resp.countHFs('proxy-authenticate') != 0 and \
@@ -267,6 +270,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.lCSeq += 1
             self.ka_tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.keepAliveResp, \
               laddress = self.ua.source_address, compact = self.ua.compact_sip)
+            self.ka_tr.outbound_proxy = self.ua.outbound_proxy
             self.triedauth = True
             return
         if code < 200:

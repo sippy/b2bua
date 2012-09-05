@@ -75,6 +75,7 @@ class UacStateIdle(UaStateGeneric):
             self.ua.lCSeq += 1
             self.ua.tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.ua.recvResponse, \
               laddress = self.ua.source_address, cb_ifver = 2, compact = self.ua.compact_sip)
+            self.ua.tr.outbound_proxy = self.ua.outbound_proxy
             self.ua.auth = None
             if self.ua.expire_time != None:
                 self.ua.expire_mtime = event.rtime.getOffsetCopy(self.ua.expire_time)

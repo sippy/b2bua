@@ -71,6 +71,7 @@ class SipTransaction(object):
     address = None
     data = None
     checksum = None
+    outbound_proxy = None
     cb_ifver = None
     uack = False
     compact = False
@@ -455,6 +456,8 @@ class SipTransactionManager(object):
                                 rAddr = routes[0].getAddr()
                         elif rTarget != None:
                             rAddr = rTarget.getAddr()
+                        if t.outbound_proxy != None:
+                            rAddr = t.outbound_proxy
                         if rTarget != None:
                             t.ack.setRURI(rTarget)
                         if rAddr != None:

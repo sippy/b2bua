@@ -186,6 +186,7 @@ class UA(object):
         self.lCSeq += 1
         self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
           laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
+        self.tr.outbound_proxy = self.outbound_proxy
         del self.reqs[cseq]
         return True
 
