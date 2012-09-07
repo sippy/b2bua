@@ -11,7 +11,6 @@ struct lthread
 {
     struct lthread_args args;
     pthread_t rx_thread;
-    struct lthread *prev;
     struct lthread *next;
     int status;
 };
@@ -45,8 +44,6 @@ lthread_mgr_run(struct lthread_args *args)
     pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
     lthread->args.inpacket_queue = args->inpacket_queue;
-    lthread->args.listen_addr = args->listen_addr;
-    lthread->args.listen_port = args->listen_port;
     lthread->args.recvonly = 1;
 
     i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
@@ -69,7 +66,7 @@ lthread_mgr_run(struct lthread_args *args)
                 continue;
             }
             memset(lthread, '\0', sizeof(*lthread));
-            lthread->args.listen_addr = OUTP(wi).local_addr;
+            lthread->args.listen_addr = strdup(OUTP(wi).local_addr);
             lthread->args.listen_port = OUTP(wi).local_port;
             if (lthread_sock_prepare(&lthread->args) != 0) {
                 fprintf(stderr, "lthread_sock_prepare(-1)\n");
@@ -82,6 +79,8 @@ lthread_mgr_run(struct lthread_args *args)
             lthread->args.inpacket_queue = args->inpacket_queue;
 
             i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
+            lthread->next = lthread_head;
+            lthread_head = lthread;
         }
         queue_put_item(wi, &lthread->args.outpacket_queue);
     }
