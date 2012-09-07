@@ -9,7 +9,7 @@ WARNS?=	2
 LOCALBASE?=	/usr/local
 BINDIR?=	${LOCALBASE}/bin
 
-CFLAGS+=	
-LDADD+=	-lpthread
+CFLAGS=	-g3 -O0 -Wall -I${LOCALBASE}/include
+LDADD+=	-lpthread -L${LOCALBASE}/lib -liksemel
 
 .include <bsd.prog.mk>
