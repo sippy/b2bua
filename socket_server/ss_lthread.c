@@ -52,11 +52,14 @@ lthread_mgr_run(struct lthread_args *args)
     for (;;) {
         wi = queue_get_item(&args->outpacket_queue);
         for (lthread = lthread_head; lthread != NULL; lthread = lthread->next) {
-            if (lthread->args.inpacket_queue == args->inpacket_queue)
+            if (lthread->args.recvonly != 0)
                 continue;
+            printf("lp: %d, la: %s\n", lthread->args.listen_port,
+              lthread->args.listen_addr);
             if (lthread->args.listen_port != OUTP(wi).local_port ||
               strcmp(lthread->args.listen_addr, OUTP(wi).local_addr) != 0)
                 continue;
+            break;
         }
         if (lthread == NULL) {
             lthread = malloc(sizeof(*lthread));
