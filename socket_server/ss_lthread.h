@@ -3,19 +3,22 @@
 
 #include <pthread.h>
 
+struct queue
+{
+    struct wi *head;
+    struct wi *tail;
+    pthread_cond_t cond;
+    pthread_mutex_t mutex;
+};
+
 struct lthread_args
 {
     char *listen_addr;
     int listen_port;
     int sock;
-    struct wi *inpacket_queue;
-    struct wi *inpacket_queue_tail;
-    pthread_cond_t inpacket_queue_cond;
-    pthread_mutex_t inpacket_queue_mutex;
-    struct wi *outpacket_queue;
-    struct wi *outpacket_queue_tail;
-    pthread_cond_t outpacket_queue_cond;
-    pthread_mutex_t outpacket_queue_mutex;
+    struct queue *inpacket_queue;
+    struct queue outpacket_queue;
+    int recvonly;
 };
 
 #define INP(xp) ((xp)->body.inp)
@@ -54,9 +57,10 @@ struct wi
     struct wi  *next;
 };
 
-void queue_put_item(struct wi *wi, struct wi **queue, struct wi **queue_tail,
-  pthread_mutex_t *queue_mutex, pthread_cond_t *queue_cond);
+void queue_put_item(struct wi *wi, struct queue *);
 struct wi *wi_malloc(enum wi_type type);
 void wi_free(struct wi *wi);
+void lthread_mgr_run(struct lthread_args *args);
+struct wi *queue_get_item(struct queue *queue);
 
 #endif

@@ -63,6 +63,7 @@ b2bua_acceptor_run(struct lthread_args *args)
 
     s = socket(AF_INET, SOCK_STREAM, 0);
     printf("socket(%d)\n", s);
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &s, sizeof s);
     n = bind(s, sstosa(&ia), SS_LEN(&ia));
     printf("bind(%d)\n", n);
     n = listen(s, 32);
@@ -152,18 +153,18 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
                 break;
         }
 
-        pthread_mutex_lock(&bargs->largs->inpacket_queue_mutex);
-        while (bargs->largs->inpacket_queue == NULL) {
-            pthread_cond_wait(&bargs->largs->inpacket_queue_cond,
-              &bargs->largs->inpacket_queue_mutex);
+        pthread_mutex_lock(&bargs->largs->inpacket_queue->mutex);
+        while (bargs->largs->inpacket_queue->head == NULL) {
+            pthread_cond_wait(&bargs->largs->inpacket_queue->cond,
+              &bargs->largs->inpacket_queue->mutex);
             if (b2bua_xchg_getstatus(bargs) != B2BUA_XCHG_RUNS) {
-                pthread_mutex_unlock(&bargs->largs->inpacket_queue_mutex);
+                pthread_mutex_unlock(&bargs->largs->inpacket_queue->mutex);
                 return;
             }
         }
-        wi = bargs->largs->inpacket_queue;
-        bargs->largs->inpacket_queue = wi->next;
-        pthread_mutex_unlock(&bargs->largs->inpacket_queue_mutex);
+        wi = bargs->largs->inpacket_queue->head;
+        bargs->largs->inpacket_queue->head = wi->next;
+        pthread_mutex_unlock(&bargs->largs->inpacket_queue->mutex);
         printf("incoming size=%d, from=%s:%d, to=%s\n", INP(wi).rsize,
           INP(wi).remote_addr, INP(wi).remote_port, INP(wi).local_addr);
 
@@ -207,6 +208,8 @@ wi_free(struct wi *wi)
             free(OUTP(wi).remote_addr);
         if (OUTP(wi).remote_port != NULL)
             free(OUTP(wi).remote_port);
+        if (OUTP(wi).local_addr != NULL)
+            free(OUTP(wi).local_addr);
         break;
 
     case WI_INPACKET:
@@ -248,6 +251,10 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
                     OUTP(wi).remote_addr = strdup(iks_cdata(y));
                 } else if (strcmp("dst_port", iks_name(y)) == 0) {
                     OUTP(wi).remote_port = strdup(iks_cdata(y));
+                } else if (strcmp("src_addr", iks_name(y)) == 0) {
+                    OUTP(wi).local_addr = strdup(iks_cdata(y));
+                } else if (strcmp("src_port", iks_name(y)) == 0) {
+                    OUTP(wi).local_port = strtol(iks_cdata(y), (char **)NULL, 10);
                 } else if (strcmp("msg", iks_name(y)) == 0) {
                     OUTP(wi).ssize = b64_pton(iks_cdata(y), b64_databuf, sizeof(b64_databuf));
                     if (OUTP(wi).ssize <= 0) {
@@ -272,8 +279,18 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
                 wi_free(wi);
                 return IKS_BADXML;
             }
+            if (OUTP(wi).local_addr == NULL) {
+                fprintf(stderr, "'src_addr' attribute is missing\n");
+                wi_free(wi);
+                return IKS_BADXML;
+            }
             if (OUTP(wi).remote_port == NULL) {
                 fprintf(stderr, "'dst_port' attribute is missing\n");
+                wi_free(wi);
+                return IKS_BADXML;
+            }
+            if (OUTP(wi).local_port <= 0) {
+                fprintf(stderr, "'src_port' attribute is missing\n");
                 wi_free(wi);
                 return IKS_BADXML;
             }
@@ -282,9 +299,7 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
                 wi_free(wi);
                 return IKS_BADXML;
             }
-            queue_put_item(wi, &(bargs->largs->outpacket_queue), &(bargs->largs->outpacket_queue_tail),
-              &(bargs->largs->outpacket_queue_mutex), &(bargs->largs->outpacket_queue_cond));
-
+            queue_put_item(wi, &bargs->largs->outpacket_queue);
         }
         break;
 
@@ -321,9 +336,9 @@ b2bua_xchg_rx(struct b2bua_xchg_args *bargs)
             printf("b2bua_xchg_rx: socket gone\n");
             if (b2bua_xchg_getstatus(bargs) == B2BUA_XCHG_RUNS) {
                 b2bua_xchg_setstatus(bargs, B2BUA_XCHG_DEAD);
-                pthread_mutex_lock(&bargs->largs->inpacket_queue_mutex);
-                pthread_cond_broadcast(&bargs->largs->inpacket_queue_cond);
-                pthread_mutex_unlock(&bargs->largs->inpacket_queue_mutex);
+                pthread_mutex_lock(&bargs->largs->inpacket_queue->mutex);
+                pthread_cond_broadcast(&bargs->largs->inpacket_queue->cond);
+                pthread_mutex_unlock(&bargs->largs->inpacket_queue->mutex);
                 shutdown(bargs->socket, SHUT_RDWR);
             }
             pthread_join(tx_thread, NULL);
