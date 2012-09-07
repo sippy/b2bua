@@ -40,9 +40,11 @@ static int
 lthread_sock_prepare(struct lthread_args *args)
 {
     struct sockaddr_storage ia;
+    char listen_port[10];
     int n;
 
-    n = resolve(sstosa(&ia), AF_INET, args->listen_addr, "5060", AI_PASSIVE);
+    sprintf(listen_port, "%d", args->listen_port);
+    n = resolve(sstosa(&ia), AF_INET, args->listen_addr, listen_port, AI_PASSIVE);
     if (n != 0)
         return -1;
     args->sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -152,7 +154,7 @@ main(int argc, char **argv)
     pthread_cond_init(&args.outpacket_queue_cond, NULL);
     pthread_mutex_init(&args.outpacket_queue_mutex, NULL);
     args.listen_addr = "0.0.0.0";
-    args.listen_port = 5060;
+    args.listen_port = 5090;
     if (lthread_sock_prepare(&args) != 0) {
         fprintf(stderr, "lthread_sock_prepare(-1)\n");
         exit(1);
