@@ -1,6 +1,8 @@
 <?xml version='1.0'?>
 <stream:stream>
 
+  <b2bua_slot id="5061"/>
+
   <outgoing_packet
         dst_addr="1.2.3.4"
         dst_port="5060"
