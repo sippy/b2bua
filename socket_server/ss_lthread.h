@@ -16,9 +16,9 @@ struct lthread_args
     char *listen_addr;
     int listen_port;
     int sock;
-    struct queue *inpacket_queue;
     struct queue outpacket_queue;
     int recvonly;
+    struct b2bua_slot *bslots;
 };
 
 #define INP(xp) ((xp)->body.inp)

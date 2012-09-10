@@ -57,20 +57,25 @@ main(int argc, char **argv)
     pthread_t lthreads[10];
     int i;
     struct lthread_args args;
+    struct b2bua_slot *bslot;
 
     bzero(lthreads, sizeof(*lthreads));
     memset(&args, '\0', sizeof(args));
     pthread_cond_init(&args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&args.outpacket_queue.mutex, NULL);
-    args.inpacket_queue = malloc(sizeof(*args.inpacket_queue));
-    if (args.inpacket_queue == NULL) {
-        fprintf(stderr, "out of mem\n");
-        exit(1);
-    }
-    pthread_cond_init(&args.inpacket_queue->cond, NULL);
-    pthread_mutex_init(&args.inpacket_queue->mutex, NULL);
+    bslot = malloc(sizeof(*bslot));
+    memset(bslot, '\0', sizeof(*bslot));
+    bslot->id = 5061;
+    pthread_cond_init(&bslot->inpacket_queue.cond, NULL);
+    pthread_mutex_init(&bslot->inpacket_queue.mutex, NULL);
+    bslot->next = malloc(sizeof(*bslot));
+    memset(bslot->next, '\0', sizeof(*bslot));
+    bslot->next->id = 5067;
+    pthread_cond_init(&bslot->next->inpacket_queue.cond, NULL);
+    pthread_mutex_init(&bslot->next->inpacket_queue.mutex, NULL);
     args.listen_addr = "0.0.0.0";
     args.listen_port = 5060;
+    args.bslots = bslot;
     i = pthread_create(&(lthreads[0]), NULL, (void *(*)(void *))&lthread_mgr_run, &args);
     printf("%d\n", i);
     i = pthread_create(&(lthreads[1]), NULL, (void *(*)(void *))&b2bua_acceptor_run, &args);

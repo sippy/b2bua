@@ -1,11 +1,14 @@
+#include <ctype.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "b2bua_socket.h"
 #include "ss_lthread.h"
 #include "ss_network.h"
+#include "ss_util.h"
 
 struct lthread
 {
@@ -43,8 +46,8 @@ lthread_mgr_run(struct lthread_args *args)
     }
     pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
-    lthread->args.inpacket_queue = args->inpacket_queue;
     lthread->args.recvonly = 1;
+    lthread->args.bslots = args->bslots;
 
     i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
     printf("%d\n", i);
@@ -79,13 +82,49 @@ lthread_mgr_run(struct lthread_args *args)
             }
             pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
             pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
-            lthread->args.inpacket_queue = args->inpacket_queue;
 
             i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
             lthread->next = lthread_head;
             lthread_head = lthread;
         }
         queue_put_item(wi, &lthread->args.outpacket_queue);
+    }
+}
+
+static int
+extract_call_id(const char *buf, str *call_id)
+{
+    const char *cp, *cp1;
+    int len;
+
+    for (cp = buf;;) {
+        cp1 = strcasestr(cp, "call-id:");
+        if (cp1 == NULL) {
+            cp = strcasestr(cp, "i:");
+            if (cp == NULL)
+                return -1;
+            len = 2;
+        } else {
+            cp = cp1;
+            len = 8;
+        }
+        if (cp > buf && cp[-1] != '\n' && cp[-1] != '\r') {
+            cp += len;
+            continue;
+        }
+        call_id->s = (char *)cp + len;
+        while (call_id->s[0] != '\0' && call_id->s[0] != '\r' &&
+          call_id->s[0] != '\n' && isspace(call_id->s[0]))
+            call_id->s++;
+        if (call_id->s[0] == '\0' || call_id->s[0] == '\r' || call_id->s[0] == '\n')
+            return -1;
+        call_id->len = 0;
+        while (call_id->s[call_id->len] != '\0' && call_id->s[call_id->len] != '\r' &&
+          call_id->s[call_id->len] != '\n' && !isspace(call_id->s[call_id->len]))
+            call_id->len++;
+        if (call_id->len == 0)
+            return -1;
+        return 0;
     }
 }
 
@@ -120,6 +159,8 @@ lthread_rx(struct lthread_args *args)
     struct sockaddr_storage ia, la;
     struct wi *wi;
     pthread_t tx_thread;
+    str call_id;
+    struct b2bua_slot *bslot;
 
     if (args->recvonly == 0)
         n = pthread_create(&tx_thread, NULL, (void *(*)(void *))&lthread_tx, args);
@@ -137,8 +178,15 @@ lthread_rx(struct lthread_args *args)
             continue;
         }
         ralen = sizeof(ia);
-        INP(wi).rsize = recvfrom(args->sock, INP(wi).databuf, rsize, 0, sstosa(&ia), &ralen);
+        INP(wi).rsize = recvfrom(args->sock, INP(wi).databuf, rsize - 1, 0, sstosa(&ia), &ralen);
         INP(wi).dtime = getdtime();
+        INP(wi).databuf[INP(wi).rsize] = '\0';
+        if (extract_call_id(INP(wi).databuf, &call_id) != 0) {
+            fprintf(stderr, "can't extract Call-ID\n\n");
+            wi_free(wi);
+            continue;
+        }
+        bslot = b2bua_getslot(args->bslots, &call_id);
         INP(wi).remote_addr = malloc(256);
         if (INP(wi).remote_addr == NULL) {
             fprintf(stderr, "out of mem\n");
@@ -156,7 +204,7 @@ lthread_rx(struct lthread_args *args)
         n = local4remote(sstosa(&ia), &la);
         addr2char_r(sstosa(&la), INP(wi).local_addr, 256);
         INP(wi).local_port = args->listen_port;
-        queue_put_item(wi, args->inpacket_queue);
+        queue_put_item(wi, &bslot->inpacket_queue);
     }
 }
 

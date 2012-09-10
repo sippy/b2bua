@@ -14,14 +14,23 @@
 
 #include "iksemel.h"
 
+#include "b2bua_socket.h"
 #include "ss_network.h"
 #include "ss_lthread.h"
+#include "ss_util.h"
 
 struct b2bua_xchg_args {
     int socket;
     struct lthread_args *largs;
     pthread_mutex_t status_mutex;
     int status;
+    struct b2bua_slot *bslots;
+    /*
+     * The variables below should only be accessed from the
+     * worker (rx) thread.
+     */
+    struct queue *inpacket_queue;
+    pthread_t tx_thread;
     /*
      * The variables below can be modified/accessed from the parent
      * thread only (b2bua_acceptor_run).
@@ -36,6 +45,37 @@ struct b2bua_xchg_args {
 
 static void b2bua_xchg_tx(struct b2bua_xchg_args *);
 static void b2bua_xchg_rx(struct b2bua_xchg_args *);
+
+struct b2bua_slot *
+b2bua_getslot(struct b2bua_slot *bslots, str *call_id)
+{
+    struct b2bua_slot *bslot;
+    int nslots, slotnum;
+    uint32_t crc;
+
+    nslots = 0;
+    for (bslot = bslots; bslot != NULL; bslot = bslot->next) {
+        nslots += 1;
+    }
+    crc = ss_crc32(call_id->s, call_id->len);
+    slotnum = crc % nslots;
+    for (bslot = bslots; slotnum > 0; slotnum--) {
+        bslot = bslot->next;
+    }
+    return bslot;
+}
+
+struct b2bua_slot *
+b2bua_getslot_by_id(struct b2bua_slot *bslots, int id)
+{
+    struct b2bua_slot *bslot;
+
+    for (bslot = bslots; bslot != NULL; bslot = bslot->next) {
+        if (bslot->id == id)
+            return bslot;
+    }
+    return NULL;
+}
 
 static int
 b2bua_xchg_getstatus(struct b2bua_xchg_args *bargs)
@@ -93,9 +133,11 @@ b2bua_acceptor_run(struct lthread_args *args)
             close(n);
             continue;
         }
+        memset(bargs, '\0', sizeof(*bargs));
         bargs->largs = args;
         bargs->socket = n;
         bargs->status = B2BUA_XCHG_RUNS;
+        bargs->bslots = args->bslots;
         pthread_mutex_init(&(bargs->status_mutex), NULL);
         n = pthread_create(&bargs->rx_thread, NULL, (void *(*)(void *))&b2bua_xchg_rx, bargs);
         if (n != 0) {
@@ -153,18 +195,18 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
                 break;
         }
 
-        pthread_mutex_lock(&bargs->largs->inpacket_queue->mutex);
-        while (bargs->largs->inpacket_queue->head == NULL) {
-            pthread_cond_wait(&bargs->largs->inpacket_queue->cond,
-              &bargs->largs->inpacket_queue->mutex);
+        pthread_mutex_lock(&bargs->inpacket_queue->mutex);
+        while (bargs->inpacket_queue->head == NULL) {
+            pthread_cond_wait(&bargs->inpacket_queue->cond,
+              &bargs->inpacket_queue->mutex);
             if (b2bua_xchg_getstatus(bargs) != B2BUA_XCHG_RUNS) {
-                pthread_mutex_unlock(&bargs->largs->inpacket_queue->mutex);
+                pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
                 return;
             }
         }
-        wi = bargs->largs->inpacket_queue->head;
-        bargs->largs->inpacket_queue->head = wi->next;
-        pthread_mutex_unlock(&bargs->largs->inpacket_queue->mutex);
+        wi = bargs->inpacket_queue->head;
+        bargs->inpacket_queue->head = wi->next;
+        pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
         printf("incoming size=%d, from=%s:%d, to=%s\n", INP(wi).rsize,
           INP(wi).remote_addr, INP(wi).remote_port, INP(wi).local_addr);
 
@@ -234,6 +276,8 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
     iks *y;
     struct wi *wi;
     char b64_databuf[8 * 1024];
+    int id, i;
+    struct b2bua_slot *bslot;
 
     switch(type) {
     case IKS_NODE_START:
@@ -300,7 +344,24 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
                 return IKS_BADXML;
             }
             queue_put_item(wi, &bargs->largs->outpacket_queue);
+        } else if (iks_type(node) == IKS_TAG && strcmp("b2bua_slot", iks_name(node)) == 0) {
+            if (bargs->inpacket_queue != NULL) {
+                fprintf(stderr, "slot is already assigned\n");
+                return IKS_OK;
+            }
+            y = iks_attrib(node);
+            if (strcmp("id", iks_name(y)) != 0)
+                return IKS_BADXML;
+            id = strtol(iks_cdata(y), (char **)NULL, 10);
+            bslot = b2bua_getslot_by_id(bargs->bslots, id);
+            if (bslot == NULL) {
+                 fprintf(stderr, "unknown slot id=%d\n", id);
+                 return IKS_OK;
+            }
+            bargs->inpacket_queue = &bslot->inpacket_queue;
+            i = pthread_create(&bargs->tx_thread, NULL, (void *(*)(void *))&b2bua_xchg_tx, bargs);
         }
+
         break;
 
     case IKS_NODE_STOP:
@@ -317,13 +378,10 @@ b2bua_xchg_rx(struct b2bua_xchg_args *bargs)
     int i;
     iksparser *p;
     enum iksneterror recv_stat;
-    pthread_t tx_thread;
 
     p = iks_stream_new("b2bua:socket_server", (void *)bargs, (iksStreamHook *)b2bua_xchg_in_stream);
     i = iks_connect_fd(p, bargs->socket);
     printf("iks_connect_fd(%d)\n", i);
-
-    i = pthread_create(&tx_thread, NULL, (void *(*)(void *))&b2bua_xchg_tx, bargs);
 
     for (;;) {
         recv_stat = iks_recv(p, -1);
@@ -336,12 +394,16 @@ b2bua_xchg_rx(struct b2bua_xchg_args *bargs)
             printf("b2bua_xchg_rx: socket gone\n");
             if (b2bua_xchg_getstatus(bargs) == B2BUA_XCHG_RUNS) {
                 b2bua_xchg_setstatus(bargs, B2BUA_XCHG_DEAD);
-                pthread_mutex_lock(&bargs->largs->inpacket_queue->mutex);
-                pthread_cond_broadcast(&bargs->largs->inpacket_queue->cond);
-                pthread_mutex_unlock(&bargs->largs->inpacket_queue->mutex);
+                if (bargs->inpacket_queue != NULL) {
+                    pthread_mutex_lock(&bargs->inpacket_queue->mutex);
+                    pthread_cond_broadcast(&bargs->inpacket_queue->cond);
+                    pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
+                }
                 shutdown(bargs->socket, SHUT_RDWR);
             }
-            pthread_join(tx_thread, NULL);
+            if (bargs->inpacket_queue != NULL) {
+                pthread_join(bargs->tx_thread, NULL);
+            }
             close(bargs->socket);
             printf("b2bua_xchg_rx: socket gone 1\n");
             return;
