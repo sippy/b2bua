@@ -82,6 +82,7 @@ lthread_mgr_run(struct lthread_args *args)
             }
             pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
             pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
+            lthread->args.bslots = args->bslots;
 
             i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
             lthread->next = lthread_head;
