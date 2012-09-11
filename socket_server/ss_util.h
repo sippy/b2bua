@@ -1,6 +1,9 @@
 #ifndef _SS_UTIL_H_
 #define _SS_UTIL_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 struct str
 {
     int len;

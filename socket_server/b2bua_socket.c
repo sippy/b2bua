@@ -43,6 +43,10 @@ struct b2bua_xchg_args {
 #define B2BUA_XCHG_RUNS 0
 #define B2BUA_XCHG_DEAD -1
 
+#if !defined(INFTIM)
+#define INFTIM (-1)
+#endif
+
 static void b2bua_xchg_tx(struct b2bua_xchg_args *);
 static void b2bua_xchg_rx(struct b2bua_xchg_args *);
 
