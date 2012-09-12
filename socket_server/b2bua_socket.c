@@ -188,7 +188,9 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
             if (i < 0 && errno == EINTR)
                 continue;
             if (i < 0 || pfds[0].revents & (POLLNVAL | POLLHUP)) {
-                /*printf("b2bua_xchg_tx: socket gone\n");*/
+#ifdef DEBUG
+                printf("b2bua_xchg_tx: socket gone\n");
+#endif
                 if (b2bua_xchg_getstatus(bargs) == B2BUA_XCHG_RUNS) {
                     b2bua_xchg_setstatus(bargs, B2BUA_XCHG_DEAD);
                     shutdown(bargs->socket, SHUT_RDWR);
@@ -211,10 +213,12 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
         wi = bargs->inpacket_queue->head;
         bargs->inpacket_queue->head = wi->next;
         pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
+#ifdef DEBUG
         printf("incoming size=%d, from=%s:%d, to=%s\n", INP(wi).rsize,
           INP(wi).remote_addr, INP(wi).remote_port, INP(wi).local_addr);
 
         printf("b2bua_xchg_tx, POLLOUT\n");
+#endif
         i = b64_ntop(INP(wi).databuf, INP(wi).rsize, b64_databuf, sizeof(b64_databuf));
         dprintf(bargs->socket, "  <incoming_packet\n" \
           "   src_addr=\"%s\"\n" \
@@ -289,7 +293,9 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
 
     case IKS_NODE_NORMAL:
         if (iks_type(node) == IKS_TAG && strcmp("outgoing_packet", iks_name(node)) == 0) {
+#ifdef DEBUG
             printf ("Recvd : %s\n", iks_string(iks_stack(node), node));
+#endif
             wi = wi_malloc(WI_OUTPACKET);
             if (wi == NULL)
                 return IKS_NOMEM;

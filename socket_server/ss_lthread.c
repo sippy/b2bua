@@ -57,8 +57,6 @@ lthread_mgr_run(struct lthread_args *args)
         for (lthread = lthread_head; lthread != NULL; lthread = lthread->next) {
             if (lthread->args.recvonly != 0)
                 continue;
-            printf("lp: %d, la: %s\n", lthread->args.listen_port,
-              lthread->args.listen_addr);
             if (lthread->args.listen_port != OUTP(wi).local_port ||
               strcmp(lthread->args.listen_addr, OUTP(wi).local_addr) != 0)
                 continue;
@@ -91,6 +89,8 @@ lthread_mgr_run(struct lthread_args *args)
         queue_put_item(wi, &lthread->args.outpacket_queue);
     }
 }
+
+extern char *strcasestr (__const char *__haystack, __const char *__needle);
 
 static int
 extract_call_id(const char *buf, str *call_id)
@@ -180,10 +180,15 @@ lthread_rx(struct lthread_args *args)
         }
         ralen = sizeof(ia);
         INP(wi).rsize = recvfrom(args->sock, INP(wi).databuf, rsize - 1, 0, sstosa(&ia), &ralen);
+        if (INP(wi).rsize < 128) {
+            wi_free(wi);
+            /* Message is too short, just drop it already */
+            continue;
+        }
         INP(wi).dtime = getdtime();
         INP(wi).databuf[INP(wi).rsize] = '\0';
         if (extract_call_id(INP(wi).databuf, &call_id) != 0) {
-            fprintf(stderr, "can't extract Call-ID\n\n");
+            fprintf(stderr, "can't extract Call-ID\n%d\n", INP(wi).rsize);
             wi_free(wi);
             continue;
         }
@@ -219,8 +224,10 @@ lthread_tx(struct lthread_args *args)
     for (;;) {
         wi = queue_get_item(&args->outpacket_queue);
 
+#ifdef DEBUG
         printf("lthread_tx: outgoing packet to %s:%s, size %d\n",
           OUTP(wi).remote_addr, OUTP(wi).remote_port, OUTP(wi).ssize);
+#endif
 
         n = resolve(sstosa(&ia), AF_INET, OUTP(wi).remote_addr, OUTP(wi).remote_port, AI_PASSIVE);
         if (n != 0) {
@@ -229,7 +236,9 @@ lthread_tx(struct lthread_args *args)
         }
         n = sendto(args->sock, OUTP(wi).databuf, OUTP(wi).ssize, 0,
           sstosa(&ia), SS_LEN(&ia));
+#ifdef DEBUG
         printf("lthread_tx: sendto(%d)\n", n);
+#endif
         wi_free(wi);
    }
 }
