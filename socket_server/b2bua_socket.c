@@ -167,60 +167,31 @@ b2bua_xchg_setstatus(struct b2bua_xchg_args *bargs, int status)
     pthread_mutex_unlock(&bargs->status_mutex);
 }
 
+#define XMPP_PROLOGUE "<?xml version='1.0'?>\n <stream:stream>\n"
+
 static void
 b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
 {
-    struct pollfd pfds[1];
-    int i;
+    int i, buflen;
     struct wi *wi;
-    char b64_databuf[8 * 1024];
+    char b64_databuf[8 * 1024], *outbuf;
 
-    dprintf(bargs->socket, "<?xml version='1.0'?>\n <stream:stream>\n");
-    pfds[0].fd = bargs->socket;
+    send(bargs->socket, XMPP_PROLOGUE, sizeof(XMPP_PROLOGUE) - 1, 0);
     for (;;) {
-        for (;;) {
-            pfds[0].events = POLLOUT;
-            pfds[0].revents = 0;
-
-            i = poll(pfds, 1, INFTIM);
-            if (i == 0)
-                continue;
-            if (i < 0 && errno == EINTR)
-                continue;
-            if (i < 0 || pfds[0].revents & (POLLNVAL | POLLHUP)) {
-#ifdef DEBUG
-                printf("b2bua_xchg_tx: socket gone\n");
-#endif
-                if (b2bua_xchg_getstatus(bargs) == B2BUA_XCHG_RUNS) {
-                    b2bua_xchg_setstatus(bargs, B2BUA_XCHG_DEAD);
-                    shutdown(bargs->socket, SHUT_RDWR);
-                }
-                return;
-            }
-            if ((pfds[0].revents & POLLOUT) != 0)
-                break;
-        }
-
-        pthread_mutex_lock(&bargs->inpacket_queue->mutex);
-        while (bargs->inpacket_queue->head == NULL) {
-            pthread_cond_wait(&bargs->inpacket_queue->cond,
-              &bargs->inpacket_queue->mutex);
+        wi = queue_get_item(bargs->inpacket_queue, 1);
+        if (wi == NULL) {
             if (b2bua_xchg_getstatus(bargs) != B2BUA_XCHG_RUNS) {
-                pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
                 return;
             }
+            continue;
         }
-        wi = bargs->inpacket_queue->head;
-        bargs->inpacket_queue->head = wi->next;
-        pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
 #ifdef DEBUG
         printf("incoming size=%d, from=%s:%d, to=%s\n", INP(wi).rsize,
           INP(wi).remote_addr, INP(wi).remote_port, INP(wi).local_addr);
-
-        printf("b2bua_xchg_tx, POLLOUT\n");
 #endif
+
         i = b64_ntop(INP(wi).databuf, INP(wi).rsize, b64_databuf, sizeof(b64_databuf));
-        dprintf(bargs->socket, "  <incoming_packet\n" \
+        buflen = asprintf(&outbuf, "  <incoming_packet\n" \
           "   src_addr=\"%s\"\n" \
           "   src_port=\"%d\"\n" \
           "   dst_addr=\"%s\"\n" \
@@ -229,6 +200,16 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
           "   msg=\"%.*s\"\n" \
           "  />\n", INP(wi).remote_addr, INP(wi).remote_port, INP(wi).local_addr, INP(wi).local_port, \
           INP(wi).dtime, i, b64_databuf);
+        i = send(bargs->socket, outbuf, buflen, 0);
+        free(outbuf);
+        if (i < 0) {
+            if (b2bua_xchg_getstatus(bargs) == B2BUA_XCHG_RUNS) {
+                b2bua_xchg_setstatus(bargs, B2BUA_XCHG_DEAD);
+                shutdown(bargs->socket, SHUT_RDWR);
+            }
+            queue_put_item(wi, bargs->inpacket_queue);
+            return;
+        }
         wi_free(wi);
     }
 }
@@ -297,8 +278,10 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
             printf ("Recvd : %s\n", iks_string(iks_stack(node), node));
 #endif
             wi = wi_malloc(WI_OUTPACKET);
-            if (wi == NULL)
+            if (wi == NULL) {
+                iks_delete(node);
                 return IKS_NOMEM;
+            }
             y = iks_attrib(node);
             while (y) {
                 if (strcmp("dst_addr", iks_name(y)) == 0) {
@@ -313,17 +296,20 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
                     OUTP(wi).ssize = b64_pton(iks_cdata(y), b64_databuf, sizeof(b64_databuf));
                     if (OUTP(wi).ssize <= 0) {
                         wi_free(wi);
+                        iks_delete(node);
                         return IKS_BADXML;
                     }
                     OUTP(wi).databuf = malloc(OUTP(wi).ssize);
                     if (OUTP(wi).databuf == NULL) {
                         wi_free(wi);
+                        iks_delete(node);
                         return IKS_NOMEM;
                     }
                     memcpy(OUTP(wi).databuf, b64_databuf, OUTP(wi).ssize);
                 } else {
                     fprintf(stderr, "unknown attribute: %s='%s'\n", iks_name(y), iks_cdata(y));
                     wi_free(wi);
+                    iks_delete(node);
                     return IKS_BADXML;
                 }
                 y = iks_next(y);
@@ -331,41 +317,50 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
             if (OUTP(wi).remote_addr == NULL) {
                 fprintf(stderr, "'dst_addr' attribute is missing\n");
                 wi_free(wi);
+                iks_delete(node);
                 return IKS_BADXML;
             }
             if (OUTP(wi).local_addr == NULL) {
                 fprintf(stderr, "'src_addr' attribute is missing\n");
                 wi_free(wi);
+                iks_delete(node);
                 return IKS_BADXML;
             }
             if (OUTP(wi).remote_port == NULL) {
                 fprintf(stderr, "'dst_port' attribute is missing\n");
                 wi_free(wi);
+                iks_delete(node);
                 return IKS_BADXML;
             }
             if (OUTP(wi).local_port <= 0) {
                 fprintf(stderr, "'src_port' attribute is missing\n");
                 wi_free(wi);
+                iks_delete(node);
                 return IKS_BADXML;
             }
             if (OUTP(wi).databuf == NULL) {
                 fprintf(stderr, "'msg' attribute is missing\n");
                 wi_free(wi);
+                iks_delete(node);
                 return IKS_BADXML;
             }
             queue_put_item(wi, &bargs->largs->outpacket_queue);
         } else if (iks_type(node) == IKS_TAG && strcmp("b2bua_slot", iks_name(node)) == 0) {
             if (bargs->inpacket_queue != NULL) {
                 fprintf(stderr, "slot is already assigned\n");
+                iks_delete(node);
                 return IKS_OK;
             }
             y = iks_attrib(node);
-            if (strcmp("id", iks_name(y)) != 0)
+            if (strcmp("id", iks_name(y)) != 0) {
+                iks_delete(node);
                 return IKS_BADXML;
+            }
             id = strtol(iks_cdata(y), (char **)NULL, 10);
             bslot = b2bua_getslot_by_id(bargs->bslots, id);
             if (bslot == NULL) {
                  fprintf(stderr, "unknown slot id=%d\n", id);
+                 iks_delete(node);
                  return IKS_OK;
             }
             bargs->inpacket_queue = &bslot->inpacket_queue;
@@ -378,6 +373,7 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
     default:
         break;
     }
+    iks_delete(node);
 
     return IKS_OK;
 }

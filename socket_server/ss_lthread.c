@@ -53,7 +53,7 @@ lthread_mgr_run(struct lthread_args *args)
     printf("%d\n", i);
     lthread_head = lthread;
     for (;;) {
-        wi = queue_get_item(&args->outpacket_queue);
+        wi = queue_get_item(&args->outpacket_queue, 0);
         for (lthread = lthread_head; lthread != NULL; lthread = lthread->next) {
             if (lthread->args.recvonly != 0)
                 continue;
@@ -222,7 +222,7 @@ lthread_tx(struct lthread_args *args)
     struct wi *wi;
 
     for (;;) {
-        wi = queue_get_item(&args->outpacket_queue);
+        wi = queue_get_item(&args->outpacket_queue, 0);
 
 #ifdef DEBUG
         printf("lthread_tx: outgoing packet to %s:%s, size %d\n",

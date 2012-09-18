@@ -28,6 +28,9 @@ queue_put_item(struct wi *wi, struct queue *queue)
         queue->tail->next = wi;
         queue->tail = wi;
     }
+    queue->length += 1;
+    if (queue->length > 99 && queue->length % 100 == 0)
+        fprintf(stderr, "queue(%p): length %d\n", queue, queue->length);
 
     /* notify worker thread */
     pthread_cond_signal(&queue->cond);
@@ -36,16 +39,23 @@ queue_put_item(struct wi *wi, struct queue *queue)
 }
 
 struct wi *
-queue_get_item(struct queue *queue)
+queue_get_item(struct queue *queue, int return_on_wake)
 {
     struct wi *wi;
 
     pthread_mutex_lock(&queue->mutex);
     while (queue->head == NULL) {
         pthread_cond_wait(&queue->cond, &queue->mutex);
+        if (queue->head == NULL && return_on_wake != 0) {
+            pthread_mutex_unlock(&queue->mutex);
+            return NULL;
+        }
     }
     wi = queue->head;
     queue->head = wi->next;
+    if (queue->head == NULL)
+        queue->tail = NULL;
+    queue->length -= 1;
     pthread_mutex_unlock(&queue->mutex);
 
     return wi;
