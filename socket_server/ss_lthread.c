@@ -46,7 +46,7 @@ lthread_mgr_run(struct lthread_args *args)
     }
     pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
-    lthread->args.recvonly = 1;
+    lthread->args.wildcard = 1;
     lthread->args.bslots = args->bslots;
 
     i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
@@ -55,7 +55,7 @@ lthread_mgr_run(struct lthread_args *args)
     for (;;) {
         wi = queue_get_item(&args->outpacket_queue, 0);
         for (lthread = lthread_head; lthread != NULL; lthread = lthread->next) {
-            if (lthread->args.recvonly != 0)
+            if (lthread->args.wildcard != 0)
                 continue;
             if (lthread->args.listen_port != OUTP(wi).local_port ||
               strcmp(lthread->args.listen_addr, OUTP(wi).local_addr) != 0)
@@ -164,7 +164,7 @@ lthread_rx(struct lthread_args *args)
     str call_id;
     struct b2bua_slot *bslot;
 
-    if (args->recvonly == 0)
+    if (args->wildcard == 0)
         n = pthread_create(&tx_thread, NULL, (void *(*)(void *))&lthread_tx, args);
     for (;;) {
         wi = wi_malloc(WI_INPACKET);
@@ -202,14 +202,20 @@ lthread_rx(struct lthread_args *args)
         }
         INP(wi).remote_port = ntohs(satosin(&ia)->sin_port);
         addr2char_r(sstosa(&ia), INP(wi).remote_addr, 256);
-        INP(wi).local_addr = malloc(256);
+        if (args->wildcard != 0) {
+            INP(wi).local_addr = malloc(256);
+            if (INP(wi).local_addr != NULL) {
+                n = local4remote(sstosa(&ia), &la);
+                addr2char_r(sstosa(&la), INP(wi).local_addr, 256);
+            }
+        } else {
+            INP(wi).local_addr = strdup(args->listen_addr);
+        }
         if (INP(wi).local_addr == NULL) {
             fprintf(stderr, "out of mem\n");
             wi_free(wi);
             continue;
         }
-        n = local4remote(sstosa(&ia), &la);
-        addr2char_r(sstosa(&la), INP(wi).local_addr, 256);
         INP(wi).local_port = args->listen_port;
         queue_put_item(wi, &bslot->inpacket_queue);
     }

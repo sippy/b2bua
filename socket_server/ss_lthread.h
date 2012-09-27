@@ -18,7 +18,7 @@ struct lthread_args
     int listen_port;
     int sock;
     struct queue outpacket_queue;
-    int recvonly;
+    int wildcard;
     struct b2bua_slot *bslots;
 };
 
