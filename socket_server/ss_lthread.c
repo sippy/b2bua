@@ -75,6 +75,7 @@ lthread_mgr_run(struct lthread_args *args)
             if (lthread_sock_prepare(&lthread->args) != 0) {
                 fprintf(stderr, "lthread_sock_prepare(-1)\n");
                 wi_free(wi);
+                free(lthread->args.listen_addr);
                 free(lthread);
                 continue;
             }
