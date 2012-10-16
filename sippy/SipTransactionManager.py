@@ -457,16 +457,14 @@ class SipTransactionManager(object):
                                 rAddr = routes[0].getAddr()
                         elif rTarget != None:
                             rAddr = rTarget.getAddr()
+                        if rTarget != None:
+                            t.ack.setRURI(rTarget)
                         if t.outbound_proxy != None:
-                            if rAddr != None:
+                            if rAddr != None and t.ack.getRURI().getAddr() != rAddr:
                                 for adr in (rAddr, t.outbound_proxy):
                                     routes.insert(0, SipRoute(address = SipAddress(url = SipURL(host = adr[0], \
                                       port = adr[1], lr = True))))
                             rAddr = t.outbound_proxy
-                        if rTarget != None:
-                            t.ack.setRURI(rTarget)
-                        if rAddr != None:
-                            t.ack.setTarget(rAddr)
                         t.ack.delHFs('route')
                         t.ack.appendHeaders([SipHeader(name = 'route', body = x) for x in routes])
                     if fcode >= 200 and fcode < 300:
