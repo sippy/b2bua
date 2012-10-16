@@ -33,6 +33,7 @@ from sippy.SipRequest import SipRequest
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
 from sippy.SipHeader import SipHeader
+from sippy.SipURL import SipURL
 from sippy.ESipParseException import ESipParseException
 from datetime import datetime
 from hashlib import md5
@@ -457,6 +458,10 @@ class SipTransactionManager(object):
                         elif rTarget != None:
                             rAddr = rTarget.getAddr()
                         if t.outbound_proxy != None:
+                            if rAddr != None:
+                                for adr in (rAddr, t.outbound_proxy):
+                                    routes.insert(0, SipRoute(address = SipAddress(url = SipURL(host = adr[0], \
+                                      port = adr[1], lr = True))))
                             rAddr = t.outbound_proxy
                         if rTarget != None:
                             t.ack.setRURI(rTarget)
