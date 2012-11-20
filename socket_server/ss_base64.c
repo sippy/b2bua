@@ -40,8 +40,7 @@
  * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD: src/lib/libc/net/base64.c,v 1.5.42.1.4.1 2012/08/05 23:54:33 kensmith Exp $");
+/*__FBSDID("$FreeBSD: src/lib/libc/net/base64.c,v 1.5.42.1.4.1 2012/08/05 23:54:33 kensmith Exp $");*/
 
 #include <sys/types.h>
 #include <sys/param.h>
