@@ -30,7 +30,7 @@ queue_put_item(struct wi *wi, struct queue *queue)
     }
     queue->length += 1;
     if (queue->length > 99 && queue->length % 100 == 0)
-        fprintf(stderr, "queue(%p): length %d\n", queue, queue->length);
+        fprintf(stderr, "queue(%p): length %d\n", queue->name, queue->length);
 
     /* notify worker thread */
     pthread_cond_signal(&queue->cond);
