@@ -176,7 +176,7 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
     struct wi *wi;
     char b64_databuf[8 * 1024], *outbuf;
 
-    send(bargs->socket, XMPP_PROLOGUE, sizeof(XMPP_PROLOGUE) - 1, 0);
+    send(bargs->socket, XMPP_PROLOGUE, sizeof(XMPP_PROLOGUE) - 1, MSG_NOSIGNAL);
     for (;;) {
         wi = queue_get_item(bargs->inpacket_queue, 1);
         if (wi == NULL) {
@@ -200,7 +200,7 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
           "   msg=\"%.*s\"\n" \
           "  />\n", INP(wi).remote_addr, INP(wi).remote_port, INP(wi).local_addr, INP(wi).local_port, \
           INP(wi).dtime, i, b64_databuf);
-        i = send(bargs->socket, outbuf, buflen, 0);
+        i = send(bargs->socket, outbuf, buflen, MSG_NOSIGNAL);
         free(outbuf);
         if (i < 0) {
             if (b2bua_xchg_getstatus(bargs) == B2BUA_XCHG_RUNS) {
