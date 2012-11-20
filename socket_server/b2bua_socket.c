@@ -15,6 +15,7 @@
 #include "iksemel.h"
 
 #include "b2bua_socket.h"
+#include "ss_base64.h"
 #include "ss_network.h"
 #include "ss_lthread.h"
 #include "ss_util.h"
@@ -190,7 +191,7 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
           INP(wi).remote_addr, INP(wi).remote_port, INP(wi).local_addr);
 #endif
 
-        i = b64_ntop(INP(wi).databuf, INP(wi).rsize, b64_databuf, sizeof(b64_databuf));
+        i = ss_b64_ntop(INP(wi).databuf, INP(wi).rsize, b64_databuf, sizeof(b64_databuf));
         buflen = asprintf(&outbuf, "  <incoming_packet\n" \
           "   src_addr=\"%s\"\n" \
           "   src_port=\"%d\"\n" \
@@ -293,7 +294,7 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
                 } else if (strcmp("src_port", iks_name(y)) == 0) {
                     OUTP(wi).local_port = strtol(iks_cdata(y), (char **)NULL, 10);
                 } else if (strcmp("msg", iks_name(y)) == 0) {
-                    OUTP(wi).ssize = b64_pton(iks_cdata(y), b64_databuf, sizeof(b64_databuf));
+                    OUTP(wi).ssize = ss_b64_pton(iks_cdata(y), b64_databuf, sizeof(b64_databuf));
                     if (OUTP(wi).ssize <= 0) {
                         wi_free(wi);
                         iks_delete(node);

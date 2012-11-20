@@ -1,6 +1,6 @@
 CC?=    gcc
 
-SRCS = main.c ss_network.c b2bua_socket.c ss_lthread.c ss_util.c
+SRCS = main.c ss_network.c b2bua_socket.c ss_lthread.c ss_util.c ss_base64.c
 OBJS = $(SRCS:.c=.o)
 LIBS = -L/usr/local/lib -lpthread -liksemel
 
