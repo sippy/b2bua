@@ -189,7 +189,15 @@ lthread_rx(struct lthread_args *args)
         INP(wi).dtime = getdtime();
         INP(wi).databuf[INP(wi).rsize] = '\0';
         if (extract_call_id(INP(wi).databuf, &call_id) != 0) {
-            fprintf(stderr, "can't extract Call-ID\n%d\n", INP(wi).rsize);
+            if (INP(wi).rsize < rsize - 1) {
+                /*
+                 * If incoming message size is exactly the size of the
+                 * input buffer and call-id cannot be extracted this means
+                 * that the message was too long and probably has been
+                 * truncated as a result. Ignore it silently.
+                 */
+                fprintf(stderr, "can't extract Call-ID: %d\n", INP(wi).rsize);
+            }
             wi_free(wi);
             continue;
         }
