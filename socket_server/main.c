@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +31,7 @@ queue_put_item(struct wi *wi, struct queue *queue)
     }
     queue->length += 1;
     if (queue->length > 99 && queue->length % 100 == 0)
-        fprintf(stderr, "queue(%p): length %d\n", queue->name, queue->length);
+        fprintf(stderr, "queue(%s): length %d\n", queue->name, queue->length);
 
     /* notify worker thread */
     pthread_cond_signal(&queue->cond);
@@ -62,30 +63,48 @@ queue_get_item(struct queue *queue, int return_on_wake)
 }
 
 int
+append_bslot(struct b2bua_slot **bslots, int id)
+{
+    struct b2bua_slot *bslot;
+
+    bslot = malloc(sizeof(*bslot));
+    if (bslot == NULL)
+        return (-1);
+    memset(bslot, '\0', sizeof(*bslot));
+    bslot->id = id;
+    pthread_cond_init(&bslot->inpacket_queue.cond, NULL);
+    pthread_mutex_init(&bslot->inpacket_queue.mutex, NULL);
+    asprintf(&bslot->inpacket_queue.name, "NET->B2B (slot %d)", id);
+    if (*bslots != NULL)
+        bslot->next = *bslots;
+    *bslots = bslot;
+    return (0);
+}
+
+int
 main(int argc, char **argv)
 {
     pthread_t lthreads[10];
-    int i;
+    int i, fd;
     struct lthread_args args;
-    struct b2bua_slot *bslot;
 
+    fd = open("/var/log/socket_server.log", O_WRONLY | O_APPEND | O_CREAT, 0);
+    ss_daemon(0, fd);
     bzero(lthreads, sizeof(*lthreads));
     memset(&args, '\0', sizeof(args));
     pthread_cond_init(&args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&args.outpacket_queue.mutex, NULL);
-    bslot = malloc(sizeof(*bslot));
-    memset(bslot, '\0', sizeof(*bslot));
-    bslot->id = 5061;
-    pthread_cond_init(&bslot->inpacket_queue.cond, NULL);
-    pthread_mutex_init(&bslot->inpacket_queue.mutex, NULL);
-    bslot->next = malloc(sizeof(*bslot));
-    memset(bslot->next, '\0', sizeof(*bslot));
-    bslot->next->id = 5067;
-    pthread_cond_init(&bslot->next->inpacket_queue.cond, NULL);
-    pthread_mutex_init(&bslot->next->inpacket_queue.mutex, NULL);
+    args.outpacket_queue.name = strdup("B2B->NET (sorter)");
+
+    append_bslot(&args.bslots, 5061);
+    append_bslot(&args.bslots, 5067);
+    append_bslot(&args.bslots, 5068);
+    append_bslot(&args.bslots, 5069);
+    append_bslot(&args.bslots, 5070);
+    append_bslot(&args.bslots, 5071);
+
     args.listen_addr = "0.0.0.0";
     args.listen_port = 5060;
-    args.bslots = bslot;
     i = pthread_create(&(lthreads[0]), NULL, (void *(*)(void *))&lthread_mgr_run, &args);
     printf("%d\n", i);
     i = pthread_create(&(lthreads[1]), NULL, (void *(*)(void *))&b2bua_acceptor_run, &args);

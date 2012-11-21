@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,11 +42,12 @@ lthread_mgr_run(struct lthread_args *args)
     lthread->args.listen_addr = args->listen_addr;
     lthread->args.listen_port = args->listen_port;
     if (lthread_sock_prepare(&lthread->args) != 0) {
-        fprintf(stderr, "lthread_sock_prepare(-1)\n");
+        fprintf(stderr, "lthread_sock_prepare(%s:%d) = -1\n", args->listen_addr, args->listen_port);
         exit(1);
     }
     pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
+    lthread->args.outpacket_queue.name = strdup("B2B->NET (wildcard)");
     lthread->args.wildcard = 1;
     lthread->args.bslots = args->bslots;
 
@@ -73,7 +75,7 @@ lthread_mgr_run(struct lthread_args *args)
             lthread->args.listen_addr = strdup(OUTP(wi).local_addr);
             lthread->args.listen_port = OUTP(wi).local_port;
             if (lthread_sock_prepare(&lthread->args) != 0) {
-                fprintf(stderr, "lthread_sock_prepare(-1)\n");
+                fprintf(stderr, "lthread_sock_prepare(%s:%d) = -1\n", lthread->args.listen_addr, lthread->args.listen_port);
                 wi_free(wi);
                 free(lthread->args.listen_addr);
                 free(lthread);
@@ -81,6 +83,8 @@ lthread_mgr_run(struct lthread_args *args)
             }
             pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
             pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
+            asprintf(&lthread->args.outpacket_queue.name, "B2B->NET (%s:%d)", lthread->args.listen_addr,
+              lthread->args.listen_port);
             lthread->args.bslots = args->bslots;
 
             i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);

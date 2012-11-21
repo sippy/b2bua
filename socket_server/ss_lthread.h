@@ -1,6 +1,7 @@
 #ifndef _SS_LTHREAD_H_
 #define _SS_LTHREAD_H_
 
+#include <stdint.h>
 #include <pthread.h>
 
 struct queue
@@ -10,6 +11,7 @@ struct queue
     pthread_cond_t cond;
     pthread_mutex_t mutex;
     int length;
+    char *name;
 };
 
 struct lthread_args
