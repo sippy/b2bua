@@ -194,7 +194,7 @@ lthread_rx(struct lthread_args *args)
         }
         INP(wi).dtime = getdtime();
         INP(wi).databuf[INP(wi).rsize] = '\0';
-        if (extract_call_id(INP(wi).databuf, &call_id) != 0) {
+        if (extract_call_id((const char *)INP(wi).databuf, &call_id) != 0) {
             if (INP(wi).rsize < rsize - 1) {
                 /*
                  * If incoming message size is exactly the size of the
