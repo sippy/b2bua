@@ -366,6 +366,7 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
             }
             bargs->inpacket_queue = &bslot->inpacket_queue;
             i = pthread_create(&bargs->tx_thread, NULL, (void *(*)(void *))&b2bua_xchg_tx, bargs);
+            printf("fd %d associated with the slot %d\n", bargs->socket, id);
         }
 
         break;
