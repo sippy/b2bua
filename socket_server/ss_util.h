@@ -13,5 +13,6 @@ struct str
 typedef struct str str;
 
 uint32_t ss_crc32(const void *buf, size_t size);
+int ss_daemon(int nochdir, int redirect_fd);
 
 #endif

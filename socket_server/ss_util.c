@@ -1,5 +1,10 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <unistd.h>
 
 static uint32_t crc32_tab[] = {
         0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
@@ -57,4 +62,61 @@ ss_crc32(const void *buf, size_t size)
     while (size--)
         crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
     return crc ^ ~0U;
+}
+
+/*
+ * Portable daemon(3) implementation, borrowed from FreeBSD. For license
+ * and other information see:
+ *
+ * $FreeBSD: src/lib/libc/gen/daemon.c,v 1.8 2007/01/09 00:27:53 imp Exp $
+ */
+int
+ss_daemon(int nochdir, int redirect_fd)
+{
+    struct sigaction osa, sa;
+    pid_t newgrp;
+    int oerrno;
+    int osa_ok;
+
+    /* A SIGHUP may be thrown when the parent exits below. */
+    sigemptyset(&sa.sa_mask);
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = 0;
+    osa_ok = sigaction(SIGHUP, &sa, &osa);
+
+    switch (fork()) {
+    case -1:
+        return (-1);
+    case 0:
+        break;
+    default:
+        _exit(0);
+    }
+
+    newgrp = setsid();
+    oerrno = errno;
+    if (osa_ok != -1)
+        sigaction(SIGHUP, &osa, NULL);
+
+    if (newgrp == -1) {
+        errno = oerrno;
+        return (-1);
+    }
+
+    if (!nochdir)
+        (void)chdir("/");
+
+    if (redirect_fd != -1) {
+        (void)dup2(redirect_fd, STDOUT_FILENO);
+        (void)dup2(redirect_fd, STDERR_FILENO);
+        if (redirect_fd > 2)
+            (void)close(redirect_fd);
+        redirect_fd = open("/dev/null", O_RDWR, 0);
+        if (redirect_fd != -1) {
+            (void)dup2(redirect_fd, STDIN_FILENO);
+            if (redirect_fd > 2)
+                (void)close(redirect_fd);
+        }
+    }
+    return (0);
 }
