@@ -96,7 +96,8 @@ b2bua_xchg_getstatus(struct b2bua_xchg_args *bargs)
 void
 b2bua_acceptor_run(struct lthread_args *args)
 {
-    int n, s, ralen;
+    int n, s;
+    socklen_t ralen;
     struct sockaddr_storage ia;
     struct b2bua_xchg_args *bargs_head, *bargs, *bargs1;
 
@@ -175,7 +176,8 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
 {
     int i, buflen;
     struct wi *wi;
-    char b64_databuf[11 * 1024], *outbuf;
+    u_char b64_databuf[11 * 1024];
+    char *outbuf;
 
     send(bargs->socket, XMPP_PROLOGUE, sizeof(XMPP_PROLOGUE) - 1, MSG_NOSIGNAL);
     for (;;) {
@@ -265,7 +267,7 @@ b2bua_xchg_in_stream(struct b2bua_xchg_args *bargs, int type, iks *node)
 {
     iks *y;
     struct wi *wi;
-    char b64_databuf[8 * 1024];
+    u_char b64_databuf[8 * 1024];
     int id, i;
     struct b2bua_slot *bslot;
 

@@ -161,7 +161,8 @@ lthread_sock_prepare(struct lthread_args *args)
 static void
 lthread_rx(struct lthread_args *args)
 {
-    int n, ralen, rsize;
+    int n, ralen;
+    socklen_t rsize;
     struct sockaddr_storage ia, la;
     struct wi *wi;
     pthread_t tx_thread;
