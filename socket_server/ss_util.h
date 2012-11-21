@@ -13,6 +13,7 @@ struct str
 typedef struct str str;
 
 uint32_t ss_crc32(const void *buf, size_t size);
+uint32_t hash_string(str *, int);
 int ss_daemon(int nochdir, int redirect_fd);
 
 #endif

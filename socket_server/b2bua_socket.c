@@ -56,14 +56,14 @@ b2bua_getslot(struct b2bua_slot *bslots, str *call_id)
 {
     struct b2bua_slot *bslot;
     int nslots, slotnum;
-    uint32_t crc;
+    int hash;
 
     nslots = 0;
     for (bslot = bslots; bslot != NULL; bslot = bslot->next) {
         nslots += 1;
     }
-    crc = ss_crc32(call_id->s, call_id->len);
-    slotnum = crc % nslots;
+    hash = hash_string(call_id, 2);
+    slotnum = hash % nslots;
     for (bslot = bslots; slotnum > 0; slotnum--) {
         bslot = bslot->next;
     }
