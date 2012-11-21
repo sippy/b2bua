@@ -176,7 +176,7 @@ b2bua_xchg_tx(struct b2bua_xchg_args *bargs)
 {
     int i, buflen;
     struct wi *wi;
-    u_char b64_databuf[11 * 1024];
+    char b64_databuf[11 * 1024];
     char *outbuf;
 
     send(bargs->socket, XMPP_PROLOGUE, sizeof(XMPP_PROLOGUE) - 1, MSG_NOSIGNAL);

@@ -31,7 +31,7 @@ enum wi_type {WI_INPACKET, WI_OUTPACKET};
 
 struct inpacket_wi
 {
-    char *databuf;
+    u_char *databuf;
     int rsize;
     double dtime;
     char *remote_addr;
