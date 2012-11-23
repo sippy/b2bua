@@ -26,6 +26,46 @@ static int lthread_sock_prepare(struct lthread_args *);
 static void lthread_rx(struct lthread_args *args);
 static void lthread_tx(struct lthread_args *args);
 
+static ssize_t
+recvfromto(int s, void *buf, size_t len, struct sockaddr *from,
+  socklen_t *fromlen, struct sockaddr *to, socklen_t *tolen)
+{
+    char cbuf[CMSG_SPACE(sizeof(struct sockaddr_storage))];
+    struct cmsghdr *cmsg;
+    struct msghdr msg;
+    struct iovec iov;
+    ssize_t rval;
+
+    memset(&msg, '\0', sizeof(msg));
+    iov.iov_base = buf;
+    iov.iov_len = len;
+    msg.msg_name = from;
+    msg.msg_namelen = *fromlen;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = cbuf;
+    msg.msg_controllen = CMSG_LEN(sizeof(struct sockaddr_storage));
+
+    rval = recvmsg(s, &msg, 0);
+    if (rval < 0)
+        return (rval);
+
+    *tolen = 0; 
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+      cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        if (cmsg->cmsg_level == IPPROTO_IP &&
+          cmsg->cmsg_type == IP_RECVDSTADDR) {
+            memcpy(&satosin(to)->sin_addr, CMSG_DATA(cmsg),
+              sizeof(struct in_addr));
+            to->sa_family = AF_INET;
+            *tolen = sizeof(struct sockaddr_in);
+            break;
+        }
+    }
+    *fromlen = msg.msg_namelen;
+    return (rval);
+}
+
 void
 lthread_mgr_run(struct lthread_args *args)
 {
@@ -41,6 +81,7 @@ lthread_mgr_run(struct lthread_args *args)
     }
     lthread->args.listen_addr = args->listen_addr;
     lthread->args.listen_port = args->listen_port;
+    lthread->args.wildcard = 1;
     if (lthread_sock_prepare(&lthread->args) != 0) {
         fprintf(stderr, "lthread_sock_prepare(%s:%d) = -1\n", args->listen_addr, args->listen_port);
         exit(1);
@@ -48,7 +89,6 @@ lthread_mgr_run(struct lthread_args *args)
     pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
     lthread->args.outpacket_queue.name = strdup("B2B->NET (wildcard)");
-    lthread->args.wildcard = 1;
     lthread->args.bslots = args->bslots;
 
     i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
@@ -139,7 +179,7 @@ lthread_sock_prepare(struct lthread_args *args)
 {
     struct sockaddr_storage ia;
     char listen_port[10];
-    int n;
+    int n, on;
 
     sprintf(listen_port, "%d", args->listen_port);
     n = resolve(sstosa(&ia), AF_INET, args->listen_addr, listen_port, AI_PASSIVE);
@@ -149,6 +189,10 @@ lthread_sock_prepare(struct lthread_args *args)
     if (args->sock < 0)
         return -1;
     setsockopt(args->sock, SOL_SOCKET, SO_REUSEADDR, &args->sock, sizeof args->sock);
+    if (args->wildcard != 0) {
+        on = 1;
+        setsockopt(args->sock, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on));
+    }
     n = bind(args->sock, sstosa(&ia), SS_LEN(&ia));
     if (n != 0) {
         printf("lthread_sock_prepare:bind(%d)\n", n);
@@ -162,7 +206,7 @@ static void
 lthread_rx(struct lthread_args *args)
 {
     int n;
-    socklen_t ralen;
+    socklen_t ralen, lalen;
     size_t rsize;
     struct sockaddr_storage ia, la;
     struct wi *wi;
@@ -186,7 +230,14 @@ lthread_rx(struct lthread_args *args)
             continue;
         }
         ralen = sizeof(ia);
-        INP(wi).rsize = recvfrom(args->sock, INP(wi).databuf, rsize - 1, 0, sstosa(&ia), &ralen);
+        lalen = sizeof(la);
+        if (args->wildcard == 0) {
+            INP(wi).rsize = recvfrom(args->sock, INP(wi).databuf, rsize - 1, 0,
+              sstosa(&ia), &ralen);
+        } else {
+            INP(wi).rsize = recvfromto(args->sock, INP(wi).databuf, rsize - 1,
+              sstosa(&ia), &ralen, sstosa(&la), &lalen);
+        }
         if (INP(wi).rsize < 128) {
             wi_free(wi);
             /* Message is too short, just drop it already */
@@ -219,7 +270,9 @@ lthread_rx(struct lthread_args *args)
         if (args->wildcard != 0) {
             INP(wi).local_addr = malloc(256);
             if (INP(wi).local_addr != NULL) {
-                n = local4remote(sstosa(&ia), &la);
+                if (lalen == 0) {
+                    n = local4remote(sstosa(&ia), &la);
+                }
                 addr2char_r(sstosa(&la), INP(wi).local_addr, 256);
             }
         } else {
