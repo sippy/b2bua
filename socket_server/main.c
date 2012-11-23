@@ -113,7 +113,7 @@ main(int argc, char **argv)
     int i, fd;
     struct lthread_args args;
 
-    fd = open("/var/log/socket_server.log", O_WRONLY | O_APPEND | O_CREAT, 0);
+    fd = open("/var/log/socket_server.log", O_WRONLY | O_APPEND | O_CREAT, 0644);
     ss_daemon(0, fd);
     bzero(lthreads, sizeof(*lthreads));
     memset(&args, '\0', sizeof(args));
