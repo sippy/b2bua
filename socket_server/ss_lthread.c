@@ -14,7 +14,7 @@
 struct lthread
 {
     struct lthread_args args;
-    pthread_t rx_thread;
+    pthread_t rx_thread[10];
     struct lthread *next;
     int status;
 };
@@ -91,7 +91,7 @@ lthread_mgr_run(struct lthread_args *args)
     lthread->args.outpacket_queue.name = strdup("B2B->NET (wildcard)");
     lthread->args.bslots = args->bslots;
 
-    i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
+    i = pthread_create(&lthread->rx_thread[0], NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
     printf("%d\n", i);
     lthread_head = lthread;
     for (;;) {
@@ -127,7 +127,9 @@ lthread_mgr_run(struct lthread_args *args)
               lthread->args.listen_port);
             lthread->args.bslots = args->bslots;
 
-            i = pthread_create(&lthread->rx_thread, NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
+            for (i = 0; i < 10; i++) {
+                pthread_create(&lthread->rx_thread[i], NULL, (void *(*)(void *))&lthread_rx, &lthread->args);
+            }
             lthread->next = lthread_head;
             lthread_head = lthread;
         }
