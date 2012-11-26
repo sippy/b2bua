@@ -30,7 +30,12 @@ static ssize_t
 recvfromto(int s, void *buf, size_t len, struct sockaddr *from,
   socklen_t *fromlen, struct sockaddr *to, socklen_t *tolen)
 {
+#if defined(__FreeBSD__)
     char cbuf[CMSG_SPACE(sizeof(struct sockaddr_storage))];
+#else
+    char cbuf[CMSG_SPACE(sizeof(struct in_pktinfo))];
+    struct in_pktinfo *pktinfo;
+#endif
     struct cmsghdr *cmsg;
     struct msghdr msg;
     struct iovec iov;
@@ -53,6 +58,7 @@ recvfromto(int s, void *buf, size_t len, struct sockaddr *from,
     *tolen = 0; 
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
       cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+#if defined(__FreeBSD__)
         if (cmsg->cmsg_level == IPPROTO_IP &&
           cmsg->cmsg_type == IP_RECVDSTADDR) {
             memcpy(&satosin(to)->sin_addr, CMSG_DATA(cmsg),
@@ -61,6 +67,17 @@ recvfromto(int s, void *buf, size_t len, struct sockaddr *from,
             *tolen = sizeof(struct sockaddr_in);
             break;
         }
+#else
+        if (cmsg->cmsg_level == SOL_IP &&
+          cmsg->cmsg_type == IP_PKTINFO) {
+            pktinfo = (struct in_pktinfo *)CMSG_DATA(cmsg);
+            memcpy(&satosin(to)->sin_addr, &pktinfo->ipi_addr,
+              sizeof(struct in_addr));
+            to->sa_family = AF_INET;
+            *tolen = sizeof(struct sockaddr_in);
+            break;
+        }
+#endif
     }
     *fromlen = msg.msg_namelen;
     return (rval);
@@ -193,7 +210,11 @@ lthread_sock_prepare(struct lthread_args *args)
     setsockopt(args->sock, SOL_SOCKET, SO_REUSEADDR, &args->sock, sizeof args->sock);
     if (args->wildcard != 0) {
         on = 1;
+#if defined(__FreeBSD__)
         setsockopt(args->sock, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on));
+#else
+	setsockopt(args->sock, SOL_IP, IP_PKTINFO, &on, sizeof(on));
+#endif
     }
     n = bind(args->sock, sstosa(&ia), SS_LEN(&ia));
     if (n != 0) {
