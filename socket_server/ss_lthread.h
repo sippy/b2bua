@@ -18,6 +18,8 @@ struct lthread_args
 {
     char *listen_addr;
     int listen_port;
+    char *cmd_listen_addr;
+    int cmd_listen_port;
     int sock;
     struct queue outpacket_queue;
     int wildcard;

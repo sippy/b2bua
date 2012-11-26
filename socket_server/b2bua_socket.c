@@ -100,11 +100,14 @@ b2bua_acceptor_run(struct lthread_args *args)
     socklen_t ralen;
     struct sockaddr_storage ia;
     struct b2bua_xchg_args *bargs_head, *bargs, *bargs1;
+    char *cmd_listen_port;
 
     bargs_head = NULL;
 
-    printf("b2bua_acceptor_run(%s)\n", args->listen_addr);
-    n = resolve(sstosa(&ia), AF_INET, args->listen_addr, "22223", AI_PASSIVE);
+    printf("b2bua_acceptor_run(%s)\n", args->cmd_listen_addr);
+    asprintf(&cmd_listen_port, "%d", args->cmd_listen_port);
+    n = resolve(sstosa(&ia), AF_INET, args->cmd_listen_addr, cmd_listen_port, AI_PASSIVE);
+    free(cmd_listen_port);
     printf("resolve(%d)\n", n);
 
     s = socket(AF_INET, SOCK_STREAM, 0);

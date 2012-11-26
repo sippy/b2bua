@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -106,30 +107,77 @@ append_bslot(struct b2bua_slot **bslots, int id)
     return (0);
 }
 
+static void
+usage(void)
+{
+
+    fprintf(stderr, "usage: socket_server [-f] [-p pid_file] -s slot_id1 [-s slot_id2]...[-s slot_idN]\n");
+    exit(1);
+}
+
 int
 main(int argc, char **argv)
 {
     pthread_t lthreads[10];
-    int i, fd;
+    int i, fd, nodaemon, slot_id, ch, len;
     struct lthread_args args;
+    const char *pid_file;
+    char *buf;
 
-    fd = open("/var/log/socket_server.log", O_WRONLY | O_APPEND | O_CREAT, 0644);
-    ss_daemon(0, fd);
-    bzero(lthreads, sizeof(*lthreads));
+    memset(&lthreads, '\0', sizeof(lthreads));
     memset(&args, '\0', sizeof(args));
+
+    nodaemon = 0;
+    pid_file = "/var/run/socket_server.pid";
+    while ((ch = getopt(argc, argv, "fs:p:")) != -1)
+        switch (ch) {
+        case 'f':
+            nodaemon = 1;
+            break;
+
+        case 's':
+            slot_id = strtol(optarg, (char **)NULL, 10);
+            append_bslot(&args.bslots, slot_id);
+            break;
+
+        case 'p':
+            pid_file = optarg;
+            break;
+
+        case '?':
+        default:
+            usage();
+        }
+
+    if (args.bslots == NULL) {
+        fprintf(stderr, "socket_server: at least one slot is required\n");
+        usage();
+    }
+
+    if (nodaemon == 0) {
+        fd = open("/var/log/socket_server.log", O_WRONLY | O_APPEND | O_CREAT,
+          DEFFILEMODE);
+        ss_daemon(0, fd);
+    }
+
+    fd = open(pid_file, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
+    if (fd >= 0) {
+        len = asprintf(&buf, "%u\n", (unsigned int)getpid());
+        write(fd, buf, len);
+        close(fd);
+        free(buf);
+    } else {
+        fprintf(stderr, "%s: can't open pidfile for writing\n", pid_file);
+    }
+
     pthread_cond_init(&args.outpacket_queue.cond, NULL);
     pthread_mutex_init(&args.outpacket_queue.mutex, NULL);
     args.outpacket_queue.name = strdup("B2B->NET (sorter)");
 
-    append_bslot(&args.bslots, 5061);
-    append_bslot(&args.bslots, 5067);
-    append_bslot(&args.bslots, 5068);
-    append_bslot(&args.bslots, 5069);
-    append_bslot(&args.bslots, 5070);
-    append_bslot(&args.bslots, 5071);
-
     args.listen_addr = "0.0.0.0";
     args.listen_port = 5060;
+    args.cmd_listen_addr = "127.0.0.1";
+    args.cmd_listen_port = 22223;
     i = pthread_create(&(lthreads[0]), NULL, (void *(*)(void *))&lthread_mgr_run, &args);
     printf("%d\n", i);
     i = pthread_create(&(lthreads[1]), NULL, (void *(*)(void *))&b2bua_acceptor_run, &args);
