@@ -103,9 +103,9 @@ hash_string(str *buf, int rounds)
     res = 0;
     ep = (uint8_t *)(buf->s + buf->len);
     for (i = 0; i < rounds; i++) {
-        ires = hash_tab[i];
+        ires = hash_tab[buf->len & 0xff];
         for (bp = (uint8_t *)buf->s; bp != ep; bp++) {
-            ires = hash_tab[ires ^ bp[0]];
+            ires = hash_tab[ires ^ (uint8_t)(bp[0] + i)];
         }
         res <<= 8;
         res |= ires;
