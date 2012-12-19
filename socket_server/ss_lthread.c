@@ -138,10 +138,16 @@ lthread_mgr_run(struct lthread_args *args)
                 free(lthread);
                 continue;
             }
-            pthread_cond_init(&lthread->args.outpacket_queue.cond, NULL);
-            pthread_mutex_init(&lthread->args.outpacket_queue.mutex, NULL);
-            asprintf(&lthread->args.outpacket_queue.name, "B2B->NET (%s:%d)", lthread->args.listen_addr,
-              lthread->args.listen_port);
+            if (queue_init(&lthread->args.outpacket_queue, "B2B->NET (%s:%d)",
+              lthread->args.listen_addr, lthread->args.listen_port) != 0) {
+                fprintf(stderr, "queue_init(%s:%d) = -1\n", lthread->args.listen_addr, lthread->args.listen_port);
+                close(lthread->args.sock);
+                wi_free(wi);
+                free(lthread->args.listen_addr);
+                free(lthread);
+                continue;
+            }
+
             lthread->args.bslots = args->bslots;
 
             for (i = 0; i < 10; i++) {

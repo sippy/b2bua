@@ -1,18 +1,11 @@
 #ifndef _SS_LTHREAD_H_
 #define _SS_LTHREAD_H_
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <pthread.h>
 
-struct queue
-{
-    struct wi *head;
-    struct wi *tail;
-    pthread_cond_t cond;
-    pthread_mutex_t mutex;
-    int length;
-    char *name;
-};
+#include "ss_queue.h"
 
 struct lthread_args
 {
@@ -62,10 +55,8 @@ struct wi
     struct wi  *next;
 };
 
-void queue_put_item(struct wi *wi, struct queue *);
 struct wi *wi_malloc(enum wi_type type);
 void wi_free(struct wi *wi);
 void lthread_mgr_run(struct lthread_args *args);
-struct wi *queue_get_item(struct queue *queue, int return_on_wake);
 
 #endif

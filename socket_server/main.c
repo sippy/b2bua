@@ -39,54 +39,8 @@
 
 #include "ss_network.h"
 #include "ss_lthread.h"
+#include "ss_queue.h"
 #include "b2bua_socket.h"
-
-void
-queue_put_item(struct wi *wi, struct queue *queue)
-{
-
-    pthread_mutex_lock(&queue->mutex);
-
-    wi->next = NULL;
-    if (queue->head == NULL) {
-        queue->head = wi;
-        queue->tail = wi;
-    } else {
-        queue->tail->next = wi;
-        queue->tail = wi;
-    }
-    queue->length += 1;
-    if (queue->length > 99 && queue->length % 100 == 0)
-        fprintf(stderr, "queue(%s): length %d\n", queue->name, queue->length);
-
-    /* notify worker thread */
-    pthread_cond_signal(&queue->cond);
-
-    pthread_mutex_unlock(&queue->mutex);
-}
-
-struct wi *
-queue_get_item(struct queue *queue, int return_on_wake)
-{
-    struct wi *wi;
-
-    pthread_mutex_lock(&queue->mutex);
-    while (queue->head == NULL) {
-        pthread_cond_wait(&queue->cond, &queue->mutex);
-        if (queue->head == NULL && return_on_wake != 0) {
-            pthread_mutex_unlock(&queue->mutex);
-            return NULL;
-        }
-    }
-    wi = queue->head;
-    queue->head = wi->next;
-    if (queue->head == NULL)
-        queue->tail = NULL;
-    queue->length -= 1;
-    pthread_mutex_unlock(&queue->mutex);
-
-    return wi;
-}
 
 int
 append_bslot(struct b2bua_slot **bslots, int id)
@@ -98,9 +52,10 @@ append_bslot(struct b2bua_slot **bslots, int id)
         return (-1);
     memset(bslot, '\0', sizeof(*bslot));
     bslot->id = id;
-    pthread_cond_init(&bslot->inpacket_queue.cond, NULL);
-    pthread_mutex_init(&bslot->inpacket_queue.mutex, NULL);
-    asprintf(&bslot->inpacket_queue.name, "NET->B2B (slot %d)", id);
+    if (queue_init(&bslot->inpacket_queue, "NET->B2B (slot %d)", id) != 0) {
+        free(bslot);
+        return (-1);
+    }
     if (*bslots != NULL)
         bslot->next = *bslots;
     *bslots = bslot;
