@@ -56,6 +56,7 @@ append_bslot(struct b2bua_slot **bslots, int id)
         free(bslot);
         return (-1);
     }
+    bslot->inpacket_queue.max_ttl = 33;
     if (*bslots != NULL)
         bslot->next = *bslots;
     *bslots = bslot;
