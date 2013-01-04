@@ -36,7 +36,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <grp.h>
+#include <pwd.h>
 
+#include "ss_defines.h"
 #include "ss_network.h"
 #include "ss_lthread.h"
 #include "ss_queue.h"
@@ -71,6 +74,45 @@ usage(void)
     exit(1);
 }
 
+static int
+parse_uname_gname(struct app_cfg *cf, char *optarg)
+{
+    char *cp;
+    struct passwd *pp;
+    struct group *gp;
+
+    cf->stable.run_uname = optarg;
+    cp = strchr(optarg, ':');
+    if (cp != NULL) {
+        if (cp == optarg)
+            cf->stable.run_uname = NULL;
+        cp[0] = '\0';
+        cp++;
+    }
+    cf->stable.run_gname = cp;
+    cf->stable.run_uid = -1;
+    cf->stable.run_gid = -1;
+    if (cf->stable.run_uname != NULL) {
+        pp = getpwnam(cf->stable.run_uname);
+        if (pp == NULL) {
+            fprintf(stderr, "can't find ID for the user: %s\n", cf->stable.run_uname);
+            return (-1);
+        }
+        cf->stable.run_uid = pp->pw_uid;
+        if (cf->stable.run_gname == NULL)
+            cf->stable.run_gid = pp->pw_gid;
+    }
+    if (cf->stable.run_gname != NULL) {
+        gp = getgrnam(cf->stable.run_gname);
+        if (gp == NULL) {
+            fprintf(stderr, "can't find ID for the group: %s\n", cf->stable.run_gname);
+            return (-1);
+        }
+        cf->stable.run_gid = gp->gr_gid;
+    }
+    return (0);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -79,13 +121,17 @@ main(int argc, char **argv)
     struct lthread_args args;
     const char *pid_file;
     char *buf;
+    struct app_cfg *cf;
+
+    cf = malloc(sizeof(*cf));
+    memset(cf, '\0', sizeof(*cf));
 
     memset(&lthreads, '\0', sizeof(lthreads));
     memset(&args, '\0', sizeof(args));
 
     nodaemon = 0;
     pid_file = "/var/run/socket_server.pid";
-    while ((ch = getopt(argc, argv, "fs:p:")) != -1)
+    while ((ch = getopt(argc, argv, "fs:p:u:")) != -1)
         switch (ch) {
         case 'f':
             nodaemon = 1;
@@ -98,6 +144,11 @@ main(int argc, char **argv)
 
         case 'p':
             pid_file = optarg;
+            break;
+
+        case 'u':
+            if (parse_uname_gname(cf, optarg) != 0)
+                usage();
             break;
 
         case '?':
@@ -124,6 +175,13 @@ main(int argc, char **argv)
         free(buf);
     } else {
         fprintf(stderr, "%s: can't open pidfile for writing\n", pid_file);
+    }
+
+    if (cf->stable.run_uname != NULL || cf->stable.run_gname != NULL) {
+        if (drop_privileges(cf) != 0) {
+            fprintf(stderr, "can't switch to requested user/group\n");
+            exit(1);
+        }
     }
 
     pthread_cond_init(&args.outpacket_queue.cond, NULL);

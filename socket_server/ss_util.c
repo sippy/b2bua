@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "ss_defines.h"
 #include "ss_util.h"
 
 static uint32_t crc32_tab[] = {
@@ -168,4 +169,23 @@ ss_daemon(int nochdir, int redirect_fd)
         }
     }
     return (0);
+}
+
+int
+drop_privileges(struct app_cfg *cf)
+{
+
+    if (cf->stable.run_gname != NULL) {
+        if (setgid(cf->stable.run_gid) != 0) {
+            fprintf(stderr, "can't set current group ID: %d\n", cf->stable.run_gid);
+            return (-1);
+        }
+    }
+    if (cf->stable.run_uname == NULL)
+        return 0;
+    if (setuid(cf->stable.run_uid) != 0) {
+        fprintf(stderr, "can't set current user ID: %d\n", cf->stable.run_uid);
+        return (-1);
+    }
+    return 0;
 }
