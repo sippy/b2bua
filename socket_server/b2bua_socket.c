@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <poll.h>
 #include <pthread.h>
+#include <pthread_np.h>
 #include <resolv.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -391,6 +392,7 @@ b2bua_xchg_rx(struct b2bua_xchg_args *bargs)
     int i;
     iksparser *p;
     enum iksneterror recv_stat;
+    struct timespec tsp;
 
     p = iks_stream_new("b2bua:socket_server", (void *)bargs, (iksStreamHook *)b2bua_xchg_in_stream);
     i = iks_connect_fd(p, bargs->socket);
@@ -407,15 +409,18 @@ b2bua_xchg_rx(struct b2bua_xchg_args *bargs)
             printf("b2bua_xchg_rx: socket gone\n");
             if (b2bua_xchg_getstatus(bargs) == B2BUA_XCHG_RUNS) {
                 b2bua_xchg_setstatus(bargs, B2BUA_XCHG_DEAD);
-                if (bargs->inpacket_queue != NULL) {
-                    pthread_mutex_lock(&bargs->inpacket_queue->mutex);
-                    pthread_cond_broadcast(&bargs->inpacket_queue->cond);
-                    pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
-                }
                 shutdown(bargs->socket, SHUT_RDWR);
             }
             if (bargs->inpacket_queue != NULL) {
-                pthread_join(bargs->tx_thread, NULL);
+                for (;;) {
+                    pthread_mutex_lock(&bargs->inpacket_queue->mutex);
+                    pthread_cond_broadcast(&bargs->inpacket_queue->cond);
+                    pthread_mutex_unlock(&bargs->inpacket_queue->mutex);
+                    clock_gettime(CLOCK_REALTIME, &tsp);
+                    tsp.tv_nsec += 10000000; /* 10ms */
+                    if (pthread_timedjoin_np(bargs->tx_thread, NULL, &tsp) != ETIMEDOUT)
+                        break;
+                }
             }
             close(bargs->socket);
             printf("b2bua_xchg_rx: socket gone 1\n");
