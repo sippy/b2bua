@@ -6,11 +6,14 @@
 #include <errno.h>
 #include <poll.h>
 #include <pthread.h>
+#if defined(__FreeBSD__)
 #include <pthread_np.h>
+#endif
 #include <resolv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "iksemel.h"
