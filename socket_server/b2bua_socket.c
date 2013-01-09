@@ -55,6 +55,9 @@ struct b2bua_xchg_args {
 static void b2bua_xchg_tx(struct b2bua_xchg_args *);
 static void b2bua_xchg_rx(struct b2bua_xchg_args *);
 
+extern int pthread_timedjoin_np(pthread_t, void **,
+  const struct timespec *);
+
 struct b2bua_slot *
 b2bua_getslot(struct b2bua_slot *bslots, str *call_id)
 {

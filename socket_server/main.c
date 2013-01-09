@@ -45,6 +45,8 @@
 #include "ss_queue.h"
 #include "b2bua_socket.h"
 
+extern int asprintf(char **, const char *, ...);
+
 int
 append_bslot(struct b2bua_slot **bslots, int id)
 {

@@ -6,6 +6,8 @@
 #include "ss_queue.h"
 #include "ss_lthread.h"
 
+extern int vasprintf(char **, const char *, va_list);
+
 int
 queue_init(struct queue *queue, const char *fmt, ...)
 {
