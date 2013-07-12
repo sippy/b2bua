@@ -157,6 +157,8 @@ class Rtp_cluster(object):
         clim.close()
 
     def merge_results(self, result, br, rtpp):
+        if result == None:
+            result = 'E999'
         if br != None and not result[0].upper() == 'E' and not \
           (br.cmd.type in ('U', 'L') and result == '0'):
             br.results.append(result)
