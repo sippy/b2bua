@@ -30,6 +30,9 @@ from Rtp_cluster_member import Rtp_cluster_member
 import getopt, os
 import sys
 
+from contrib.objgraph import typestats
+import operator
+
 from twisted.internet import reactor
 
 sys.path.append('sippy')
@@ -224,6 +227,19 @@ class ClusterCLI(object):
             self.rtp_clusters = new_rtp_clusters
             clim.send('Loaded %d clusters and %d RTP proxies\n' % (len(self.rtp_clusters), new_rtpps_count))
             clim.send('OK\n')
+            return False
+        if cmd.startswith('objstats'):
+            parts = cmd.split(None, 2)
+            if len(parts) > 1:
+                limit = int(parts[1])
+            else:
+                limit = 20
+            stats = sorted(typestats().items(), key=operator.itemgetter(1),
+              reverse=True)
+            stats = stats[:limit]
+            width = max(len(name) for name, count in stats)
+            for name, count in stats[:limit]:
+                clim.send('\t%s %d\n' % (name.ljust(width), count))
             return False
         clim.send('ERROR: unknown command\n')
         return False
