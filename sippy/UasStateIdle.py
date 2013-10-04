@@ -25,8 +25,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.Time.Timeout import TimeoutAbsMono
-from sippy.SipAddress import SipAddress
-from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventTry
 from sippy.SipContact import SipContact
@@ -47,22 +45,7 @@ class UasStateIdle(UaStateGeneric):
         if self.ua.lContact == None:
             self.ua.lContact = SipContact()
         self.ua.rTarget = req.getHFBody('contact').getUrl().getCopy()
-        self.ua.routes = [x.getCopy() for x in self.ua.uasResp.getHFBodys('record-route')]
-        if len(self.ua.routes) > 0:
-            if not self.ua.routes[0].getUrl().lr:
-                self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                self.ua.rTarget = self.ua.routes.pop(0).getUrl()
-                self.ua.rAddr = self.ua.rTarget.getAddr()
-            elif self.ua.outbound_proxy != None:
-                self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
-                self.ua.rTarget.lr = False
-                self.ua.rTarget.other = tuple()
-                self.ua.rTarget.headers = tuple()
-            else:
-                self.ua.rAddr = self.ua.routes[0].getAddr()
-        else:
-            self.ua.rAddr = self.ua.rTarget.getAddr()
+        self.ua.updateRouting(self.ua.uasResp, update_rtarget = False)
         self.ua.rAddr0 = self.ua.rAddr
         self.ua.global_config['_sip_tm'].sendResponse(self.ua.uasResp, lossemul = self.ua.uas_lossemul)
         self.ua.uasResp.getHFBody('to').setTag(self.ua.lTag)

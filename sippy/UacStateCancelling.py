@@ -26,8 +26,6 @@
 
 from sippy.Time.Timeout import Timeout
 from sippy.UaStateGeneric import UaStateGeneric
-from sippy.SipAddress import SipAddress
-from sippy.SipRoute import SipRoute
 
 class UacStateCancelling(UaStateGeneric):
     sname = 'Cancelling(UAC)'
@@ -69,25 +67,7 @@ class UacStateCancelling(UaStateGeneric):
         # caller already has declared his wilingless to end the session,
         # so that he is probably isn't interested in redirects anymore.
         if code >= 200 and code < 300:
-            if resp.countHFs('contact') > 0:
-                self.ua.rTarget = resp.getHFBody('contact').getUrl().getCopy()
-            self.ua.routes = [x.getCopy() for x in resp.getHFBodys('record-route')]
-            self.ua.routes.reverse()
-            if len(self.ua.routes) > 0:
-                if not self.ua.routes[0].getUrl().lr:
-                    self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                    self.ua.rTarget = self.ua.routes.pop(0).getUrl()
-                    self.ua.rAddr = self.ua.rTarget.getAddr()
-                elif self.ua.outbound_proxy != None:
-                    self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                    self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
-                    self.ua.rTarget.lr = False
-                    self.ua.rTarget.other = tuple()
-                    self.ua.rTarget.headers = tuple()
-                else:
-                    self.ua.rAddr = self.ua.routes[0].getAddr()
-            else:
-                self.ua.rAddr = self.ua.rTarget.getAddr()
+            self.ua.updateRouting(resp)
             self.ua.rUri.setTag(resp.getHFBody('to').getTag())
             req = self.ua.genRequest('BYE')
             self.ua.lCSeq += 1

@@ -460,13 +460,9 @@ class SipTransactionManager(object):
                         if rTarget != None:
                             t.ack.setRURI(rTarget)
                         if t.outbound_proxy != None:
-                            if rAddr != None and t.ack.getRURI().getAddr() != rAddr:
-                                if len(routes) == 0:
-                                    routes.insert(0, SipRoute(address = SipAddress(url = \
-                                      SipURL(host = rAddr[0], port = rAddr[1], lr = True))))
-                                routes.insert(0, SipRoute(address = SipAddress(url = \
-                                  SipURL(host = t.outbound_proxy[0], port = t.outbound_proxy[1], \
-                                  lr = True))))
+                            routes.insert(0, SipRoute(address = SipAddress(url = \
+                              SipURL(host = t.outbound_proxy[0], port = t.outbound_proxy[1], \
+                              lr = True))))
                             rAddr = t.outbound_proxy
                         t.ack.delHFs('route')
                         t.ack.appendHeaders([SipHeader(name = 'route', body = x) for x in routes])

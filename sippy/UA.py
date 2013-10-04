@@ -31,6 +31,9 @@ from sippy.SipRequest import SipRequest
 from sippy.SipContentType import SipContentType
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.SipURL import SipURL
 from sippy.MsgBody import MsgBody
 from hashlib import md5
 from random import random
@@ -430,6 +433,25 @@ class UA(object):
         if self.state.connected:
             self.cancelCreditTimer()
             self.startCreditTimer(rtime)
+
+    def updateRouting(self, resp, update_rtarget = True):
+        if update_rtarget and resp.countHFs('contact') > 0:
+            self.rTarget = resp.getHFBody('contact').getUrl().getCopy()
+        self.routes = [x.getCopy() for x in resp.getHFBodys('record-route')]
+        self.routes.reverse()
+        if len(self.routes) > 0:
+            if not self.routes[0].getUrl().lr:
+                self.routes.append(SipRoute(address = SipAddress(url = self.rTarget)))
+                self.rTarget = self.routes.pop(0).getUrl()
+                self.rAddr = self.rTarget.getAddr()
+            else:
+                self.rAddr = self.routes[0].getAddr()
+        else:
+            self.rAddr = self.rTarget.getAddr()
+        if self.outbound_proxy != None:
+            self.routes.insert(0, SipRoute(address = SipAddress(url = \
+              SipURL(host = self.outbound_proxy[0], port = self.outbound_proxy[1], \
+              lr = True))))
 
     def cleanup(self):
         pass
