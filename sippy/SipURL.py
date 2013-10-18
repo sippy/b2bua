@@ -30,6 +30,8 @@ try:
 except ImportError:
     from urllib.parse import quote, unquote
 
+RFC3261_USER_UNRESERVED = '&=+$,;?/'
+
 class SipURL(object):
     username = None
     userparams = None
@@ -168,7 +170,7 @@ class SipURL(object):
         l = []; w = l.append
         w('sip:')
         if self.username != None:
-            w(self.username)
+            w(quote(self.username, RFC3261_USER_UNRESERVED))
             for v in self.userparams:
                 w(';%s' % v)
             if self.password != None:
