@@ -74,7 +74,7 @@ class Rtp_cluster(object):
         self.active = []
         self.pending = []
         if len(address) == 2:
-            self.ccm = Udp_server(address, self.up_command_udp)
+            self.ccm = Udp_server(global_config, address, self.up_command_udp)
         else:
             self.ccm = Cli_server_local(self.up_command, address, (80, 80))
             self.ccm.protocol.expect_lf = False
