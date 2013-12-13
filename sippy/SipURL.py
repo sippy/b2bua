@@ -30,7 +30,7 @@ try:
 except ImportError:
     from urllib.parse import quote, unquote
 
-RFC3261_USER_UNRESERVED = '&=+$,;?/'
+RFC3261_USER_UNRESERVED = '&=+$,;?/#'
 
 class SipURL(object):
     username = None
