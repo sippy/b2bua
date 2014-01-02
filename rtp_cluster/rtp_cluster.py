@@ -273,7 +273,7 @@ if __name__ == '__main__':
         if o == '-P':
             pidfile = a.strip()
             continue
-        if o == 'c':
+        if o == '-c':
             global_config['conffile'] = a.strip()
             continue
 
