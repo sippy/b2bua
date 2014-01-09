@@ -135,6 +135,19 @@ class Rtp_cluster(object):
                 for rtpp in active:
                     rtpp.send_command(orig_cmd, self.merge_results, br, rtpp)
                 return
+        elif cmd.type == 'I' and cmd.command_opts == 'b':
+            active = [x for x in self.active if x.online]
+            sessions_created = active_sessions = active_streams = preceived = ptransmitted = 0
+            for rtpp in active:
+                sessions_created += rtpp.sessions_created
+                active_sessions += rtpp.active_sessions
+                active_streams += rtpp.active_streams
+                preceived += rtpp.preceived
+                ptransmitted += rtpp.ptransmitted
+            reply = 'sessions created: %d\nactive sessions: %d\nactive streams: %d\npackets received: %d\npackets transmitted: %d' % \
+              (sessions_created, active_sessions, active_streams, preceived, ptransmitted)
+            self.down_command(reply, clim, cmd, None)
+            return
         else:
             rtpp = self.active[0]
             #print 'up', cmd
