@@ -87,10 +87,10 @@ class Rtp_cluster_member(Rtp_proxy_client):
                 self.on_state_change(self, False)
         Rtp_proxy_client.go_offline(self)
 
-    def update_active(self, active_sessions):
+    def update_active(self, active_sessions, *more_args):
         if self.active_sessions != active_sessions and self.on_active_update != None:
             self.on_active_update(self, active_sessions)
-        Rtp_proxy_client.update_active(self, active_sessions)
+        Rtp_proxy_client.update_active(self, active_sessions, *more_args)
 
     def call_id_map_aging(self):
         if self.shutdown:
