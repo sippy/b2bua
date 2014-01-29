@@ -164,6 +164,9 @@ class Rtp_cluster(object):
                if not is_dst_local(cmd.ul_opts.destination_ip):
                    result_parts = result.strip().split()
                    result = '%s %s' % (result_parts[0], rtpp.wan_address)
+            elif cmd.ul_opts.destination_ip == None and rtpp.wan_address != None:
+               result_parts = result.strip().split()
+               result = '%s %s' % (result_parts[0], rtpp.wan_address)
         #    result = '%s %s' % (result_parts[0], '192.168.1.22')
         #print 'down clim.send', result
         clim.send(result + '\n')
