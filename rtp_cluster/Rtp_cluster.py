@@ -53,7 +53,7 @@ class UdpCLIM(object):
 
     def __init__(self, address, cookie, server):
         self.cookie = cookie
-        self.address = address
+        self.address = tuple(address)
         self.server = server
 
     def send(self, data):

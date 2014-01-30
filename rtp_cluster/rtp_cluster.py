@@ -148,7 +148,7 @@ class ClusterCLI(object):
                         address[1] = int(address[1])
                 else:
                     address = rtpp_config['address']
-                rtpp = Rtp_cluster_member(rtpp_config['name'], global_config, address)
+                rtpp = Rtp_cluster_member(rtpp_config['name'], global_config, tuple(address))
                 if rtpp_config.has_key('wan_address'):
                     rtpp.wan_address = rtpp_config['wan_address']
                 rtpp.weight = int(rtpp_config['weight'])
@@ -203,7 +203,7 @@ class ClusterCLI(object):
                         address = rtpp_config['address']
                     rtpp, idx = rtp_cluster.rtpp_by_name(rtpp_config['name'])
                     if rtpp == None:
-                        rtpp = Rtp_cluster_member(rtpp_config['name'], global_config, address)
+                        rtpp = Rtp_cluster_member(rtpp_config['name'], global_config, tuple(address))
                         rtpp.weight = rtpp_config['weight']
                         rtpp.capacity = rtpp_config['capacity']
                         if rtpp_config.has_key('wan_address'):
@@ -314,7 +314,7 @@ if __name__ == '__main__':
                     address[1] = int(address[1])
             else:
                 address = rtpp_config['address']
-            rtpp = Rtp_cluster_member(rtpp_config['name'], global_config, address)
+            rtpp = Rtp_cluster_member(rtpp_config['name'], global_config, tuple(address))
             rtpp.weight = rtpp_config['weight']
             rtpp.capacity = rtpp_config['capacity']
             if rtpp_config.has_key('wan_address'):
