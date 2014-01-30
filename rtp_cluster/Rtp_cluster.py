@@ -139,6 +139,10 @@ class Rtp_cluster(object):
             active = [x for x in self.active if x.online]
             sessions_created = active_sessions = active_streams = preceived = ptransmitted = 0
             for rtpp in active:
+                if rtpp.sessions_created == None:
+                    # There might be some time between "online" and heartbeat reply,
+                    # when stats are still empty, skip it
+                    continue
                 sessions_created += rtpp.sessions_created
                 active_sessions += rtpp.active_sessions
                 active_streams += rtpp.active_streams
