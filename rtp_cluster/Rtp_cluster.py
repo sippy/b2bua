@@ -69,6 +69,7 @@ class Rtp_cluster(object):
     active = None
     pending = None
     ccm = None
+    commands_inflight = None
 
     def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock'):
         self.active = []
@@ -81,6 +82,7 @@ class Rtp_cluster(object):
         self.global_config = global_config
         self.name = name
         self.address = address
+        self.commands_inflight = []
 
     def add_member(self, member):
         member.on_state_change = self.rtpp_status_change
@@ -94,6 +96,9 @@ class Rtp_cluster(object):
         if len(dataparts) == 1:
             return
         cookie, cmd = dataparts
+        if cookie in self.commands_inflight:
+            return
+        self.commands_inflight.append(cookie)
         clim = UdpCLIM(address, cookie, server)
         return self.up_command(clim, cmd)
 
@@ -159,6 +164,8 @@ class Rtp_cluster(object):
         rtpp.send_command(orig_cmd, self.down_command, clim, cmd, rtpp)
 
     def down_command(self, result, clim, cmd, rtpp):
+        if clim.cookie in self.commands_inflight:
+            self.commands_inflight.remove(clim.cookie)
         #print 'down', result
         if result == None:
             result = 'E999'
