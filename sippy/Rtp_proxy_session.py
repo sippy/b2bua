@@ -38,6 +38,37 @@ import sys
 from sippy.Core.Exceptions import dump_exception
 from sippy.Core.EventDispatcher import ED2
 
+class Rtp_proxy_cmd_sequencer(object):
+    rtp_proxy_client = None
+    comqueue = None
+    inflight = None
+
+    def __init__(self, rtpp_client):
+        self.rtp_proxy_client = rtpp_client
+        self.comqueue = []
+
+    def send_command(self, command, result_callback = None, *callback_parameters):
+        if self.rtp_proxy_client == None:
+            return
+        if self.inflight != None:
+            self.comqueue.append((command, result_callback, callback_parameters))
+            return
+        self.inflight = (command, result_callback, callback_parameters)
+        self.rtp_proxy_client.send_command(command, self.result_callback)
+
+    def result_callback(self, result):
+        command, result_callback, callback_parameters = self.inflight
+        self.inflight = None
+        if self.rtp_proxy_client != None and len(self.comqueue) > 0:
+            self.inflight = self.comqueue.pop(0)
+            self.rtp_proxy_client.send_command(self.inflight[0], self.result_callback)
+        if result_callback != None:
+            result_callback(result, *callback_parameters)
+
+    def delete(self):
+        # break the reference loop
+        self.rtp_proxy_client = None
+
 class _rtpps_callback_params(object):
     proxy_address = None
     callback_parameters = None
@@ -67,6 +98,7 @@ class _rtpps_side(object):
         command = 'U'
         rtpps.max_index = max(rtpps.max_index, index)
         rtpc = rtpps.rtp_proxy_client
+        rtpq = rtpps.rtpp_seq
         if rtpc.sbind_supported:
             if self.raddress != None:
                 #if rtpc.is_local and atype == 'IP4':
@@ -88,7 +120,7 @@ class _rtpps_side(object):
             command += ' %s %s' % (rtpps.notify_socket, rtpps.notify_tag)
         cpo = _rtpps_callback_params(rtpc.proxy_address, callback_parameters, atype)
         cpo.remote_ip = remote_ip
-        rtpc.send_command(command, self.update_result, (rtpps, result_callback, cpo))
+        rtpq.send_command(command, self.update_result, (rtpps, result_callback, cpo))
 
     def gettags(self, rtpps):
         if self not in (rtpps.caller, rtpps.callee):
@@ -142,7 +174,7 @@ class _rtpps_side(object):
     def __play(self, result, rtpps, prompt_name, times, result_callback, index):
         from_tag, to_tag = self.gettags(rtpps)
         command = 'P%d %s %s %s %s %s' % (times, '%s-%d' % (rtpps.call_id, index), prompt_name, self.codecs, from_tag, to_tag)
-        rtpps.rtp_proxy_client.send_command(command, rtpps.command_result, result_callback)
+        rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
 
     def _play(self, rtpps, prompt_name, times = 1, result_callback = None, index = 0):
         if not self.session_exists:
@@ -160,7 +192,7 @@ class _rtpps_side(object):
             return
         from_tag, to_tag = self.gettags(rtpps)
         command = 'S %s %s %s' % ('%s-%d' % (rtpps.call_id, index), from_tag, to_tag)
-        rtpps.rtp_proxy_client.send_command(command, rtpps.command_result, result_callback)
+        rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
 
     def _on_sdp_change(self, rtpps, sdp_body, result_callback, en_excpt):
         sects = []
@@ -244,10 +276,11 @@ class _rtpps_side(object):
     def __copy(self, result, rtpps, remote_ip, remote_port, result_callback = None, index = 0):
         from_tag, to_tag = self.gettags(rtpps)
         command = 'C %s udp:%s:%d %s %s' % ('%s-%d' % (rtpps.call_id, index), remote_ip, remote_port, from_tag, to_tag)
-        rtpps.rtp_proxy_client.send_command(command, rtpps.command_result, result_callback)
+        rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
 
 class Rtp_proxy_session(object):
     rtp_proxy_client = None
+    rtpp_seq = None
     call_id = None
     from_tag = None
     to_tag = None
@@ -274,6 +307,7 @@ class Rtp_proxy_session(object):
             self.rtp_proxy_client = global_config['rtp_proxy_client']
             if not self.rtp_proxy_client.online:
                 raise Exception('No online RTP proxy client has been found')
+        self.rtpp_seq = Rtp_proxy_cmd_sequencer(self.rtp_proxy_client)
         if call_id != None:
             self.call_id = call_id
         else:
@@ -327,15 +361,15 @@ class Rtp_proxy_session(object):
     def _start_recording(self, result, rtpps, rname, result_callback, index):
         if rname == None:
             command = 'R %s %s %s' % ('%s-%d' % (self.call_id, index), self.from_tag, self.to_tag)
-            return self.rtp_proxy_client.send_command(command, self.command_result, result_callback)
+            return self.rtpp_seq.send_command(command, self.command_result, result_callback)
         command = 'C %s %s.a %s %s' % ('%s-%d' % (self.call_id, index), rname, self.from_tag, self.to_tag)
-        return self.rtp_proxy_client.send_command(command, self._start_recording1, \
+        return self.rtpp_seq.send_command(command, self._start_recording1, \
           (rname, result_callback, index))
 
     def _start_recording1(self, result, args):
         rname, result_callback, index = args
         command = 'C %s %s.o %s %s' % ('%s-%d' % (self.call_id, index), rname, self.to_tag, self.from_tag)
-        return self.rtp_proxy_client.send_command(command, self.command_result, result_callback)
+        return self.rtpp_seq.send_command(command, self.command_result, result_callback)
 
     def command_result(self, result, result_callback):
         #print '%s.command_result(%s)' % (id(self), result)
@@ -347,9 +381,10 @@ class Rtp_proxy_session(object):
             return
         while self.max_index >= 0:
             command = 'D %s %s %s' % ('%s-%d' % (self.call_id, self.max_index), self.from_tag, self.to_tag)
-            self.rtp_proxy_client.send_command(command)
+            self.rtpp_seq.send_command(command)
             self.max_index -= 1
         self.rtp_proxy_client = None
+        self.rtpp_seq.delete()
 
     def on_caller_sdp_change(self, sdp_body, result_callback, en_excpt = False):
         self.caller._on_sdp_change(self, sdp_body, result_callback, en_excpt)
