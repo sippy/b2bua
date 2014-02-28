@@ -47,7 +47,7 @@ class ClusterCLI(object):
     rtp_clusters = None
     global_config = None
 
-    def __init__(self, global_config, address = '/var/run/rtp_cluster.sock'):
+    def __init__(self, global_config, address):
         self.ccm = Cli_server_local(self.receive_command, address, (80, 80))
         self.rtp_clusters = []
         self.global_config = global_config
@@ -247,14 +247,14 @@ class ClusterCLI(object):
         return False
 
 def usage():
-    print 'usage: rtp_cluster.py [-f] [-P pidfile] [-c conffile]'
+    print 'usage: rtp_cluster.py [-f] [-P pidfile] [-c conffile] [-L logfile] [-s cmd_socket]'
     sys.exit(1)
 
 if __name__ == '__main__':
     global_config = {}
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:')
+        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:L:s:')
     except getopt.GetoptError:
         usage()
 
@@ -263,9 +263,9 @@ if __name__ == '__main__':
     sip_logger.write('Starting up...')
 
     foreground = False
-    dsn = 'postgres://ser:secr3tpa33w0rD@/tmp/sippy'
     pidfile = '/var/run/rtp_cluster.pid'
     logfile = '/var/log/rtp_cluster.log'
+    csockfile = '/var/run/rtp_cluster.sock'
     global_config['conffile'] = '/usr/local/etc/rtp_cluster.xml'
     global_config['_sip_address'] = MyAddress()
     for o, a in opts:
@@ -277,6 +277,12 @@ if __name__ == '__main__':
             continue
         if o == '-c':
             global_config['conffile'] = a.strip()
+            continue
+        if o == '-L':
+            logfile = a.strip()
+            continue
+        if o == '-s':
+            csockfile = a.strip()
             continue
 
     sip_logger.write(' o reading config "%s"...' % \
@@ -297,7 +303,7 @@ if __name__ == '__main__':
 
     sip_logger.write(' o initializing CLI...')
 
-    cli = ClusterCLI(global_config)
+    cli = ClusterCLI(global_config, address = csockfile)
 
     for c in config:
         #print 'Rtp_cluster', global_config, c['name'], c['address']
