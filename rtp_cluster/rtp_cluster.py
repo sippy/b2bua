@@ -86,7 +86,7 @@ class ClusterCLI(object):
                         clim.send('\n')
                     clim.send(    '    RTPproxy: #%d\n' % ridx)
                     clim.send(    '        name = %s\n' % rtpp.name)
-                    clim.send(    '        address = %s\n' % rtpp.address)
+                    clim.send(    '        address = %s\n' % str(rtpp.address))
                     if rtpp.wan_address != None:
                         clim.send('        wan_address = %s\n' % rtpp.wan_address)
                     clim.send(    '        weight = %d\n' % rtpp.weight)
@@ -110,7 +110,7 @@ class ClusterCLI(object):
                         clim.send('\n')
                     clim.send(    '    RTPproxy: #%d\n' % ridx)
                     clim.send(    '        name = %s\n' % rtpp.name)
-                    clim.send(    '        address = %s\n' % rtpp.address)
+                    clim.send(    '        address = %s\n' % str(rtpp.address))
                     if rtpp.wan_address != None:
                         clim.send('        wan_address = %s\n' % rtpp.wan_address)
                     clim.send(    '        weight = %d\n' % rtpp.weight)
