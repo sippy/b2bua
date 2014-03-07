@@ -288,6 +288,7 @@ if __name__ == '__main__':
     sip_logger.write(' o reading config "%s"...' % \
       global_config['conffile'])
 
+    global_config['_sip_logger'] = sip_logger
     f = open(global_config['conffile'])
     config = read_cluster_config(global_config, f.read())
 
@@ -298,8 +299,7 @@ if __name__ == '__main__':
         daemonize(logfile = logfile)
         file(pidfile, 'w').write(str(os.getpid()) + '\n')
         sip_logger = SipLogger('rtp_cluster')
-
-    global_config['_sip_logger'] = sip_logger
+        global_config['_sip_logger'] = sip_logger
 
     sip_logger.write(' o initializing CLI...')
 
