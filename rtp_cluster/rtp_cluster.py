@@ -99,6 +99,7 @@ class ClusterCLI(object):
                             clim.send('UNKNOWN\n')
                         else:
                             clim.send('%d\n' % rtpp.active_sessions)
+                        clim.send('        capacity_utilization = %f%%\n' % (rtpp.get_caputil() * 100.0))
                     else:
                         clim.send('offline\n')
                     clim.send('        status = %s\n' % rtpp.status)

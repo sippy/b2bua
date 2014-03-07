@@ -27,6 +27,23 @@ sys.path.append('..')
 from sippy.Rtp_proxy_client import Rtp_proxy_client
 from sippy.Timeout import Timeout
 
+class rc_filter(object):
+    a = None
+    b = None
+    lastval = None
+
+    def __init__(self, fcoef, initval = 0.0):
+        self.lastval = initval
+        self.a = 1.0 - fcoef
+        self.b = fcoef
+
+    def apply(self, x):
+        self.lastval = (self.a * x) + (self.b * self.lastval)
+        return self.lastval
+
+    def get(self):
+        return self.lastval
+
 class Rtp_cluster_member(Rtp_proxy_client):
     name = None
     status = 'ACTIVE'
@@ -39,12 +56,14 @@ class Rtp_cluster_member(Rtp_proxy_client):
     on_active_update = None
     timer = None
     global_config = None
+    asess_filtered = None
 
     def __init__(self, name, global_config, *args, **kwargs):
         self.call_id_map = []
         self.call_id_map_old = []
         self.name = name
         self.global_config = global_config
+        self.asess_filtered = rc_filter(0.9)
         Rtp_proxy_client.__init__(self, global_config, *args, **kwargs)
         self.timer = Timeout(self.call_id_map_aging, 600, -1)
 
@@ -88,6 +107,7 @@ class Rtp_cluster_member(Rtp_proxy_client):
         Rtp_proxy_client.go_offline(self)
 
     def update_active(self, active_sessions, *more_args):
+        self.asess_filtered.apply(active_sessions)
         if self.active_sessions != active_sessions and self.on_active_update != None:
             self.on_active_update(self, active_sessions)
         Rtp_proxy_client.update_active(self, active_sessions, *more_args)
@@ -102,3 +122,6 @@ class Rtp_cluster_member(Rtp_proxy_client):
             return
         self.call_id_map_old = self.call_id_map[len(self.call_id_map) / 2:]
         del self.call_id_map[len(self.call_id_map) / 2:]
+
+    def get_caputil(self):
+        return (self.asess_filtered.get() / self.capacity)
