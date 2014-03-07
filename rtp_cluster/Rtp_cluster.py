@@ -164,7 +164,7 @@ class Rtp_cluster(object):
         rtpp.send_command(orig_cmd, self.down_command, clim, cmd, rtpp)
 
     def down_command(self, result, clim, cmd, rtpp):
-        if clim.cookie in self.commands_inflight:
+        if isinstance(clim, UdpCLIM) and clim.cookie in self.commands_inflight:
             self.commands_inflight.remove(clim.cookie)
         #print 'down', result
         if result == None:
