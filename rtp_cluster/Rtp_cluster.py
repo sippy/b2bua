@@ -206,19 +206,29 @@ class Rtp_cluster(object):
                 self.down_command('E999', br.clim, br.cmd, rtpp)
 
     def pick_proxy(self, call_id):
-        active = list(self.active)
-        call_id_hash = hash(call_id)
-        while len(active) > 1:
-            total_weight = sum([x.weight for x in active])
-            idx = call_id_hash % total_weight
-            for rtpp in active:
-                idx -= rtpp.weight
-                if idx < 0:
+        active = [(rtpp, rtpp.weight * (1 - rtpp.get_caputil())) \
+          for rtpp in self.active if rtpp.status == 'ACTIVE' and rtpp.online]
+        available = [(rtpp, weight) for rtpp, weight in active if weight > 0]
+        if len(available) > 0:
+            # Normal case, there are some proxies that are loaded below their capacities
+            total_weight = sum([x[1] for x in available])
+            thr_weight = (random() * total_weight) % total_weight
+            #print total_weight, thr_weight
+            for rtpp, weight in available:
+                thr_weight -= weight
+                if thr_weight < 0:
                     break
-            if rtpp.status == 'ACTIVE' and rtpp.online and rtpp.capacity > rtpp.active_sessions:
-                return rtpp
-            active.remove(rtpp)
-        return active[0]
+            #print 'pick_proxyNG: picked up %s for the call %s (normal)' % (rtpp.name, call_id)
+            return rtpp
+        elif len(active) > 0:
+            max_rtpp, max_weight = active[0] 
+            for rtpp, weight in active[1:]:
+                if weight > max_weight:
+                    max_rtpp, max_weight = rtpp, weight
+            #print 'pick_proxyNG: picked up %s for the call %s (overload)' % (max_rtpp.name, call_id)
+            return max_rtpp
+        print 'pick_proxyNG: OUCH, no proxies to pickup from for the call %s' % (call_id,)
+        return None
 
     def rtpp_status_change(self, rtpp, online):
         #print 'rtpp_status_change', self, rtpp, online
