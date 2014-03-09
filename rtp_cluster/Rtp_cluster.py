@@ -30,6 +30,8 @@ from sippy.Cli_server_local import Cli_server_local
 from sippy.Udp_server import Udp_server
 from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd
 
+from random import random
+
 def is_dst_local(destination_ip):
     #if destination_ip == '192.168.22.11':
     #    return True
