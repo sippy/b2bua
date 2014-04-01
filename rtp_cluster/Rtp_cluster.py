@@ -140,7 +140,13 @@ class Rtp_cluster(object):
                 active = [x for x in self.active if x.online]
                 br = Broadcaster(len(active), clim, cmd)
                 for rtpp in active:
-                    rtpp.send_command(orig_cmd, self.merge_results, br, rtpp)
+                    if cmd.type in ('U', 'L') and rtpp.lan_address != None:
+                        out_cmd = Rtp_proxy_cmd(orig_cmd)
+                        out_cmd.ul_opts.destination_ip = rtpp.lan_address
+                        out_cmd = str(out_cmd)
+                    else:
+                        out_cmd = orig_cmd
+                    rtpp.send_command(out_cmd, self.merge_results, br, rtpp)
                 return
         elif cmd.type == 'I' and cmd.command_opts == 'b':
             active = [x for x in self.active if x.online]
@@ -164,7 +170,13 @@ class Rtp_cluster(object):
             rtpp = self.active[0]
             #print 'up', cmd
         #print 'rtpp.send_command'
-        rtpp.send_command(orig_cmd, self.down_command, clim, cmd, rtpp)
+        if cmd.type in ('U', 'L') and rtpp.lan_address != None:
+            out_cmd = Rtp_proxy_cmd(orig_cmd)
+            out_cmd.ul_opts.destination_ip = rtpp.lan_address
+            out_cmd = str(out_cmd)
+        else:
+            out_cmd = orig_cmd
+        rtpp.send_command(out_cmd, self.down_command, clim, cmd, rtpp)
 
     def down_command(self, result, clim, cmd, rtpp):
         if isinstance(clim, UdpCLIM) and clim.cookie in self.commands_inflight:
@@ -172,15 +184,17 @@ class Rtp_cluster(object):
         #print 'down', result
         if result == None:
             result = 'E999'
-        elif cmd.type in ('U', 'L') and not result[0].upper() == 'E':
+        elif cmd.type in ('U', 'L') and not result[0].upper() == 'E' and \
+          rtpp.wan_address != None:
             #print 'down', cmd.ul_opts.destination_ip, rtpp.wan_address
-            if cmd.ul_opts.destination_ip != None and rtpp.wan_address != None:
-               if not is_dst_local(cmd.ul_opts.destination_ip):
-                   result_parts = result.strip().split()
-                   result = '%s %s' % (result_parts[0], rtpp.wan_address)
-            elif cmd.ul_opts.destination_ip == None and rtpp.wan_address != None:
-               result_parts = result.strip().split()
-               result = '%s %s' % (result_parts[0], rtpp.wan_address)
+            req_dip = cmd.ul_opts.destination_ip
+            if req_dip != None and not is_dst_local(req_dip) and \
+              req_dip != rtpp.lan_address:
+                result_parts = result.strip().split()
+                result = '%s %s' % (result_parts[0], rtpp.wan_address)
+            elif req_dip == None:
+                result_parts = result.strip().split()
+                result = '%s %s' % (result_parts[0], rtpp.wan_address)
         #    result = '%s %s' % (result_parts[0], '192.168.1.22')
         #print 'down clim.send', result
         clim.send(result + '\n')
