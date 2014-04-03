@@ -142,7 +142,7 @@ class Rtp_cluster(object):
                 for rtpp in active:
                     if cmd.type in ('U', 'L') and rtpp.lan_address != None:
                         out_cmd = Rtp_proxy_cmd(orig_cmd)
-                        out_cmd.ul_opts.destination_ip = rtpp.lan_address
+                        out_cmd.ul_opts.local_ip = rtpp.lan_address
                         out_cmd = str(out_cmd)
                     else:
                         out_cmd = orig_cmd
@@ -172,7 +172,7 @@ class Rtp_cluster(object):
         #print 'rtpp.send_command'
         if cmd.type in ('U', 'L') and rtpp.lan_address != None:
             out_cmd = Rtp_proxy_cmd(orig_cmd)
-            out_cmd.ul_opts.destination_ip = rtpp.lan_address
+            out_cmd.ul_opts.local_ip = rtpp.lan_address
             out_cmd = str(out_cmd)
         else:
             out_cmd = orig_cmd
@@ -188,11 +188,12 @@ class Rtp_cluster(object):
           rtpp.wan_address != None:
             #print 'down', cmd.ul_opts.destination_ip, rtpp.wan_address
             req_dip = cmd.ul_opts.destination_ip
+            req_lip = cmd.ul_opts.local_ip
             if req_dip != None and not is_dst_local(req_dip) and \
-              req_dip != rtpp.lan_address:
+              req_lip != rtpp.lan_address:
                 result_parts = result.strip().split()
                 result = '%s %s' % (result_parts[0], rtpp.wan_address)
-            elif req_dip == None:
+            elif req_lip == None:
                 result_parts = result.strip().split()
                 result = '%s %s' % (result_parts[0], rtpp.wan_address)
         #    result = '%s %s' % (result_parts[0], '192.168.1.22')
