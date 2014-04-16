@@ -227,10 +227,10 @@ class SipURL(object):
             v = getattr(self, n)
             if v != None:
                 w(';%s=%s' % (n, v))
-        if self.lr:
-            w(';lr')
         for v in self.other:
             w(';%s' % v)
+        if self.lr:
+            w(';lr')
         if self.headers:
             w('?')
             w('&'.join([('%s=%s' % (h.capitalize(), quote(v))) for (h, v) in self.headers.items()]))
