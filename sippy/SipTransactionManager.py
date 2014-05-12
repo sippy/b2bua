@@ -32,7 +32,6 @@ from sippy.SipResponse import SipResponse
 from sippy.SipRequest import SipRequest
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
-from sippy.SipHeader import SipHeader
 from sippy.SipURL import SipURL
 from sippy.ESipParseException import ESipParseException
 from datetime import datetime
@@ -388,14 +387,14 @@ class SipTransactionManager(object):
             t.req_out_cb(msg)
         return t
 
-    def cancelTransaction(self, t, reason = None):
+    def cancelTransaction(self, t, extra_headers = None):
         # If we got at least one provisional reply then (state == RINGING)
         # then start CANCEL transaction, otherwise deffer it
         if t.state != RINGING:
             t.cancelPending = True
         else:
-            if reason != None:
-                t.cancel.appendHeader(SipHeader(body = reason))
+            if extra_headers != None:
+                t.cancel.appendHeaders(extra_headers)
             self.newTransaction(t.cancel, userv = t.userv)
 
     def incomingResponse(self, msg, t, checksum):

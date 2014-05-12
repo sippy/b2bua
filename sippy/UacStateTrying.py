@@ -26,6 +26,7 @@
 
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.SipHeader import SipHeader
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 
@@ -130,7 +131,11 @@ class UacStateTrying(UaStateGeneric):
 
     def recvEvent(self, event):
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
-            self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, reason = event.reason)
+            if event.reason != None:
+                eh = (SipHeader(body = reason),)
+            else:
+                eh = None
+            self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, extra_headers = eh)
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
