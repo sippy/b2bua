@@ -133,7 +133,7 @@ class UacStateTrying(UaStateGeneric):
 
     def recvEvent(self, event):
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
-            self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, reason = event.reason)
+            self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, extra_headers = event.getExtraHeaders())
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
@@ -184,7 +184,8 @@ class UacStateTrying(UaStateGeneric):
             event.reason = ex.getReason()
             code = resp.getSCode()[0]
             if code < 200:
-                self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, reason = event.reason)
+                self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr,
+                  extra_headers = event.getExtraHeaders())
             elif code >= 200 and code < 300:
                 self.genBYE()
             self.ua.equeue.append(event)

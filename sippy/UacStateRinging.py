@@ -111,7 +111,7 @@ class UacStateRinging(UacStateTrying):
 
     def recvEvent(self, event):
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
-            self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, reason = event.reason)
+            self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, extra_headers = event.getExtraHeaders())
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
