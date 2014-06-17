@@ -25,6 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from Rtp_cluster_config import read_cluster_config
 from Rtp_cluster import Rtp_cluster
 from Rtp_cluster_member import Rtp_cluster_member
 
