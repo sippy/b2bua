@@ -91,6 +91,8 @@ class ValidateHandler(ContentHandler):
                 self.rtpproxy['wan_address'] = content
             elif self.element == 'lan_address':
                 self.rtpproxy['lan_address'] = content
+            elif self.element == 'cmd_out_address':
+                self.rtpproxy['cmd_out_address'] = content
             elif self.element == 'weight':
                 try:
                     self.rtpproxy['weight'] = int(content)
@@ -190,7 +192,7 @@ def gen_cluster_config(config):
             xml += '      <weight>%s</weight>\n' % escape(str(proxy['weight']))
             xml += '      <capacity>%s</capacity>\n' % escape(str(proxy['capacity']))
             xml += '      <status>%s</status>\n' % escape(proxy['status'])
-            for key_name in ('wan_address', 'lan_address'):
+            for key_name in ('wan_address', 'lan_address', 'cmd_out_address'):
                 if proxy.has_key(key_name):
                     xml += '      <%s>%s</%s>\n' % (key_name, escape(proxy[key_name]), key_name)
             xml += '    </rtpproxy>\n'

@@ -58,15 +58,28 @@ class Rtp_cluster_member(Rtp_proxy_client):
     timer = None
     global_config = None
     asess_filtered = None
+    cmd_out_address = None
 
-    def __init__(self, name, global_config, *args, **kwargs):
+    def __init__(self, name, global_config, address, cmd_out_address):
         self.call_id_map = []
         self.call_id_map_old = []
         self.name = name
         self.global_config = global_config
         self.asess_filtered = rc_filter(0.9)
-        Rtp_proxy_client.__init__(self, global_config, *args, **kwargs)
+        self.cmd_out_address = cmd_out_address
+        if cmd_out_address != None:
+            bind_address = (cmd_out_address, 0)
+        else:
+            bind_address = None
+        Rtp_proxy_client.__init__(self, global_config, address, bind_address = bind_address)
         self.timer = Timeout(self.call_id_map_aging, 600, -1)
+
+    def reconnect(self, address):
+        if self.cmd_out_address != None:
+            bind_address = (self.cmd_out_address, 0)
+        else:
+            bind_address = None
+        Rtp_proxy_client.reconnect(self, address, bind_address = bind_address)
 
     def isYours(self, call_id):
         if call_id in self.call_id_map:

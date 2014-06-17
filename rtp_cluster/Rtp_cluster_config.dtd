@@ -5,7 +5,7 @@
 
 <!ELEMENT rtp_cluster (name, protocol, address, rtpproxy+)>
 
-<!ELEMENT rtpproxy (name, protocol, address, weight, capacity, status, wan_address?, lan_address?)>
+<!ELEMENT rtpproxy (name, protocol, address, weight, capacity, status, wan_address?, lan_address?, cmd_out_address?)>
 
 <!ELEMENT name (#PCDATA)>
 <!ELEMENT protocol (#PCDATA)>
@@ -15,5 +15,6 @@
 <!ELEMENT status (#PCDATA)>
 <!ELEMENT wan_address (#PCDATA)>
 <!ELEMENT lan_address (#PCDATA)>
+<!ELEMENT cmd_out_address (#PCDATA)>
 
 ]>
