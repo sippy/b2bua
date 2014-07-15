@@ -31,6 +31,8 @@ from Rtp_cluster_member import Rtp_cluster_member
 
 import getopt, os
 import sys
+from pwd import getpwnam
+from grp import getgrnam
 
 from contrib.objgraph import typestats
 import operator
@@ -50,7 +52,8 @@ class ClusterCLI(object):
     global_config = None
 
     def __init__(self, global_config, address):
-        self.ccm = Cli_server_local(self.receive_command, address, (80, 80))
+        sown = global_config.get('_rtpc_sockowner', None)
+        self.ccm = Cli_server_local(self.receive_command, address, sown)
         self.rtp_clusters = []
         self.global_config = global_config
 
@@ -278,14 +281,15 @@ class ClusterCLI(object):
         return False
 
 def usage():
-    print 'usage: rtp_cluster.py [-f] [-P pidfile] [-c conffile] [-L logfile] [-s cmd_socket]'
+    print('usage: rtp_cluster.py [-f] [-P pidfile] [-c conffile] [-L logfile] [-s cmd_socket]\n' \
+          '        [-o uname:gname]')
     sys.exit(1)
 
 if __name__ == '__main__':
     global_config = {}
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:L:s:')
+        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:L:s:o:')
     except getopt.GetoptError:
         usage()
 
@@ -314,6 +318,12 @@ if __name__ == '__main__':
             continue
         if o == '-s':
             csockfile = a.strip()
+            continue
+        if o == '-o':
+            sown_user, sown_gpr = a.split(':', 1)
+            sown_uid = getpwnam(sown_user).pw_uid
+            sown_gid = getgrnam(sown_gpr).gr_gid
+            global_config['_rtpc_sockowner'] = (sown_uid, sown_gid)
             continue
 
     sip_logger.write(' o reading config "%s"...' % \

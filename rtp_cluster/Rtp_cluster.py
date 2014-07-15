@@ -83,7 +83,8 @@ class Rtp_cluster(object):
         if len(address) == 2:
             self.ccm = Udp_server(global_config, address, self.up_command_udp)
         else:
-            self.ccm = Cli_server_local(self.up_command, address, (80, 80))
+            sown = global_config.get('_rtpc_sockowner', None)
+            self.ccm = Cli_server_local(self.up_command, address, sown)
             self.ccm.protocol.expect_lf = False
         self.global_config = global_config
         self.name = name
