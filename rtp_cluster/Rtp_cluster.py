@@ -77,15 +77,17 @@ class Rtp_cluster(object):
     ccm = None
     commands_inflight = None
 
-    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock'):
+    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', dry_run = False):
         self.active = []
         self.pending = []
         if len(address) == 2:
-            self.ccm = Udp_server(global_config, address, self.up_command_udp)
+            if not dry_run:
+                self.ccm = Udp_server(global_config, address, self.up_command_udp)
         else:
             sown = global_config.get('_rtpc_sockowner', None)
-            self.ccm = Cli_server_local(self.up_command, address, sown)
-            self.ccm.protocol.expect_lf = False
+            if not dry_run:
+                self.ccm = Cli_server_local(self.up_command, address, sown)
+                self.ccm.protocol.expect_lf = False
         self.global_config = global_config
         self.name = name
         self.address = address

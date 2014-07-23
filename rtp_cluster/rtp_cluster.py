@@ -281,7 +281,7 @@ class ClusterCLI(object):
         return False
 
 def usage():
-    print('usage: rtp_cluster.py [-f] [-P pidfile] [-c conffile] [-L logfile] [-s cmd_socket]\n' \
+    print('usage: rtp_cluster.py [-fd] [-P pidfile] [-c conffile] [-L logfile] [-s cmd_socket]\n' \
           '        [-o uname:gname]')
     sys.exit(1)
 
@@ -289,7 +289,7 @@ if __name__ == '__main__':
     global_config = {}
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:L:s:o:')
+        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:L:s:o:d')
     except getopt.GetoptError:
         usage()
 
@@ -298,6 +298,7 @@ if __name__ == '__main__':
     sip_logger.write('Starting up...')
 
     foreground = False
+    dry_run = False
     pidfile = '/var/run/rtp_cluster.pid'
     logfile = '/var/log/rtp_cluster.log'
     csockfile = '/var/run/rtp_cluster.sock'
@@ -325,6 +326,10 @@ if __name__ == '__main__':
             sown_gid = getgrnam(sown_gpr).gr_gid
             global_config['_rtpc_sockowner'] = (sown_uid, sown_gid)
             continue
+        if o == '-d':
+            dry_run = True
+            foreground = True
+            continue
 
     sip_logger.write(' o reading config "%s"...' % \
       global_config['conffile'])
@@ -344,12 +349,13 @@ if __name__ == '__main__':
 
     sip_logger.write(' o initializing CLI...')
 
-    cli = ClusterCLI(global_config, address = csockfile)
+    if not dry_run:
+        cli = ClusterCLI(global_config, address = csockfile)
 
     for c in config:
         #print 'Rtp_cluster', global_config, c['name'], c['address']
         sip_logger.write(' o initializing cluster "%s" at <%s>' % (c['name'], c['address']))
-        rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'])
+        rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'], dry_run = dry_run)
         for rtpp_config in c['rtpproxies']:
             sip_logger.write('  - adding RTPproxy member %s at <%s>' % (rtpp_config['name'], rtpp_config['address']))
             #Rtp_cluster_member('rtpproxy1', global_config, ('127.0.0.1', 22222))
@@ -376,7 +382,11 @@ if __name__ == '__main__':
             if rtpp_config.has_key('lan_address'):
                 rtpp.lan_address = rtpp_config['lan_address']
             rtp_cluster.add_member(rtpp)
-        cli.rtp_clusters.append(rtp_cluster)
-    #rtp_cluster = Rtp_cluster(global_config, 'supercluster')
+        if not dry_run:
+            cli.rtp_clusters.append(rtp_cluster)
+    #rtp_cluster = Rtp_cluster(global_config, 'supercluster', dry_run = dry_run)
+    if dry_run:
+        sip_logger.write('Configuration check is complete, no errors found')
+        sys.exit(0)
     sip_logger.write('Initialization complete, have a good flight.')
     reactor.run(installSignalHandlers = True)
