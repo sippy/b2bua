@@ -125,7 +125,7 @@ class Rtp_cluster(object):
                     break
             else:
                 rtpp = None
-            if rtpp == None and cmd.type == 'U' and len(cmd.args.split()) == 3:
+            if rtpp == None and cmd.type == 'U' and cmd.ul_opts.to_tag == None:
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
                 rtpp.bind_session(cmd.call_id, cmd.type)
@@ -133,15 +133,7 @@ class Rtp_cluster(object):
                 # Existing session we know nothing about
                 if cmd.type == 'U':
                     # Do a forced lookup
-                    orig_cmd = 'L%s %s' % (cmd.ul_opts, cmd.call_id)
-                    u_args = cmd.args.split(None, 4)
-                    from_tag = u_args[2]
-                    u_args[2] = u_args[3]
-                    u_args[3] = from_tag
-                    if len(u_args) == 4:
-                        orig_cmd += '%s %s %s %s' % tuple(u_args)
-                    else:
-                        orig_cmd += '%s %s %s %s %s' % tuple(u_args)
+                    orig_cmd = 'L%s' % cmd.ul_opts.getstr(cmd.call_id, swaptags = True)
                 active = [x for x in self.active if x.online]
                 br = Broadcaster(len(active), clim, cmd)
                 for rtpp in active:
