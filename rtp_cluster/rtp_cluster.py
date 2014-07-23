@@ -280,6 +280,12 @@ class ClusterCLI(object):
         clim.send('ERROR: unknown command\n')
         return False
 
+class fakecli(object):
+    rtp_clusters = None
+
+    def __init__(self):
+        self.rtp_clusters = []
+
 def usage():
     print('usage: rtp_cluster.py [-fd] [-P pidfile] [-c conffile] [-L logfile] [-s cmd_socket]\n' \
           '        [-o uname:gname]')
@@ -351,6 +357,8 @@ if __name__ == '__main__':
 
     if not dry_run:
         cli = ClusterCLI(global_config, address = csockfile)
+    else:
+        cli = fakecli()
 
     for c in config:
         #print 'Rtp_cluster', global_config, c['name'], c['address']
@@ -382,11 +390,16 @@ if __name__ == '__main__':
             if rtpp_config.has_key('lan_address'):
                 rtpp.lan_address = rtpp_config['lan_address']
             rtp_cluster.add_member(rtpp)
-        if not dry_run:
-            cli.rtp_clusters.append(rtp_cluster)
+        cli.rtp_clusters.append(rtp_cluster)
     #rtp_cluster = Rtp_cluster(global_config, 'supercluster', dry_run = dry_run)
     if dry_run:
         sip_logger.write('Configuration check is complete, no errors found')
+        for rtp_cluster in cli.rtp_clusters:
+            rtp_cluster.shutdown()
+        sip_logger.shutdown()
+        from time import sleep
+        # Give worker threads some time to cease&desist
+        sleep(0.1)
         sys.exit(0)
     sip_logger.write('Initialization complete, have a good flight.')
     reactor.run(installSignalHandlers = True)
