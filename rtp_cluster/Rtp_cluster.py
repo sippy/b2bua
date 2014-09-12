@@ -77,14 +77,17 @@ class Rtp_cluster(object):
     ccm = None
     commands_inflight = None
 
-    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock'):
+    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', dry_run = False):
         self.active = []
         self.pending = []
         if len(address) == 2:
-            self.ccm = Udp_server(global_config, address, self.up_command_udp)
+            if not dry_run:
+                self.ccm = Udp_server(global_config, address, self.up_command_udp)
         else:
-            self.ccm = Cli_server_local(self.up_command, address, (80, 80))
-            self.ccm.protocol.expect_lf = False
+            sown = global_config.get('_rtpc_sockowner', None)
+            if not dry_run:
+                self.ccm = Cli_server_local(self.up_command, address, sown)
+                self.ccm.protocol.expect_lf = False
         self.global_config = global_config
         self.name = name
         self.address = address
@@ -124,7 +127,7 @@ class Rtp_cluster(object):
                     break
             else:
                 rtpp = None
-            if rtpp == None and cmd.type == 'U' and len(cmd.args.split()) == 3:
+            if rtpp == None and cmd.type == 'U' and cmd.ul_opts.to_tag == None:
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
                 rtpp.bind_session(cmd.call_id, cmd.type)
@@ -132,15 +135,7 @@ class Rtp_cluster(object):
                 # Existing session we know nothing about
                 if cmd.type == 'U':
                     # Do a forced lookup
-                    orig_cmd = 'L%s %s' % (cmd.ul_opts, cmd.call_id)
-                    u_args = cmd.args.split(None, 4)
-                    from_tag = u_args[2]
-                    u_args[2] = u_args[3]
-                    u_args[3] = from_tag
-                    if len(u_args) == 4:
-                        orig_cmd += '%s %s %s %s' % tuple(u_args)
-                    else:
-                        orig_cmd += '%s %s %s %s %s' % tuple(u_args)
+                    orig_cmd = 'L%s' % cmd.ul_opts.getstr(cmd.call_id, swaptags = True)
                 active = [x for x in self.active if x.online]
                 br = Broadcaster(len(active), clim, cmd)
                 for rtpp in active:
@@ -289,7 +284,8 @@ class Rtp_cluster(object):
     def shutdown(self):
         for rtpp in self.active + self.pending:
             rtpp.shutdown = True
-        self.ccm.shutdown()
+        if self.ccm != None:
+            self.ccm.shutdown()
         self.active = None
         self.pending = None
         self.ccm = None
