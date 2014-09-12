@@ -14,7 +14,7 @@ the Sippy B2BUA doesn't perform any media relaying or processing, therefore it
 doesn't introduce any additional packet loss, delay or jitter into the
 media path. 
 
-Features:
+## Features
 
 - 5,000-10,000 simultaneous sessions per server;
 - 150-400 call setups/tear-downs per second;
@@ -30,3 +30,14 @@ the market today;
 features and services easy;
 - Sippy B2BUA could be easily combined with other Open Source software, such as
 SIP Express Router / OpenSIPS to build complete softswitch solution.
+
+## Installation
+
+`pip install git+https://github.com/sippy/b2bua`
+
+## Running
+
+To get started, you can use the b2bua_simple implementation. The following example will cause the b2bua run in the foreground so you can see the SIP messaging. If you make a call to the IP address of your host machine, the b2bua will recieve the call on its UAC side, and it will send a new call leg out its UAS side to the IP address 192.168.1.1. It is expected that 192.168.1.1 is some sort of SIP switch or termination gateway.
+
+`b2bua_simple -f -n 192.168.1.1`
+
