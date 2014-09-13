@@ -1,3 +1,5 @@
+[![Build Status](https://drone.io/github.com/sippy/b2bua/status.png)](https://drone.io/github.com/sippy/b2bua/latest)
+
 # Sippy B2BUA
 Sippy B2BUA is a [RFC3261](https://www.ietf.org/rfc/rfc3261.txt)-compliant
 Session Initiation Protocol (SIP)
