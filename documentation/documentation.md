@@ -181,7 +181,8 @@ IEFT draft.
 #### Depends on:
 - Python 2.4 or later
 - [Twisted](https://twistedmatrix.com/) framework event framework
-- radiusclient-ng 0.5.0 or later (Note, see #sippy/b2bua/issues/12)
+- radiusclient-ng 0.5.0 or later (Note, see [#12](https://github.com/sippy/b2bua/issues/12)
+)
 
 #### Synopsis
 
