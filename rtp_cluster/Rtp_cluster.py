@@ -271,7 +271,7 @@ class Rtp_cluster(object):
                 self.pending.remove(rtpp)
             else:
                 self.active.remove(rtpp)
-            rtpp.shutdown = True
+            rtpp.shutdown()
 
     def rtpp_by_name(self, name):
         idx = 0
@@ -283,7 +283,7 @@ class Rtp_cluster(object):
 
     def shutdown(self):
         for rtpp in self.active + self.pending:
-            rtpp.shutdown = True
+            rtpp.shutdown()
         if self.ccm != None:
             self.ccm.shutdown()
         self.active = None
