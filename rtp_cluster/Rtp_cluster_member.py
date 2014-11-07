@@ -129,7 +129,7 @@ class Rtp_cluster_member(Rtp_proxy_client):
         Rtp_proxy_client.update_active(self, active_sessions, *more_args)
 
     def call_id_map_aging(self):
-        if self.shutdown:
+        if self.shut_down:
             self.timer.cancel()
             return
         if len(self.call_id_map) < 1000:
