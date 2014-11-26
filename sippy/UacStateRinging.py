@@ -26,6 +26,7 @@
 
 from functools import partial
 
+from sippy.Time.MonoTime import MonoTime
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
@@ -70,6 +71,10 @@ class UacStateRinging(UacStateTrying):
                 event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
                 self.ua.equeue.append(event)
                 self.genBYE()
+                if self.ua.setup_ts is None or resp.rtime >= self.ua.setup_ts:
+                    self.ua.disconnect_ts = resp.rtime
+                else:
+                    self.ua.disconnect_ts = MonoTime()
                 return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
             if not self.ua.late_media or body is None:
@@ -107,7 +112,10 @@ class UacStateRinging(UacStateTrying):
         except:
             pass
         self.ua.equeue.append(event)
-        self.ua.disconnect_ts = resp.rtime
+        if self.ua.setup_ts is None or resp.rtime >= self.ua.setup_ts:
+            self.ua.disconnect_ts = resp.rtime
+        else:
+            self.ua.disconnect_ts = MonoTime()
         return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, code)
 
     def recvEvent(self, event):
@@ -116,7 +124,10 @@ class UacStateRinging(UacStateTrying):
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
-            self.ua.disconnect_ts = event.rtime
+            if self.ua.setup_ts is None or event.rtime >= self.ua.setup_ts:
+                self.ua.disconnect_ts = event.rtime
+            else:
+                self.ua.disconnect_ts = MonoTime()
             return (UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
         #print('wrong event %s in the Ringing state' % event)
         return None

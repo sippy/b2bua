@@ -27,6 +27,7 @@
 from functools import partial
 
 from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.Time.MonoTime import MonoTime
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventTry, CCEventFail, CCEventRedirect, CCEventDisconnect
 from sippy.SipContact import SipContact
@@ -42,7 +43,7 @@ class UacStateIdle(UaStateGeneric):
 
     def recvEvent(self, event):
         if isinstance(event, CCEventTry):
-            if self.ua.setup_ts == None:
+            if self.ua.setup_ts is None:
                 self.ua.setup_ts = event.rtime
             self.ua.origin = 'callee'
             cId, callingID, calledID, body, auth, callingName = event.getData()
@@ -104,6 +105,10 @@ class UacStateIdle(UaStateGeneric):
                 self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
             return (UacStateTrying,)
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
+            if self.ua.setup_ts is None or event.rtime >= self.ua.setup_ts:
+                self.ua.disconnect_ts = event.rtime
+            else:
+                self.ua.disconnect_ts = MonoTime()
             return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)
         return None
 

@@ -30,6 +30,7 @@ from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.Time.MonoTime import MonoTime
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 from sippy.Exceptions.SipParseError import SdpParseError
@@ -88,6 +89,10 @@ class UacStateTrying(UaStateGeneric):
                 self.ua.equeue.append(CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin))
                 # Generate and send BYE
                 self.genBYE()
+                if self.ua.setup_ts is None or resp.rtime >= self.ua.setup_ts:
+                    self.ua.disconnect_ts = resp.rtime
+                else:
+                    self.ua.disconnect_ts = MonoTime()
                 return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
             if not self.ua.late_media or body is None:
@@ -130,7 +135,10 @@ class UacStateTrying(UaStateGeneric):
         except:
             pass
         self.ua.equeue.append(event)
-        self.ua.disconnect_ts = resp.rtime
+        if self.ua.setup_ts is None or resp.rtime >= self.ua.setup_ts:
+            self.ua.disconnect_ts = resp.rtime
+        else:
+            self.ua.disconnect_ts = MonoTime()
         return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, code)
 
     def recvEvent(self, event):
@@ -145,7 +153,10 @@ class UacStateTrying(UaStateGeneric):
             if self.ua.no_reply_timer != None:
                 self.ua.no_reply_timer.cancel()
                 self.ua.no_reply_timer = None
-            self.ua.disconnect_ts = event.rtime
+            if self.ua.setup_ts is None or event.rtime >= self.ua.setup_ts:
+                self.ua.disconnect_ts = event.rtime
+            else:
+                self.ua.disconnect_ts = MonoTime()
             return (UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
         #print('wrong event %s in the Trying state' % event)
         return None
