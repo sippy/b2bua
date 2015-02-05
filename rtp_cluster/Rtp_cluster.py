@@ -31,7 +31,7 @@ import sys
 sys.path.append('..')
 
 from sippy.Cli_server_local import Cli_server_local
-from sippy.Udp_server import Udp_server
+from sippy.Udp_server import Udp_server, Udp_server_opts
 from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd
 
 from random import random
@@ -82,7 +82,8 @@ class Rtp_cluster(object):
         self.pending = []
         if len(address) == 2:
             if not dry_run:
-                self.ccm = Udp_server(global_config, address, self.up_command_udp)
+                uopts = Udp_server_opts(address, self.up_command_udp)
+                self.ccm = Udp_server(global_config, uopts)
         else:
             sown = global_config.get('_rtpc_sockowner', None)
             if not dry_run:
