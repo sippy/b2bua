@@ -101,7 +101,7 @@ class Rtp_cluster(object):
         else:
             self.pending.append(member)
 
-    def up_command_udp(self, data, address, server):
+    def up_command_udp(self, data, address, server, rtime):
         dataparts = data.split(None, 1)
         if len(dataparts) == 1:
             return
