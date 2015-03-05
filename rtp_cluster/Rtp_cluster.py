@@ -32,7 +32,7 @@ sys.path.append('..')
 
 from sippy.Cli_server_local import Cli_server_local
 from sippy.Udp_server import Udp_server, Udp_server_opts
-from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd
+from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd, Rtpp_stats
 
 from random import random
 
@@ -43,6 +43,8 @@ def is_dst_local(destination_ip):
 
 class Broadcaster(object):
     bcount = None
+    ecount = None
+    nparts = None
     results = None
     clim = None
     cmd = None
@@ -50,6 +52,8 @@ class Broadcaster(object):
     def __init__(self, bcount, clim, cmd):
         self.results = []
         self.bcount = bcount
+        self.ecount = bcount
+        self.nparts = bcount
         self.clim = clim
         self.cmd = cmd
 
@@ -166,6 +170,16 @@ class Rtp_cluster(object):
               (sessions_created, active_sessions, active_streams, preceived, ptransmitted)
             self.down_command(reply, clim, cmd, None)
             return
+        elif cmd.type == 'G':
+            active = [x for x in self.active if x.online]
+            br = Broadcaster(len(active), clim, cmd)
+            br.sobj = Rtpp_stats(cmd.args.split())
+            if cmd.command_opts != None and cmd.command_opts.lower() == 'v':
+                cmd.command_opts = None
+                br.sobj.verbose = True
+            for rtpp in active:
+                rtpp.send_command(cmd, self.merge_stats_results, br, rtpp)
+            return
         else:
             rtpp = self.active[0]
             #print 'up', cmd
@@ -221,6 +235,27 @@ class Rtp_cluster(object):
                 self.down_command('0', br.clim, br.cmd, rtpp)
             else:
                 self.down_command('E999', br.clim, br.cmd, rtpp)
+
+    def merge_stats_results(self, result, br, rtpp):
+        #print 'merge_stats_results, result', result
+        if result == None:
+            result = 'E999'
+        if br != None and not result[0].upper() == 'E':
+            try:
+                br.sobj.parseAndAdd(result)
+                br.ecount -= 1
+            except:
+                pass
+        br.bcount -= 1
+        if br.bcount > 0:
+            # More results to come
+            return
+        #print 'merge_stats_results, br.sobj', br.sobj
+        if br.ecount == br.nparts:
+            rval = 'E999'
+        else:
+            rval = str(br.sobj)
+        self.down_command(rval, br.clim, br.cmd, rtpp)
 
     def pick_proxy(self, call_id):
         active = [(rtpp, rtpp.weight * (1 - rtpp.get_caputil())) \
