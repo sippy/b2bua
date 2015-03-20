@@ -109,6 +109,7 @@ class ClusterCLI(object):
                         else:
                             clim.send('%d\n' % rtpp.active_sessions)
                         clim.send('        capacity utilization = %f%%\n' % (rtpp.get_caputil() * 100.0))
+                        clim.send('        average rtpc delay = %f sec\n' % rtpp.get_rtpc_delay())
                     else:
                         clim.send('offline\n')
                     clim.send('        status = %s\n' % rtpp.status)
