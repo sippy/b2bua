@@ -33,6 +33,7 @@ sys.path.append('..')
 from sippy.Cli_server_local import Cli_server_local
 from sippy.Udp_server import Udp_server, Udp_server_opts
 from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd, Rtpp_stats
+from sippy.Timeout import Timeout
 
 from random import random
 
@@ -80,10 +81,15 @@ class Rtp_cluster(object):
     pending = None
     ccm = None
     commands_inflight = None
+    l1rcache = None
+    l2rcache = None
+    cache_purge_el = None
 
     def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', dry_run = False):
         self.active = []
         self.pending = []
+        self.l1rcache = {}
+        self.l2rcache = {}
         if len(address) == 2:
             if not dry_run:
                 uopts = Udp_server_opts(address, self.up_command_udp)
@@ -97,6 +103,7 @@ class Rtp_cluster(object):
         self.name = name
         self.address = address
         self.commands_inflight = []
+        self.cache_purge_el = Timeout(self.rCachePurge, 10, -1)
 
     def add_member(self, member):
         member.on_state_change = self.rtpp_status_change
@@ -111,6 +118,13 @@ class Rtp_cluster(object):
             return
         cookie, cmd = dataparts
         if cookie in self.commands_inflight:
+            return
+        cresp = self.l1rcache.get(cookie, self.l2rcache.get(cookie, None))
+        if cresp != None:
+            response = '%s %s' % (cookie, cresp)
+            server.send_to(response, address)
+            print('Rtp_cluster.up_command_udp(): sending cached response "%s" to %s' % \
+              (response[:-1], address))
             return
         self.commands_inflight.append(cookie)
         clim = UdpCLIM(address, cookie, server)
@@ -127,12 +141,25 @@ class Rtp_cluster(object):
             #print 'up', cmd.call_id, str(cmd)
             for rtpp in self.active:
                 if rtpp.isYours(cmd.call_id):
-                    if cmd.type == 'D':
-                        rtpp.unbind_session(cmd.call_id)
                     break
             else:
                 rtpp = None
-            if rtpp == None and cmd.type == 'U' and cmd.ul_opts.to_tag == None:
+            if cmd.type == 'U' and cmd.ul_opts.to_tag == None:
+                new_session = True
+            else:
+                new_session = False
+            if rtpp == None and not new_session:
+                # Existing session, also check if it exists on any of the offline
+                # members and try to relay it there, it makes no sense to broadcast
+                # the call to every other node in that case
+                for rtpp in self.pending:
+                    if rtpp.isYours(cmd.call_id):
+                        break
+                else:
+                    rtpp = None
+            if rtpp != None and cmd.type == 'D':
+                rtpp.unbind_session(cmd.call_id)
+            if rtpp == None and new_session:
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
                 rtpp.bind_session(cmd.call_id, cmd.type)
@@ -212,7 +239,10 @@ class Rtp_cluster(object):
                 result = '%s %s' % (result_parts[0], rtpp.wan_address)
         #    result = '%s %s' % (result_parts[0], '192.168.1.22')
         #print 'down clim.send', result
-        clim.send(result + '\n')
+        response = result + '\n'
+        clim.send(response)
+        if isinstance(clim, UdpCLIM):
+            self.l1rcache[clim.cookie] = response
         clim.close()
 
     def merge_results(self, result, br, rtpp):
@@ -322,12 +352,19 @@ class Rtp_cluster(object):
             rtpp.shutdown()
         if self.ccm != None:
             self.ccm.shutdown()
+        lf self.cache_purge_el != None:
+            self.cache_purge_el.cancel()
         self.active = None
         self.pending = None
         self.ccm = None
+        self.cache_purge_el = None
 
     def all_members(self):
         return tuple(self.active + self.pending)
+
+    def rCachePurge(self):
+        self.l2rcache = self.l1rcache
+        self.l1rcache = {}
 
 if __name__ == '__main__':
     global_config = {}
