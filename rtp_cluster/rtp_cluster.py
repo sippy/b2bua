@@ -31,6 +31,7 @@ from Rtp_cluster_member import Rtp_cluster_member
 
 import getopt, os
 import sys
+import signal
 from pwd import getpwnam
 from grp import getgrnam
 
@@ -292,11 +293,16 @@ def usage():
           '        [-o uname:gname]')
     sys.exit(1)
 
+def debug_signal(signum, frame):
+    import sys, traceback
+    for thread_id, stack in sys._current_frames().iteritems():
+        print 'Thread id: %s\n%s' % (thread_id, ''.join(traceback.format_stack(stack)))
+
 if __name__ == '__main__':
     global_config = {}
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:L:s:o:d')
+        opts, args = getopt.getopt(sys.argv[1:], 'fP:c:L:s:o:dD')
     except getopt.GetoptError:
         usage()
 
@@ -306,6 +312,7 @@ if __name__ == '__main__':
 
     foreground = False
     dry_run = False
+    debug_threads = False
     pidfile = '/var/run/rtp_cluster.pid'
     logfile = '/var/log/rtp_cluster.log'
     csockfile = '/var/run/rtp_cluster.sock'
@@ -336,6 +343,9 @@ if __name__ == '__main__':
         if o == '-d':
             dry_run = True
             foreground = True
+            continue
+        if o == '-D':
+            debug_threads = True
             continue
 
     sip_logger.write(' o reading config "%s"...' % \
@@ -402,5 +412,7 @@ if __name__ == '__main__':
         # Give worker threads some time to cease&desist
         sleep(0.1)
         sys.exit(0)
+    if debug_threads:
+        signal.signal(signal.SIGINFO, debug_signal)
     sip_logger.write('Initialization complete, have a good flight.')
     reactor.run(installSignalHandlers = True)
