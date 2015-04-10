@@ -352,7 +352,7 @@ class Rtp_cluster(object):
             rtpp.shutdown()
         if self.ccm != None:
             self.ccm.shutdown()
-        lf self.cache_purge_el != None:
+        if self.cache_purge_el != None:
             self.cache_purge_el.cancel()
         self.active = None
         self.pending = None
