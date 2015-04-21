@@ -204,6 +204,7 @@ class Rtp_cluster(object):
             if cmd.command_opts != None and cmd.command_opts.lower() == 'v':
                 cmd.command_opts = None
                 br.sobj.verbose = True
+            cmd.nretr = 0
             for rtpp in active:
                 rtpp.send_command(cmd, self.merge_stats_results, br, rtpp)
             return
@@ -269,7 +270,10 @@ class Rtp_cluster(object):
     def merge_stats_results(self, result, br, rtpp):
         #print 'merge_stats_results, result', result
         if result == None:
-            result = 'E999'
+            result = rtpp.stats_cache.get(br.sobj.all_names, 'E999')
+            print 'merge_stats_results: getting from the cache %s' % result
+        elif result[0].upper() != 'E':
+            rtpp.stats_cache[br.sobj.all_names] = result
         if br != None and not result[0].upper() == 'E':
             try:
                 br.sobj.parseAndAdd(result)

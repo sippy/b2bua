@@ -61,6 +61,7 @@ class Rtp_cluster_member(Rtp_proxy_client):
     global_config = None
     asess_filtered = None
     cmd_out_address = None
+    stats_cache = None
 
     def __init__(self, name, global_config, address, cmd_out_address):
         self.call_id_map = []
@@ -69,6 +70,7 @@ class Rtp_cluster_member(Rtp_proxy_client):
         self.global_config = global_config
         self.asess_filtered = rc_filter(0.9)
         self.cmd_out_address = cmd_out_address
+        self.stats_cache = {}
         if cmd_out_address != None:
             bind_address = (cmd_out_address, 0)
         else:
@@ -118,6 +120,7 @@ class Rtp_cluster_member(Rtp_proxy_client):
         if self.online:
             self.global_config['_sip_logger'].write('RTPproxy "%s" has changed ' \
               'status from online to offline' % self.name)
+            self.stats_cache = {}
             if self.on_state_change != None:
                 self.on_state_change(self, False)
         Rtp_proxy_client.go_offline(self)
