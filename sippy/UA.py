@@ -186,6 +186,7 @@ class UA(object):
         self.rCSeq = req.getHFBody('cseq').getCSeqNum()
         if self.state == None:
             if rmethod == 'INVITE':
+                sip_t.pr_rel = True
                 self.changeState((UasStateIdle,))
             else:
                 return None
@@ -331,7 +332,7 @@ class UA(object):
         return req
 
     def sendUasResponse(self, scode, reason, body = None, contacts = None, \
-      extra_headers = None, ack_wait = False):
+      extra_headers = None, ack_wait = False, retrans = False):
         uasResp = self.uasResp.getCopy()
         uasResp.setSCode(scode, reason)
         uasResp.setBody(body)

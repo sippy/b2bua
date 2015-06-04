@@ -39,7 +39,7 @@ RUN env -S "`${SET_ENV}`" \
   ${PYTHON_CMD} -m pip install rtp.io
 
 ENV MM_TYPE=b2bua
-ENV MM_BRANCH=master
+ENV MM_BRANCH=PRACK
 ENV MM_ROOT=../..
 ENV RTPP_BRANCH=DOCKER
 ENV RTPPROXY_DIST=../../dist/rtpproxy

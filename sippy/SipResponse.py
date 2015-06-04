@@ -79,3 +79,10 @@ class SipResponse(SipMsg):
         cself.reason = self.reason
         cself.sipver = self.sipver
         return cself
+
+    def getRTId(self):
+        headers_dict = dict([(x.name, x) for x in self.headers if x.name in ('rseq', 'cseq', 'call-id', 'from')])
+        rseq = headers_dict['rseq'].getBody().getNum()
+        cseq, method = headers_dict['cseq'].getBody().getCSeq()
+        rval = [str(headers_dict['call-id'].getBody()), headers_dict['from'].getBody().getTag(), rseq, cseq, method]
+        return tuple(rval)

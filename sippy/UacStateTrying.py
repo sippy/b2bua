@@ -34,6 +34,8 @@ from sippy.Time.MonoTime import MonoTime
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 from sippy.Exceptions.SdpParseError import SdpHandlingErrors
+from sippy.SipHeader import SipHeader
+from sippy.SipRAck import SipRAck
 
 class UacStateTrying(UaStateGeneric):
     sname = 'Trying(UAC)'
@@ -63,6 +65,17 @@ class UacStateTrying(UaStateGeneric):
             if code < 200 and self.ua.expire_time != None:
                 self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if code < 200:
+            if resp.countHFs('rseq') > 0:
+                tag = resp.getHFBody('to').getTag()
+                self.ua.rUri.setTag(tag)
+                rseq = resp.getHFBody('rseq')
+                cseq = resp.getHFBody('cseq')
+                req = self.ua.genRequest('PRACK')
+                self.ua.lCSeq += 1
+                rack = SipRAck(rseq = rseq.number, cseq = cseq.cseq, method = cseq.method)
+                req.appendHeader(SipHeader(name = 'rack', body = rack))
+                self.ua.global_config['_sip_tm'].newTransaction(req, \
+                  laddress = self.ua.source_address, compact = self.ua.compact_sip)
             event = CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin)
             if body is not None:
                 if self.ua.on_remote_sdp_change != None:
