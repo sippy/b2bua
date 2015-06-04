@@ -153,11 +153,13 @@ class UA(object):
         sip_t.compact = self.compact_sip
         if self.remote_ua == None:
             self.update_ua(req)
+        rmethod = req.getMethod()
         if self.rCSeq != None and self.rCSeq >= req.getHFBody('cseq').getCSeqNum():
             return (req.genResponse(500, 'Server Internal Error', server = self.local_ua), None, None)
         self.rCSeq = req.getHFBody('cseq').getCSeqNum()
         if self.state == None:
-            if req.getMethod() == 'INVITE':
+            if rmethod == 'INVITE':
+                sip_t.pr_rel = True
                 self.changeState((UasStateIdle,))
             else:
                 return None
@@ -165,7 +167,7 @@ class UA(object):
         if newstate != None:
             self.changeState(newstate)
         self.emitPendingEvents()
-        if newstate != None and req.getMethod() == 'INVITE':
+        if newstate != None and rmethod == 'INVITE':
             return (None, self.state.cancel, self.disconnect)
         else:
             return None
@@ -286,7 +288,7 @@ class UA(object):
         return req
 
     def sendUasResponse(self, scode, reason, body = None, contact = None, \
-      reason_rfc3326 = None, extra_headers = None, ack_wait = False):
+      reason_rfc3326 = None, extra_headers = None, ack_wait = False, retrans = False):
         uasResp = self.uasResp.getCopy()
         uasResp.setSCode(scode, reason)
         uasResp.setBody(body)
@@ -301,6 +303,7 @@ class UA(object):
         else:
             ack_cb = None
         self.global_config['_sip_tm'].sendResponse(uasResp, ack_cb = ack_cb)
+        return
 
     def recvACK(self, req):
         if not self.isConnected():

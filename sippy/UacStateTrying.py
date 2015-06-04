@@ -29,6 +29,8 @@ from SipRoute import SipRoute
 from UaStateGeneric import UaStateGeneric
 from Timeout import TimeoutAbs
 from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, CCEventDisconnect
+from SipHeader import SipHeader
+from SipRAck import SipRAck
 
 class UacStateTrying(UaStateGeneric):
     sname = 'Trying(UAC)'
@@ -58,6 +60,17 @@ class UacStateTrying(UaStateGeneric):
             if code < 200 and self.ua.expire_time != None:
                 self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
         if code < 200:
+            if resp.countHFs('rseq') > 0:
+                tag = resp.getHFBody('to').getTag()
+                self.ua.rUri.setTag(tag)
+                rseq = resp.getHFBody('rseq')
+                cseq = resp.getHFBody('cseq')
+                req = self.ua.genRequest('PRACK')
+                self.ua.lCSeq += 1
+                rack = SipRAck(rseq = rseq.number, cseq = cseq.cseq, method = cseq.method)
+                req.appendHeader(SipHeader(name = 'rack', body = rack))
+                self.ua.global_config['_sip_tm'].newTransaction(req, \
+                  laddress = self.ua.source_address, compact = self.ua.compact_sip)
             event = CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin)
             if body != None:
                 if self.ua.on_remote_sdp_change != None:

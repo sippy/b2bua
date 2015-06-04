@@ -157,3 +157,9 @@ class SipRequest(SipMsg):
                           via = self.getHFBCopy('via'), callid = self.getHFBCopy('call-id'), \
                           cseq = cseq, maxforwards = maxforward, \
                           user_agent = self.user_agent, expires = expires)
+
+    def getRTId(self):
+        headers_dict = dict([(x.name, x) for x in self.headers if x.name in ('rack', 'call-id', 'from')])
+        rseq, cseq, method = headers_dict['rack'].getBody().getRSeq()
+        rval = [str(headers_dict['call-id'].getBody()), headers_dict['from'].getBody().getTag(), rseq, cseq, method]
+        return tuple(rval)

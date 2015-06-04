@@ -31,6 +31,7 @@ from SipRequest import SipRequest
 from SipAddress import SipAddress
 from SipRoute import SipRoute
 from SipHeader import SipHeader
+from SipRSeq import SipRSeq
 from datetime import datetime
 from hashlib import md5
 from traceback import print_exc
@@ -85,6 +86,23 @@ class SipTransaction(object):
         self.tid = None
         self.userv = None
         self.r408 = None
+
+class SipUASTransaction(SipTransaction):
+    rseq = None
+    prov_inflight = None
+    pr_rel = False
+
+    def __init__(self):
+        self.rseq = SipRSeq()
+        self.prov_inflight = {}
+        SipTransaction.__init__(self)
+
+class SipUACTransaction(SipTransaction):
+    seen_rseqs = None
+
+    def __init__(self):
+        self.seen_rseqs = []
+        SipTransaction.__init__(self)
 
 # Symbolic states names
 class SipTransactionState(object):
@@ -206,6 +224,7 @@ class SipTransactionManager(object):
     l2rcache = None
     nat_traversal = False
     req_consumers = None
+    rtid2tid = None
     provisional_retr = 0
 
     def __init__(self, global_config, req_cb = None):
@@ -217,6 +236,7 @@ class SipTransactionManager(object):
         self.l1rcache = {}
         self.l2rcache = {}
         self.req_consumers = {}
+        self.rtid2tid = {}
         Timeout(self.rCachePurge, 32, -1)
 
     def handleIncoming(self, data, address, server, rtime):
@@ -318,7 +338,7 @@ class SipTransactionManager(object):
     # 1. Client transaction methods
     def newTransaction(self, msg, resp_cb = None, laddress = None, userv = None, \
       cb_ifver = 1, compact = False):
-        t = SipTransaction()
+        t = SipUACTransaction()
         t.rtime = time()
         t.compact = compact
         t.method = msg.getMethod()
@@ -380,6 +400,14 @@ class SipTransactionManager(object):
         if t.state == TERMINATED:
             return
 
+        code = msg.getSCode()[0]
+        if code > 100 and code < 200 and msg.countHFs('rseq') > 0:
+            rskey = msg.getRTId()
+            if rskey in t.seen_rseqs:
+                self.l1rcache[checksum] = (None, None, None)
+                return None
+            t.seen_rseqs.append(rskey)
+
         if t.state == TRYING:
             # Stop timers
             if t.teA != None:
@@ -391,7 +419,7 @@ class SipTransactionManager(object):
                 t.teB.cancel()
                 t.teB = None
 
-            if msg.getSCode()[0] < 200:
+            if code < 200:
                 # Privisional response - leave everything as is, except that
                 # change state and reload timeout timer
                 if t.state == TRYING:
@@ -415,12 +443,11 @@ class SipTransactionManager(object):
                         t.resp_cb(msg, t)
                 if t.needack:
                     # Prepare and send ACK if necessary
-                    fcode = msg.getSCode()[0]
                     tag = msg.getHFBody('to').getTag()
                     if tag != None:
                         t.ack.getHFBody('to').setTag(tag)
                     rAddr = None
-                    if msg.getSCode()[0] >= 200 and msg.getSCode()[0] < 300:
+                    if code >= 200 and code < 300:
                         # Some hairy code ahead
                         if msg.countHFs('contact') > 0:
                             rTarget = msg.getHFBody('contact').getUrl().getCopy()
@@ -444,7 +471,7 @@ class SipTransactionManager(object):
                             t.ack.setTarget(rAddr)
                         t.ack.delHFs('route')
                         t.ack.appendHeaders([SipHeader(name = 'route', body = x) for x in routes])
-                    if fcode >= 200 and fcode < 300:
+                    if code >= 200 and code < 300:
                         t.ack.getHFBody('via').genBranch()
                     if rAddr == None:
                         rAddr = t.address
@@ -505,20 +532,24 @@ class SipTransactionManager(object):
                 self.transmitMsg(server, resp, resp.getHFBody('via').getTAddr(), checksum, \
                   t.compact)
                 return
-        if  msg.getMethod() != 'ACK':
-            tid = msg.getTId(wBRN = True)
-        else:
+        mmethod = msg.getMethod()
+        if mmethod == 'ACK':
             tid = msg.getTId(wTTG = True)
+        elif mmethod == 'PRACK':
+            rtid = msg.getRTId()
+            tid = self.rtid2tid.get(rtid, None)
+        else:
+            tid = msg.getTId(wBRN = True)
         t = self.tserver.get(tid, None)
         if t != None:
             #print 'existing transaction'
-            if msg.getMethod() == t.method:
+            if mmethod == t.method:
                 # Duplicate received, check that we have sent any response on this
                 # request already
                 if t.data != None:
                     self.transmitData(t.userv, t.data, t.address, checksum)
                 return
-            elif msg.getMethod() == 'CANCEL':
+            elif mmethod == 'CANCEL':
                 # RFC3261 says that we have to reply 200 OK in all cases if
                 # there is such transaction
                 resp = msg.genResponse(200, 'OK')
@@ -526,7 +557,7 @@ class SipTransactionManager(object):
                   t.compact)
                 if t.state in (TRYING, RINGING):
                     self.doCancel(t, msg.rtime, msg)
-            elif msg.getMethod() == 'ACK' and t.state == COMPLETED:
+            elif mmethod == 'ACK' and t.state == COMPLETED:
                 t.state = CONFIRMED
                 if t.teA != None:
                     t.teA.cancel()
@@ -538,19 +569,44 @@ class SipTransactionManager(object):
                     t.ack_cb(msg)
                 t.cleanup()
                 self.l1rcache[checksum] = (None, None, None)
-        elif msg.getMethod() == 'ACK':
+            elif mmethod == 'PRACK':
+                rskey = msg.getRTId()
+                if t.prov_inflight.has_key(rskey):
+                    rert_t = t.prov_inflight[rskey]
+                    rert_t.cancel()
+                    del t.prov_inflight[rskey]
+                    del self.rtid2tid[rskey]
+                    resp = msg.genResponse(200, 'OK')
+                else:
+                    print 'rskey: %s, prov_inflight: %s' % (str(rskey), str(t.prov_inflight))
+                    resp = msg.genResponse(481, 'Huh?')
+                self.transmitMsg(t.userv, resp, resp.getHFBody('via').getTAddr(), checksum, \
+                  t.compact)
+        elif mmethod == 'ACK':
             # Some ACK that doesn't match any existing transaction.
             # Drop and forget it - upper layer is unlikely to be interested
             # to seeing this anyway.
             print datetime.now(), 'unmatched ACK transaction - ignoring'
+            print datetime.now(), 'tid: %s, self.tserver: %s' % (str(tid), \
+              str(self.tserver))
             sys.stdout.flush()
             self.l1rcache[checksum] = (None, None, None)
-        elif msg.getMethod() == 'CANCEL':
+        elif mmethod == 'PRACK':
+            # Some ACK that doesn't match any existing transaction.
+            # Drop and forget it - upper layer is unlikely to be interested
+            # to seeing this anyway.
+            print datetime.now(), 'unmatched PRACK transaction - 481\'ing'
+            print datetime.now(), 'rtid: %s, tid: %s, self.tserver: %s' % (str(rtid), str(tid), \
+              str(self.tserver))
+            sys.stdout.flush()
+            resp = msg.genResponse(481, 'Huh?')
+            self.transmitMsg(server, resp, resp.getHFBody('via').getTAddr(), checksum)
+        elif mmethod == 'CANCEL':
             resp = msg.genResponse(481, 'Call Leg/Transaction Does Not Exist')
             self.transmitMsg(server, resp, resp.getHFBody('via').getTAddr(), checksum)
         else:
-            #print 'new transaction', msg.getMethod()
-            t = SipTransaction()
+            #print 'new transaction', mmethod
+            t = SipUASTransaction()
             t.tid = tid
             t.state = TRYING
             t.teA = None
@@ -558,7 +614,7 @@ class SipTransactionManager(object):
             t.teE = None
             t.teF = None
             t.teG = None
-            t.method = msg.getMethod()
+            t.method = mmethod
             t.rtime = msg.rtime
             t.data = None
             t.address = None
@@ -572,7 +628,7 @@ class SipTransactionManager(object):
                 # For messages received on the wildcard interface find
                 # or create more specific server.
                 t.userv = self.l4r.getServer(msg.getSource())
-            if msg.getMethod() == 'INVITE':
+            if mmethod == 'INVITE':
                 t.r487 = msg.genResponse(487, 'Request Terminated')
                 t.needack = True
                 t.branch = msg.getHFBody('via').getBranch()
@@ -639,9 +695,24 @@ class SipTransactionManager(object):
         toHF = resp.getHFBody('to')
         if scode > 100 and toHF.getTag() == None:
             toHF.genTag()
+        if t.pr_rel and scode > 100 and scode < 200:
+            rseq = t.rseq.getCopy()
+            t.rseq.incNum()
+            rseq_h = SipHeader(name = 'rseq', body = rseq)
+            resp.appendHeader(rseq_h)
+            tid = resp.getTId(wBRN = True)
+            rtid = resp.getRTId()
+            self.rtid2tid[rtid] = tid
+        else:
+            rseq_h = None
         t.data = resp.localStr(*t.userv.uopts.laddress, compact = t.compact)
         t.address = resp.getHFBody('via').getTAddr()
         self.transmitData(t.userv, t.data, t.address, t.checksum)
+        if rseq_h != None:
+            rskey =  resp.getRTId()
+            rdata = (t, t.userv, t.data, t.address, t.checksum)
+            rert_t = Timeout(self.retrUasResponse, 0.5, 1, rdata, 0.5, rskey)
+            t.prov_inflight[rskey] = rert_t
         if scode < 200:
             t.state = RINGING
             if self.provisional_retr > 0 and scode > 100:
@@ -666,9 +737,14 @@ class SipTransactionManager(object):
                     # ACK transaction after this point. Branch tag in ACK
                     # could differ as well.
                     del self.tserver[t.tid]
-                    t.tid = list(t.tid[:-1])
-                    t.tid.append(resp.getHFBody('to').getTag())
-                    t.tid = tuple(t.tid)
+                    new_tid = list(t.tid[:-1])
+                    new_tid.append(resp.getHFBody('to').getTag())
+                    new_tid = tuple(new_tid)
+                    for ik in t.prov_inflight.iterkeys():
+                        if not self.rtid2tid.has_key(ik) or self.rtid2tid[ik] != t.tid:
+                            continue
+                        self.rtid2tid[ik] = new_tid
+                    t.tid = new_tid
                     self.tserver[t.tid] = t
                 # Install retransmit timer if necessary
                 t.tout = 0.5
@@ -677,6 +753,17 @@ class SipTransactionManager(object):
                 # We have done with the transaction
                 del self.tserver[t.tid]
                 t.cleanup()
+
+    def retrUasResponse(self, rdata, last_timeout, rskey):
+        t, userv, data, address, checksum = rdata
+        if last_timeout > 16:
+            del t.prov_inflight[rskey]
+            del self.rtid2tid[rskey]
+            return
+        self.transmitData(userv, data, address, checksum)
+        last_timeout *= 2
+        rert_t = Timeout(self.retrUasResponse, last_timeout, 1, rdata, last_timeout, rskey)
+        t.prov_inflight[rskey] = rert_t
 
     def doCancel(self, t, rtime = None, req = None):
         if rtime == None:
