@@ -1,5 +1,3 @@
-# Copyright (c) 2009-2011 Sippy Software, Inc. All rights reserved.
-#
 # Copyright (c) 2009-2014 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
