@@ -3,7 +3,12 @@
 
 <!ELEMENT rtp_cluster_config (rtp_cluster+)>
 
-<!ELEMENT rtp_cluster (name, protocol, address, rtpproxy+)>
+<!ELEMENT rtp_cluster (name, protocol, address, disconnect_notify?, rtpproxy+)>
+
+<!ELEMENT disconnect_notify (inbound_address, dest_socket_prefix)>
+
+<!ELEMENT inbound_address (#PCDATA)>
+<!ELEMENT dest_socket_prefix (#PCDATA)>
 
 <!ELEMENT rtpproxy (name, protocol, address, weight, capacity, status, wan_address?, lan_address?, cmd_out_address?)>
 

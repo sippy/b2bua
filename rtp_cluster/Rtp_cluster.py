@@ -31,6 +31,7 @@ import sys
 sys.path.append('..')
 
 from sippy.Cli_server_local import Cli_server_local
+from sippy.Cli_server_tcp import Cli_server_tcp
 from sippy.Udp_server import Udp_server, Udp_server_opts
 from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd, Rtpp_stats
 from sippy.Timeout import Timeout
@@ -73,6 +74,19 @@ class UdpCLIM(object):
     def close(self):
         self.server = None
 
+class DNRelay(object):
+    clim = None
+
+    def __init__(self, dnotify):
+        self.clim = Cli_server_tcp(self.recv_dnotify, dnotify.in_address)
+
+    def recv_dnotify(self, clim, dnotify):
+        print 'DNRelay.recv_dnotify(%s)' % dnotify
+        pass
+
+    def shutdown(self):
+        self.clim.shutdown()
+
 class Rtp_cluster(object):
     global_config = None
     address = None
@@ -84,8 +98,10 @@ class Rtp_cluster(object):
     l1rcache = None
     l2rcache = None
     cache_purge_el = None
+    dnrelay = None
 
-    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', dry_run = False):
+    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', \
+      dnotify = None, dry_run = False):
         self.active = []
         self.pending = []
         self.l1rcache = {}
@@ -104,6 +120,8 @@ class Rtp_cluster(object):
         self.address = address
         self.commands_inflight = []
         self.cache_purge_el = Timeout(self.rCachePurge, 10, -1)
+        if dnotify != None:
+            self.dnrelay = DNRelay(dnotify)
 
     def add_member(self, member):
         member.on_state_change = self.rtpp_status_change
@@ -362,6 +380,8 @@ class Rtp_cluster(object):
         self.pending = None
         self.ccm = None
         self.cache_purge_el = None
+        if self.dnrelay != None:
+            self.dnrelay.shutdown()
 
     def all_members(self):
         return tuple(self.active + self.pending)

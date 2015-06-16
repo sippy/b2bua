@@ -31,6 +31,25 @@ from xml.sax.saxutils import escape
 
 RTP_CLUSTER_CONFIG_DTD = "Rtp_cluster_config.dtd"
 
+class DisconnectNotify(object):
+    section_name = None
+    in_address = None
+    dest_sprefix = None
+
+    def __init__(self, section_name = 'disconnect_notify'):
+        self.section_name = section_name
+
+    def set_in_address(self, in_address_str):
+        in_address = in_address_str.split(':', 1)
+        self.in_address = (in_address[0], int(in_address[1]))
+
+    def __str__(self, ident = '', idlevel = 1):
+        return ('%s<%s>\n%s<inbound_address>%s:%d</inbound_address>\n' \
+          '%s<dest_socket_prefix>%s</dest_socket_prefix>\n%s</%s>' % \
+          (ident * idlevel, self.section_name, ident * (idlevel + 1), \
+          self.in_address[0], self.in_address[1], ident * (idlevel + 1), \
+          self.dest_sprefix, ident * idlevel, self.section_name))
+
 class ValidateHandler(ContentHandler):
     def __init__(self, config):
         self.config = config
@@ -39,6 +58,7 @@ class ValidateHandler(ContentHandler):
         self.errors = []
         self.rtp_cluster = None
         self.rtpproxy = None
+        self.dnotify = None
         self.ctx = []
 
     def startElement(self, name, attrs):
@@ -53,6 +73,11 @@ class ValidateHandler(ContentHandler):
             self.rtpproxy = {}
             self.rtp_cluster['rtpproxies'].append(self.rtpproxy)
             self.ctx.append('rtpproxy')
+
+        elif self.element == 'disconnect_notify':
+            self.dnotify = DisconnectNotify(self.element)
+            self.rtp_cluster['dnotify'] = self.dnotify
+            self.ctx.append('dnotify')
 
     def characters(self, content):
         if self.ctx[-1] == 'rtp_cluster':
@@ -114,6 +139,12 @@ class ValidateHandler(ContentHandler):
                 if self.rtpproxy['status'] != 'suspended' and self.rtpproxy['status'] != 'active':
                     raise Exception("rtpproxy status should be either 'suspended' or 'active'")
 
+        if self.ctx[-1] == 'dnotify':
+            if self.element == 'inbound_address':
+                self.dnotify.set_in_address(content)
+            elif self.element == 'dest_socket_prefix':
+                self.dnotify.dest_sprefix = content
+
     def endElement(self, name):
         if name == 'rtp_cluster':
             self.rtp_cluster = None
@@ -121,6 +152,10 @@ class ValidateHandler(ContentHandler):
 
         elif name == 'rtpproxy':
             self.rtpproxy = None
+            self.ctx.pop()
+
+        elif name == 'disconnect_notify':
+            self.dnotify = None
             self.ctx.pop()
 
     def warning(self, exception):
@@ -185,6 +220,10 @@ def gen_cluster_config(config):
             xml += '    <address>%s:%d</address>\n\n' % (escape(address[0]), address[1])
         else:
             xml += '    <address>%s</address>\n\n' % escape(address)
+
+        dnotify = cluster.get('dnotify', None)
+        if dnotify != None:
+            xml += dnotify.__str__('  ', 2) + '\n\n'
 
         for proxy in cluster['rtpproxies']:
             xml += '    <rtpproxy>\n'
