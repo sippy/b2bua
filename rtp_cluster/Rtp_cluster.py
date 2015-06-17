@@ -87,6 +87,7 @@ class Rtp_cluster(object):
     l2rcache = None
     cache_purge_el = None
     dnrelay = None
+    capacity_limit_soft = True
 
     def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', \
       dnconfig = None, dry_run = False):
@@ -186,6 +187,9 @@ class Rtp_cluster(object):
             if rtpp == None and new_session:
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
+                if rtpp == None:
+                    self.down_command('E9989', clim, cmd, None)
+                    return
                 rtpp.bind_session(cmd.call_id, cmd.type)
             elif rtpp == None:
                 # Existing session we know nothing about
@@ -330,7 +334,7 @@ class Rtp_cluster(object):
                     break
             #print 'pick_proxyNG: picked up %s for the call %s (normal)' % (rtpp.name, call_id)
             return rtpp
-        elif len(active) > 0:
+        elif len(active) > 0 and self.capacity_limit_soft:
             max_rtpp, max_weight = active[0] 
             for rtpp, weight in active[1:]:
                 if weight > max_weight:

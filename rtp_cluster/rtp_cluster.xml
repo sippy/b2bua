@@ -10,6 +10,8 @@
       <dest_socket_prefix>/var/run/b2bua.sock</dest_socket_prefix>
     </disconnect_notify>
 
+    <capacity_limit type="hard" />
+
     <rtpproxy>
       <name>RTPPROXY1</name>
       <protocol>UDP</protocol>

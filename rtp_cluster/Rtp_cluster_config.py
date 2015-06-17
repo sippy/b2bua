@@ -79,6 +79,13 @@ class ValidateHandler(ContentHandler):
             self.rtp_cluster['dnconfig'] = self.dnconfig
             self.ctx.append('dnconfig')
 
+        elif self.element == 'capacity_limit' and self.ctx[-1] == 'rtp_cluster':
+            cl_type = attrs.getValue('type')
+            if cl_type == 'soft':
+                self.rtp_cluster['capacity_limit_soft'] = True
+            else:
+                self.rtp_cluster['capacity_limit_soft'] = False
+
     def characters(self, content):
         if self.ctx[-1] == 'rtp_cluster':
             if self.element == 'name':
@@ -224,6 +231,13 @@ def gen_cluster_config(config):
         dnconfig = cluster.get('dnconfig', None)
         if dnconfig != None:
             xml += dnconfig.__str__('  ', 2) + '\n\n'
+
+        cl_type = cluster.get('capacity_limit_soft', True)
+        if cl_type:
+            cl_type = 'soft'
+        else:
+            cl_type = 'hard'
+        xml += '    <capacity_limit type="%s" />\n\n' % escape(cl_type)
 
         for proxy in cluster['rtpproxies']:
             xml += '    <rtpproxy>\n'
