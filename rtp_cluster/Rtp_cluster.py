@@ -163,15 +163,6 @@ class Rtp_cluster(object):
                 new_session = True
             else:
                 new_session = False
-            if cmd.type in ('U', 'L') and self.dnrelay != None and \
-              cmd.ul_opts.notify_socket != None and \
-              cmd.ul_opts.notify_socket.startswith(self.dnrelay.dest_sprefix):
-                pref_len = len(self.dnrelay.dest_sprefix)
-                dnstr = '%s %s' % (cmd.ul_opts.notify_socket[pref_len:], \
-                  unquote(cmd.ul_opts.notify_tag))
-                cmd.ul_opts.notify_tag = quote(dnstr)
-                cmd.ul_opts.notify_socket = 'tcp:%%%%CC_SELF%%%%:%d' % self.dnrelay.in_address[1]
-                orig_cmd = str(cmd)
             if rtpp == None and not new_session:
                 # Existing session, also check if it exists on any of the offline
                 # members and try to relay it there, it makes no sense to broadcast
@@ -190,7 +181,16 @@ class Rtp_cluster(object):
                     self.down_command('E9989', clim, cmd, None)
                     return
                 rtpp.bind_session(cmd.call_id, cmd.type)
-            elif rtpp == None:
+            if rtpp != None and rtpp.wdnt_supported and cmd.type in ('U', 'L') and \
+              self.dnrelay != None and cmd.ul_opts.notify_socket != None and \
+              cmd.ul_opts.notify_socket.startswith(self.dnrelay.dest_sprefix):
+                pref_len = len(self.dnrelay.dest_sprefix)
+                dnstr = '%s %s' % (cmd.ul_opts.notify_socket[pref_len:], \
+                  unquote(cmd.ul_opts.notify_tag))
+                cmd.ul_opts.notify_tag = quote(dnstr)
+                cmd.ul_opts.notify_socket = 'tcp:%%%%CC_SELF%%%%:%d' % self.dnrelay.in_address[1]
+                orig_cmd = str(cmd)
+            if rtpp == None:
                 # Existing session we know nothing about
                 if cmd.type == 'U':
                     # Do a forced lookup
