@@ -32,7 +32,6 @@ import sys
 sys.path.append('..')
 
 from sippy.Cli_server_local import Cli_server_local
-from sippy.Cli_server_tcp import Cli_server_tcp
 from sippy.Udp_server import Udp_server, Udp_server_opts
 from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd, Rtpp_stats
 from sippy.Timeout import Timeout
