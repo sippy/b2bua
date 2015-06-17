@@ -1,0 +1,130 @@
+# Copyright (c) 2015 Sippy Software, Inc. All rights reserved.
+#
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation and/or
+# other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+from threading import Thread, Condition
+from errno import EINTR, EPIPE, ENOTCONN, ECONNRESET
+import socket
+
+import sys
+sys.path.append('..')
+
+from sippy.Cli_server_tcp import Cli_server_tcp
+
+_MAX_RECURSE = 10
+
+class _DNRLWorker(Thread):
+    spath = None
+    s = None
+    wi_available = None
+    wi = None
+
+    def __init__(self, spath):
+        self.spath = spath
+        self.wi_available = Condition()
+        self.wi = []
+        Thread.__init__(self)
+        self.setDaemon(True)
+        self.start()
+
+    def connect(self):
+        self.s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.s.connect(self.spath)
+
+    def deliver_dnotify(self, dnstring, _recurse = 0):
+        if self.s == None:
+            self.connect()
+        if _recurse > _MAX_RECURSE:
+            raise Exception('Cannot reconnect: %s', self.spath)
+        if not dnstring.endswith('\n'):
+            dnstring += '\n'
+        while True:
+            try:
+                self.s.send(dnstring)
+                break
+            except socket.error, why:
+                if why[0] == EINTR:
+                    continue
+                elif why[0] in (EPIPE, ENOTCONN, ECONNRESET):
+                    self.s = None
+                    return self.deliver_dnotify(dnstring, _recurse + 1)
+                raise why
+        return
+
+    def run(self):
+        while True:
+            self.wi_available.acquire()
+            while len(self.wi) == 0:
+                self.wi_available.wait()
+            wi = self.wi.pop(0)
+            self.wi_available.release()
+            if wi == None:
+                # Shutdown request
+                break
+            try:
+                self.deliver_dnotify(wi)
+            except Exception, e:
+                print 'Cannot deliver notification "%s" to the "%s": %s' % \
+                  (wi, self.spath, str(e))
+
+    def send_dnotify(self, dnstring):
+        self.wi_available.acquire()
+        self.wi.append(dnstring)
+        self.wi_available.notify()
+        self.wi_available.release()
+
+class DNRelay(object):
+    clim = None
+    workers = None
+    dest_sprefix = None
+    in_address = None
+
+    def __init__(self, dnconfig):
+        self.workers = {}
+        self.clim = Cli_server_tcp(self.recv_dnotify, dnconfig.in_address)
+        self.dest_sprefix = dnconfig.dest_sprefix
+        self.in_address = dnconfig.in_address
+
+    def recv_dnotify(self, clim, dnstring):
+        #print 'DNRelay.recv_dnotify(%s)' % dnstring
+        ssufx, dnstring = dnstring.split(None, 1)
+        spath = self.dest_sprefix + ssufx
+        dnw = self.workers.get(spath, None)
+        if dnw == None:
+            dnw = _DNRLWorker(spath)
+            self.workers[spath] = dnw
+        dnw.send_dnotify(dnstring)
+
+    def shutdown(self):
+        for dnw in self.workers.itervalues():
+            dnw.send_dnotify(None)
+            dnw.join()
+        self.clim.shutdown()
+
+    def cmpconfig(self, dnconfig):
+        if dnconfig.dest_sprefix != self.dest_sprefix:
+            return False
+        if dnconfig.in_address != self.in_address:
+            return False
+        return True

@@ -24,6 +24,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from twisted.internet import reactor
+from urllib import quote, unquote
+
+from DNRelay import DNRelay
 
 import sys
 sys.path.append('..')
@@ -72,19 +75,6 @@ class UdpCLIM(object):
     def close(self):
         self.server = None
 
-class DNRelay(object):
-    clim = None
-
-    def __init__(self, dnotify):
-        self.clim = Cli_server_tcp(self.recv_dnotify, dnotify.in_address)
-
-    def recv_dnotify(self, clim, dnotify):
-        print 'DNRelay.recv_dnotify(%s)' % dnotify
-        pass
-
-    def shutdown(self):
-        self.clim.shutdown()
-
 class Rtp_cluster(object):
     global_config = None
     address = None
@@ -99,7 +89,7 @@ class Rtp_cluster(object):
     dnrelay = None
 
     def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', \
-      dnotify = None, dry_run = False):
+      dnconfig = None, dry_run = False):
         self.active = []
         self.pending = []
         self.l1rcache = {}
@@ -118,8 +108,17 @@ class Rtp_cluster(object):
         self.address = address
         self.commands_inflight = []
         self.cache_purge_el = Timeout(self.rCachePurge, 10, -1)
-        if dnotify != None:
-            self.dnrelay = DNRelay(dnotify)
+        self.update_dnrelay(dnconfig)
+
+    def update_dnrelay(self, dnconfig):
+        if self.dnrelay != None:
+            if dnconfig != None and self.dnrelay.cmpconfig(dnconfig):
+                return
+            self.dnrelay.shutdown()
+            self.dnrelay = None
+        if dnconfig == None:
+            return
+        self.dnrelay = DNRelay(dnconfig)
 
     def add_member(self, member):
         member.on_state_change = self.rtpp_status_change
@@ -164,6 +163,15 @@ class Rtp_cluster(object):
                 new_session = True
             else:
                 new_session = False
+            if cmd.type in ('U', 'L') and self.dnrelay != None and \
+              cmd.ul_opts.notify_socket != None and \
+              cmd.ul_opts.notify_socket.startswith(self.dnrelay.dest_sprefix):
+                pref_len = len(self.dnrelay.dest_sprefix)
+                dnstr = '%s %s' % (cmd.ul_opts.notify_socket[pref_len:], \
+                  unquote(cmd.ul_opts.notify_tag))
+                cmd.ul_opts.notify_tag = quote(dnstr)
+                cmd.ul_opts.notify_socket = 'tcp:%%%%CC_SELF%%%%:%d' % self.dnrelay.in_address[1]
+                orig_cmd = str(cmd)
             if rtpp == None and not new_session:
                 # Existing session, also check if it exists on any of the offline
                 # members and try to relay it there, it makes no sense to broadcast

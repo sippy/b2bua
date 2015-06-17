@@ -58,7 +58,7 @@ class ValidateHandler(ContentHandler):
         self.errors = []
         self.rtp_cluster = None
         self.rtpproxy = None
-        self.dnotify = None
+        self.dnconfig = None
         self.ctx = []
 
     def startElement(self, name, attrs):
@@ -75,9 +75,9 @@ class ValidateHandler(ContentHandler):
             self.ctx.append('rtpproxy')
 
         elif self.element == 'disconnect_notify':
-            self.dnotify = DisconnectNotify(self.element)
-            self.rtp_cluster['dnotify'] = self.dnotify
-            self.ctx.append('dnotify')
+            self.dnconfig = DisconnectNotify(self.element)
+            self.rtp_cluster['dnconfig'] = self.dnconfig
+            self.ctx.append('dnconfig')
 
     def characters(self, content):
         if self.ctx[-1] == 'rtp_cluster':
@@ -139,11 +139,11 @@ class ValidateHandler(ContentHandler):
                 if self.rtpproxy['status'] != 'suspended' and self.rtpproxy['status'] != 'active':
                     raise Exception("rtpproxy status should be either 'suspended' or 'active'")
 
-        if self.ctx[-1] == 'dnotify':
+        if self.ctx[-1] == 'dnconfig':
             if self.element == 'inbound_address':
-                self.dnotify.set_in_address(content)
+                self.dnconfig.set_in_address(content)
             elif self.element == 'dest_socket_prefix':
-                self.dnotify.dest_sprefix = content
+                self.dnconfig.dest_sprefix = content
 
     def endElement(self, name):
         if name == 'rtp_cluster':
@@ -155,7 +155,7 @@ class ValidateHandler(ContentHandler):
             self.ctx.pop()
 
         elif name == 'disconnect_notify':
-            self.dnotify = None
+            self.dnconfig = None
             self.ctx.pop()
 
     def warning(self, exception):
@@ -221,9 +221,9 @@ def gen_cluster_config(config):
         else:
             xml += '    <address>%s</address>\n\n' % escape(address)
 
-        dnotify = cluster.get('dnotify', None)
-        if dnotify != None:
-            xml += dnotify.__str__('  ', 2) + '\n\n'
+        dnconfig = cluster.get('dnconfig', None)
+        if dnconfig != None:
+            xml += dnconfig.__str__('  ', 2) + '\n\n'
 
         for proxy in cluster['rtpproxies']:
             xml += '    <rtpproxy>\n'
