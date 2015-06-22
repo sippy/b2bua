@@ -25,7 +25,7 @@
 
 from threading import Thread, Condition
 from errno import EINTR, EPIPE, ENOTCONN, ECONNRESET
-import socket
+import socket, select
 
 import sys
 sys.path.append('..')
@@ -37,10 +37,13 @@ _MAX_RECURSE = 10
 class _DNRLWorker(Thread):
     spath = None
     s = None
+    poller = None
     wi_available = None
     wi = None
 
     def __init__(self, spath):
+        if spath.startswith('unix:'):
+            spath = spath[5:]
         self.spath = spath
         self.wi_available = Condition()
         self.wi = []
@@ -51,6 +54,8 @@ class _DNRLWorker(Thread):
     def connect(self):
         self.s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.s.connect(self.spath)
+        self.poller = select.poll()
+        self.poller.register(self.s, select.POLLIN)
 
     def deliver_dnotify(self, dnstring, _recurse = 0):
         if self.s == None:
@@ -70,6 +75,12 @@ class _DNRLWorker(Thread):
                     self.s = None
                     return self.deliver_dnotify(dnstring, _recurse + 1)
                 raise why
+        # Clean any incoming data on the socket
+        if len(self.poller.poll(0)) > 0:
+            try:
+                self.s.recv(1024)
+            except:
+                pass
         return
 
     def run(self):
