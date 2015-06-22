@@ -181,15 +181,19 @@ class Rtp_cluster(object):
                     self.down_command('E9989', clim, cmd, None)
                     return
                 rtpp.bind_session(cmd.call_id, cmd.type)
-            if rtpp != None and rtpp.wdnt_supported and cmd.type in ('U', 'L') and \
-              self.dnrelay != None and cmd.ul_opts.notify_socket != None and \
-              cmd.ul_opts.notify_socket.startswith(self.dnrelay.dest_sprefix):
-                pref_len = len(self.dnrelay.dest_sprefix)
-                dnstr = '%s %s' % (cmd.ul_opts.notify_socket[pref_len:], \
-                  unquote(cmd.ul_opts.notify_tag))
-                cmd.ul_opts.notify_tag = quote(dnstr)
-                cmd.ul_opts.notify_socket = 'tcp:%%%%CC_SELF%%%%:%d' % self.dnrelay.in_address[1]
-                orig_cmd = str(cmd)
+            if rtpp != None and cmd.type in ('U', 'L') and cmd.ul_opts.notify_socket != None:
+                if rtpp.wdnt_supported and self.dnrelay != None and not rtpp.is_local and \
+                  cmd.ul_opts.notify_socket.startswith(self.dnrelay.dest_sprefix):
+                    pref_len = len(self.dnrelay.dest_sprefix)
+                    dnstr = '%s %s' % (cmd.ul_opts.notify_socket[pref_len:], \
+                      unquote(cmd.ul_opts.notify_tag))
+                    cmd.ul_opts.notify_tag = quote(dnstr)
+                    cmd.ul_opts.notify_socket = 'tcp:%%%%CC_SELF%%%%:%d' % self.dnrelay.in_address[1]
+                    orig_cmd = str(cmd)
+                elif not rtpp.is_local:
+                    cmd.ul_opts.notify_tag = None
+                    cmd.ul_opts.notify_socket = None
+                    orig_cmd = str(cmd)
             if rtpp == None:
                 # Existing session we know nothing about
                 if cmd.type == 'U':
