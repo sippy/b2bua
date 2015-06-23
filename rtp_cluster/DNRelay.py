@@ -114,6 +114,7 @@ class DNRelay(object):
     def __init__(self, dnconfig):
         self.workers = {}
         self.clim = Cli_server_tcp(self.recv_dnotify, dnconfig.in_address)
+        self.clim.accept_list = []
         self.dest_sprefix = dnconfig.dest_sprefix
         self.in_address = dnconfig.in_address
 
@@ -139,3 +140,15 @@ class DNRelay(object):
         if dnconfig.in_address != self.in_address:
             return False
         return True
+
+    def allow_from(self, address):
+        self.clim.accept_list.append(address[0])
+
+    def disallow_from(self, address):
+        self.clim.accept_list.remove(address[0])
+
+    def get_allow_list(self):
+        return tuple(self.clim.accept_list)
+
+    def set_allow_list(self, accept_list):
+        self.clim.accept_list = list(accept_list)

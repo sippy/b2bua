@@ -114,11 +114,16 @@ class Rtp_cluster(object):
         if self.dnrelay != None:
             if dnconfig != None and self.dnrelay.cmpconfig(dnconfig):
                 return
+            allow_from = self.dnrelay.get_allow_list()
             self.dnrelay.shutdown()
             self.dnrelay = None
+        else:
+            allow_from = None
         if dnconfig == None:
             return
         self.dnrelay = DNRelay(dnconfig)
+        if allow_from != None:
+            self.dnrelay.set_allow_list(allow_from)
 
     def add_member(self, member):
         member.on_state_change = self.rtpp_status_change
@@ -126,6 +131,8 @@ class Rtp_cluster(object):
             self.active.append(member)
         else:
             self.pending.append(member)
+        if not member.is_local and self.dnrelay != None:
+            self.dnrelay.allow_from(member.address)
 
     def up_command_udp(self, data, address, server, rtime):
         dataparts = data.split(None, 1)
@@ -357,6 +364,8 @@ class Rtp_cluster(object):
             self.pending.append(rtpp)
 
     def bring_down(self, rtpp):
+        if not rtpp.is_local and self.dnrelay != None:
+            self.dnrelay.disallow_from(rtpp.address)
         if rtpp in self.active:
             if rtpp.active_sessions in (0, None):
                 self.active.remove(rtpp)
