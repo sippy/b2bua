@@ -36,6 +36,8 @@ sys.path.append('sippy')
 
 from sippy.SipConf import MyAddress
 from sippy.Cli_server_local import Cli_server_local
+from sippy.SipLogger import SipLogger
+from sippy.misc import daemonize
 
 class ClusterCLI(object):
     ccm = None
@@ -176,7 +178,7 @@ class ClusterCLI(object):
             return False
         if cmd.startswith('reload'):
             f = open(self.global_config['conffile'])
-            config = read_cluster_config(f.read())
+            config = read_cluster_config(self.global_config, f.read())
             new_rtp_clusters = []
             new_rtpps_count = 0
             for c in config:
@@ -237,6 +239,11 @@ if __name__ == '__main__':
         opts, args = getopt.getopt(sys.argv[1:], 'fP:c:')
     except getopt.GetoptError:
         usage()
+
+    sip_logger = SipLogger('rtp_cluster')
+
+    sip_logger.write('Starting up...')
+
     foreground = False
     dsn = 'postgres://ser:secr3tpa33w0rD@/tmp/sippy'
     pidfile = '/var/run/rtp_cluster.pid'
@@ -250,37 +257,36 @@ if __name__ == '__main__':
         if o == '-P':
             pidfile = a.strip()
             continue
-        if o == 'c':
+        if o == '-c':
             global_config['conffile'] = a.strip()
             continue
 
+    sip_logger.write(' o reading config "%s"...' % \
+      global_config['conffile'])
+
     f = open(global_config['conffile'])
-    config = read_cluster_config(f.read())
+    config = read_cluster_config(global_config, f.read())
 
     if not foreground:
-        #print 'foobar'
-        # Fork once
-        if os.fork() != 0:
-            os._exit(0)
-        # Create new session
-        os.setsid()
-        if os.fork() != 0:
-            os._exit(0)
-        #os.chdir('/')
-        fd = os.open('/dev/null', os.O_RDONLY)
-        os.dup2(fd, sys.__stdin__.fileno())
-        os.close(fd)
-        fd = os.open(logfile, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-        os.dup2(fd, sys.__stdout__.fileno())
-        os.dup2(fd, sys.__stderr__.fileno())
-        os.close(fd)
+        # Shut down the logger and reopen it again to make sure it's worker
+        # thread won't be affected by the fork()
+        sip_logger.shutdown()
+        daemonize(logfile = logfile)
         file(pidfile, 'w').write(str(os.getpid()) + '\n')
+        sip_logger = SipLogger('rtp_cluster')
+
+    global_config['_sip_logger'] = sip_logger
+
+    sip_logger.write(' o initializing CLI...')
 
     cli = ClusterCLI(global_config)
+
     for c in config:
         #print 'Rtp_cluster', global_config, c['name'], c['address']
+        sip_logger.write(' o initializing cluster "%s" at <%s>' % (c['name'], c['address']))
         rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'])
         for rtpp_config in c['rtpproxies']:
+            sip_logger.write('  - adding RTPproxy member %s at <%s>' % (rtpp_config['name'], rtpp_config['address']))
             #Rtp_cluster_member('rtpproxy1', global_config, ('127.0.0.1', 22222))
             if rtpp_config['protocol'] not in ('unix', 'udp'):
                 raise Exception('Unsupported RTPproxy protocol: "%s"' % rtpp_config['protocol'])
@@ -300,5 +306,5 @@ if __name__ == '__main__':
             rtp_cluster.add_member(rtpp)
         cli.rtp_clusters.append(rtp_cluster)
     #rtp_cluster = Rtp_cluster(global_config, 'supercluster')
+    sip_logger.write('Initialization complete, have a good flight.')
     reactor.run(installSignalHandlers = True)
-
