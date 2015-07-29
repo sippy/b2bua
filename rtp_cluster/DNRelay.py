@@ -40,11 +40,13 @@ class _DNRLWorker(Thread):
     poller = None
     wi_available = None
     wi = None
+    sip_logger = None
 
-    def __init__(self, spath):
+    def __init__(self, spath, sip_logger):
         if spath.startswith('unix:'):
             spath = spath[5:]
         self.spath = spath
+        self.sip_logger = sip_logger
         self.wi_available = Condition()
         self.wi = []
         Thread.__init__(self)
@@ -96,8 +98,12 @@ class _DNRLWorker(Thread):
             try:
                 self.deliver_dnotify(wi)
             except Exception, e:
-                print 'Cannot deliver notification "%s" to the "%s": %s' % \
-                  (wi, self.spath, str(e))
+                self.sip_logger.write('Cannot deliver notification "%s" to the "%s": %s' % \
+                  (wi, self.spath, str(e)))
+            else:
+                self.sip_logger.write('notification "%s" delivered to the "%s"' % \
+                  (wi, self.spath))
+        self.sip_logger = None
 
     def send_dnotify(self, dnstring):
         self.wi_available.acquire()
@@ -110,22 +116,31 @@ class DNRelay(object):
     workers = None
     dest_sprefix = None
     in_address = None
+    sip_logger = None
 
-    def __init__(self, dnconfig):
+    def __init__(self, dnconfig, sip_logger):
         self.workers = {}
         self.clim = Cli_server_tcp(self.recv_dnotify, dnconfig.in_address)
         self.clim.accept_list = []
         self.dest_sprefix = dnconfig.dest_sprefix
         self.in_address = dnconfig.in_address
+        self.sip_logger = sip_logger
 
     def recv_dnotify(self, clim, dnstring):
         #print 'DNRelay.recv_dnotify(%s)' % dnstring
+        if clim.raddr != None:
+            self.sip_logger.write('disconnect notification from %s received on %s: "%s"' \
+              % (str(clim.raddr), str(self.in_address), dnstring))
+        else:
+            self.sip_logger.write('disconnect notification received on %s: "%s"' \
+              % (str(self.in_address), dnstring))
         ssufx, dnstring = dnstring.split(None, 1)
         spath = self.dest_sprefix + ssufx
         dnw = self.workers.get(spath, None)
         if dnw == None:
-            dnw = _DNRLWorker(spath)
+            dnw = _DNRLWorker(spath, self.sip_logger)
             self.workers[spath] = dnw
+        self.sip_logger.write('forwarding notification to %s: "%s"', (spath, dnstring))
         dnw.send_dnotify(dnstring)
 
     def shutdown(self):
@@ -133,6 +148,7 @@ class DNRelay(object):
             dnw.send_dnotify(None)
             dnw.join()
         self.clim.shutdown()
+        self.sip_logger = None
 
     def cmpconfig(self, dnconfig):
         if dnconfig.dest_sprefix != self.dest_sprefix:

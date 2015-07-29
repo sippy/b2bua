@@ -121,7 +121,7 @@ class Rtp_cluster(object):
             allow_from = None
         if dnconfig == None:
             return
-        self.dnrelay = DNRelay(dnconfig)
+        self.dnrelay = DNRelay(dnconfig, self.global_config['_sip_logger'])
         if allow_from != None:
             self.dnrelay.set_allow_list(allow_from)
 
