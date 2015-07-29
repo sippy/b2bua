@@ -109,12 +109,25 @@ class Rtp_cluster(object):
             #print 'up', cmd.call_id, str(cmd)
             for rtpp in self.active:
                 if rtpp.isYours(cmd.call_id):
-                    if cmd.type == 'D':
-                        rtpp.unbind_session(cmd.call_id)
                     break
             else:
                 rtpp = None
-            if rtpp == None and cmd.type == 'U' and len(cmd.args.split()) == 3:
+            if cmd.type == 'U' and len(cmd.args.split()) == 3
+                new_session = True
+            else:
+                new_session = False
+            if rtpp == None and not new_session:
+                # Existing session, also check if it exists on any of the offline
+                # members and try to relay it there, it makes no sense to broadcast
+                # the call to every other node in that case
+                for rtpp in self.pending:
+                    if rtpp.isYours(cmd.call_id):
+                        break
+                else:
+                    rtpp = None
+            if rtpp != None and cmd.type == 'D':
+                rtpp.unbind_session(cmd.call_id)
+            if rtpp == None and new_session:
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
                 rtpp.bind_session(cmd.call_id, cmd.type)
