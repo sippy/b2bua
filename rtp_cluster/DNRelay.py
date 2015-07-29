@@ -140,7 +140,7 @@ class DNRelay(object):
         if dnw == None:
             dnw = _DNRLWorker(spath, self.sip_logger)
             self.workers[spath] = dnw
-        self.sip_logger.write('forwarding notification to %s: "%s"', (spath, dnstring))
+        self.sip_logger.write('forwarding notification to "%s": "%s"' % (spath, dnstring))
         dnw.send_dnotify(dnstring)
 
     def shutdown(self):
