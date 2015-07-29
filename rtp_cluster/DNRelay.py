@@ -98,10 +98,10 @@ class _DNRLWorker(Thread):
             try:
                 self.deliver_dnotify(wi)
             except Exception, e:
-                self.sip_logger.write('Cannot deliver notification "%s" to the "%s": %s' % \
+                self.sip_logger.write(' cannot deliver notification "%s" to the "%s": %s' % \
                   (wi, self.spath, str(e)))
             else:
-                self.sip_logger.write('notification "%s" delivered to the "%s"' % \
+                self.sip_logger.write(' notification "%s" delivered to the "%s"' % \
                   (wi, self.spath))
         self.sip_logger = None
 
@@ -129,10 +129,10 @@ class DNRelay(object):
     def recv_dnotify(self, clim, dnstring):
         #print 'DNRelay.recv_dnotify(%s)' % dnstring
         if clim.raddr != None:
-            self.sip_logger.write('disconnect notification from %s received on %s: "%s"' \
+            self.sip_logger.write('Disconnect notification from %s received on %s: "%s"' \
               % (str(clim.raddr), str(self.in_address), dnstring))
         else:
-            self.sip_logger.write('disconnect notification received on %s: "%s"' \
+            self.sip_logger.write('Disconnect notification received on %s: "%s"' \
               % (str(self.in_address), dnstring))
         ssufx, dnstring = dnstring.split(None, 1)
         spath = self.dest_sprefix + ssufx
@@ -140,7 +140,7 @@ class DNRelay(object):
         if dnw == None:
             dnw = _DNRLWorker(spath, self.sip_logger)
             self.workers[spath] = dnw
-        self.sip_logger.write('forwarding notification to "%s": "%s"' % (spath, dnstring))
+        self.sip_logger.write(' forwarding notification to "%s": "%s"' % (spath, dnstring))
         dnw.send_dnotify(dnstring)
 
     def shutdown(self):
