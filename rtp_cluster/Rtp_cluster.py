@@ -112,7 +112,7 @@ class Rtp_cluster(object):
                     break
             else:
                 rtpp = None
-            if cmd.type == 'U' and len(cmd.args.split()) == 3
+            if cmd.type == 'U' and len(cmd.args.split()) == 3:
                 new_session = True
             else:
                 new_session = False
