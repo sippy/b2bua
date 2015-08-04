@@ -23,18 +23,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 
+import sys
+sys.path.append('/usr/local/rtp_cluster')
+
 from Rtp_cluster_config import read_cluster_config
 from Rtp_cluster import Rtp_cluster
 from Rtp_cluster_member import Rtp_cluster_member
 
 import getopt, os
-import sys
 from pwd import getpwnam
 from grp import getgrnam
 
 from twisted.internet import reactor
-
-sys.path.append('sippy')
 
 from sippy.SipConf import MyAddress
 from sippy.Cli_server_local import Cli_server_local
