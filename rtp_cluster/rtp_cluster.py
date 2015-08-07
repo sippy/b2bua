@@ -210,7 +210,11 @@ class ClusterCLI(object):
             for c in config:
                 rtp_cluster, idx = self.cluster_by_name(c['name'])
                 if rtp_cluster == None:
-                    rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'])
+                    rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'], \
+                      dnconfig = c.get('dnconfig', None))
+                else:
+                    rtp_cluster.update_dnrelay(c.get('dnconfig', None))
+                rtp_cluster.capacity_limit_soft = c.get('capacity_limit_soft', True)
                 new_rtpps = []
                 for rtpp_config in c['rtpproxies']:
                     #Rtp_cluster_member('rtpproxy1', global_config, ('127.0.0.1', 22222))
@@ -374,7 +378,9 @@ if __name__ == '__main__':
     for c in config:
         #print 'Rtp_cluster', global_config, c['name'], c['address']
         sip_logger.write(' o initializing cluster "%s" at <%s>' % (c['name'], c['address']))
-        rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'], dry_run = dry_run)
+        rtp_cluster = Rtp_cluster(global_config, c['name'], c['address'], \
+          dnconfig = c.get('dnconfig', None), dry_run = dry_run)
+        rtp_cluster.capacity_limit_soft = c.get('capacity_limit_soft', True)
         for rtpp_config in c['rtpproxies']:
             sip_logger.write('  - adding RTPproxy member %s at <%s>' % (rtpp_config['name'], rtpp_config['address']))
             #Rtp_cluster_member('rtpproxy1', global_config, ('127.0.0.1', 22222))

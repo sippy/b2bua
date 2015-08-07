@@ -1,5 +1,3 @@
-# Copyright (c) 2009-2011 Sippy Software, Inc. All rights reserved.
-#
 # Copyright (c) 2009-2014 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
@@ -26,6 +24,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from twisted.internet import reactor
+from urllib import quote, unquote
+
+from DNRelay import DNRelay
 
 import sys
 sys.path.append('..')
@@ -84,8 +85,11 @@ class Rtp_cluster(object):
     l1rcache = None
     l2rcache = None
     cache_purge_el = None
+    dnrelay = None
+    capacity_limit_soft = True
 
-    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', dry_run = False):
+    def __init__(self, global_config, name, address = '/var/run/rtpproxy.sock', \
+      dnconfig = None, dry_run = False):
         self.active = []
         self.pending = []
         self.l1rcache = {}
@@ -104,6 +108,22 @@ class Rtp_cluster(object):
         self.address = address
         self.commands_inflight = []
         self.cache_purge_el = Timeout(self.rCachePurge, 10, -1)
+        self.update_dnrelay(dnconfig)
+
+    def update_dnrelay(self, dnconfig):
+        if self.dnrelay != None:
+            if dnconfig != None and self.dnrelay.cmpconfig(dnconfig):
+                return
+            allow_from = self.dnrelay.get_allow_list()
+            self.dnrelay.shutdown()
+            self.dnrelay = None
+        else:
+            allow_from = None
+        if dnconfig == None:
+            return
+        self.dnrelay = DNRelay(dnconfig, self.global_config['_sip_logger'])
+        if allow_from != None:
+            self.dnrelay.set_allow_list(allow_from)
 
     def add_member(self, member):
         member.on_state_change = self.rtpp_status_change
@@ -111,6 +131,8 @@ class Rtp_cluster(object):
             self.active.append(member)
         else:
             self.pending.append(member)
+        if not member.is_local and self.dnrelay != None:
+            self.dnrelay.allow_from(member.address)
 
     def up_command_udp(self, data, address, server, rtime):
         dataparts = data.split(None, 1)
@@ -162,8 +184,24 @@ class Rtp_cluster(object):
             if rtpp == None and new_session:
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
+                if rtpp == None:
+                    self.down_command('E9989', clim, cmd, None)
+                    return
                 rtpp.bind_session(cmd.call_id, cmd.type)
-            elif rtpp == None:
+            if rtpp != None and cmd.type in ('U', 'L') and cmd.ul_opts.notify_socket != None:
+                if rtpp.wdnt_supported and self.dnrelay != None and not rtpp.is_local and \
+                  cmd.ul_opts.notify_socket.startswith(self.dnrelay.dest_sprefix):
+                    pref_len = len(self.dnrelay.dest_sprefix)
+                    dnstr = '%s %s' % (cmd.ul_opts.notify_socket[pref_len:], \
+                      unquote(cmd.ul_opts.notify_tag))
+                    cmd.ul_opts.notify_tag = quote(dnstr)
+                    cmd.ul_opts.notify_socket = 'tcp:%%%%CC_SELF%%%%:%d' % self.dnrelay.in_address[1]
+                    orig_cmd = str(cmd)
+                elif not rtpp.is_local:
+                    cmd.ul_opts.notify_tag = None
+                    cmd.ul_opts.notify_socket = None
+                    orig_cmd = str(cmd)
+            if rtpp == None:
                 # Existing session we know nothing about
                 if cmd.type == 'U':
                     # Do a forced lookup
@@ -231,12 +269,11 @@ class Rtp_cluster(object):
             #print 'down', cmd.ul_opts.destination_ip, rtpp.wan_address
             req_dip = cmd.ul_opts.destination_ip
             req_lip = cmd.ul_opts.local_ip
-            if req_dip != None and not is_dst_local(req_dip) and \
+            result_parts = result.strip().split()
+            if result_parts[0] != '0' and req_dip != None and not is_dst_local(req_dip) and \
               req_lip != rtpp.lan_address:
-                result_parts = result.strip().split()
                 result = '%s %s' % (result_parts[0], rtpp.wan_address)
-            elif req_lip == None:
-                result_parts = result.strip().split()
+            elif result_parts[0] != '0' and req_lip == None:
                 result = '%s %s' % (result_parts[0], rtpp.wan_address)
         #    result = '%s %s' % (result_parts[0], '192.168.1.22')
         #print 'down clim.send', result
@@ -306,7 +343,7 @@ class Rtp_cluster(object):
                     break
             #print 'pick_proxyNG: picked up %s for the call %s (normal)' % (rtpp.name, call_id)
             return rtpp
-        elif len(active) > 0:
+        elif len(active) > 0 and self.capacity_limit_soft:
             max_rtpp, max_weight = active[0] 
             for rtpp, weight in active[1:]:
                 if weight > max_weight:
@@ -326,6 +363,8 @@ class Rtp_cluster(object):
             self.pending.append(rtpp)
 
     def bring_down(self, rtpp):
+        if not rtpp.is_local and self.dnrelay != None:
+            self.dnrelay.disallow_from(rtpp.address)
         if rtpp in self.active:
             if rtpp.active_sessions in (0, None):
                 self.active.remove(rtpp)
@@ -362,6 +401,8 @@ class Rtp_cluster(object):
         self.pending = None
         self.ccm = None
         self.cache_purge_el = None
+        if self.dnrelay != None:
+            self.dnrelay.shutdown()
 
     def all_members(self):
         return tuple(self.active + self.pending)

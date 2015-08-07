@@ -5,6 +5,13 @@
     <protocol>UDP</protocol>
     <address>192.168.222.1:44</address>
 
+    <disconnect_notify>
+      <inbound_address>192.168.222.1:12131</inbound_address>
+      <dest_socket_prefix>/var/run/b2bua.sock</dest_socket_prefix>
+    </disconnect_notify>
+
+    <capacity_limit type="hard" />
+
     <rtpproxy>
       <name>RTPPROXY1</name>
       <protocol>UDP</protocol>
