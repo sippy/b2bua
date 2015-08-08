@@ -193,7 +193,7 @@ class Rtp_cluster(object):
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
                 if rtpp == None:
-                    self.down_command('E9989', clim, cmd, None)
+                    self.down_command('E998', clim, cmd, None)
                     return
                 rtpp.bind_session(cmd.call_id, cmd.type)
             if rtpp != None and cmd.type in ('U', 'L') and cmd.ul_opts.notify_socket != None:
@@ -277,7 +277,7 @@ class Rtp_cluster(object):
             self.commands_inflight.remove(clim.cookie)
         #print 'down', result
         if result == None:
-            result = 'E999'
+            result = 'E997'
         elif cmd.type in ('U', 'L') and not result[0].upper() == 'E' and \
           rtpp.wan_address != None:
             #print 'down', cmd.ul_opts.destination_ip, rtpp.wan_address
@@ -299,7 +299,7 @@ class Rtp_cluster(object):
 
     def merge_results(self, result, br, rtpp):
         if result == None:
-            result = 'E999'
+            result = 'E996'
         if br != None and not result[0].upper() == 'E' and not \
           (br.cmd.type in ('U', 'L') and result == '0'):
             br.results.append(result)
@@ -316,12 +316,12 @@ class Rtp_cluster(object):
             if br.cmd.type in ('U', 'L'):
                 self.down_command('0', br.clim, br.cmd, rtpp)
             else:
-                self.down_command('E999', br.clim, br.cmd, rtpp)
+                self.down_command('E995', br.clim, br.cmd, rtpp)
 
     def merge_stats_results(self, result, br, rtpp):
         #print 'merge_stats_results, result', result
         if result == None:
-            result = rtpp.stats_cache.get(br.sobj.all_names, 'E999')
+            result = rtpp.stats_cache.get(br.sobj.all_names, 'E994')
             print 'merge_stats_results: getting from the cache %s' % result
         elif result[0].upper() != 'E':
             rtpp.stats_cache[br.sobj.all_names] = result
@@ -337,7 +337,7 @@ class Rtp_cluster(object):
             return
         #print 'merge_stats_results, br.sobj', br.sobj
         if br.ecount == br.nparts:
-            rval = 'E999'
+            rval = 'E993'
         else:
             rval = str(br.sobj)
         self.down_command(rval, br.clim, br.cmd, rtpp)
