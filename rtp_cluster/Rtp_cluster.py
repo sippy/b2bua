@@ -172,7 +172,7 @@ class Rtp_cluster(object):
     def down_command(self, result, clim, cmd, rtpp):
         #print 'down', result
         if result == None:
-            result = 'E999'
+            result = 'E997'
         elif cmd.type in ('U', 'L') and not result[0].upper() == 'E':
             #print 'down', cmd.ul_opts.destination_ip, rtpp.wan_address
             if cmd.ul_opts.destination_ip != None and rtpp.wan_address != None:
@@ -187,7 +187,7 @@ class Rtp_cluster(object):
 
     def merge_results(self, result, br, rtpp):
         if result == None:
-            result = 'E999'
+            result = 'E996'
         if br != None and not result[0].upper() == 'E' and not \
           (br.cmd.type in ('U', 'L') and result == '0'):
             br.results.append(result)
@@ -204,7 +204,7 @@ class Rtp_cluster(object):
             if br.cmd.type in ('U', 'L'):
                 self.down_command('0', br.clim, br.cmd, rtpp)
             else:
-                self.down_command('E999', br.clim, br.cmd, rtpp)
+                self.down_command('E995', br.clim, br.cmd, rtpp)
 
     def pick_proxy(self, call_id):
         active = list(self.active)
