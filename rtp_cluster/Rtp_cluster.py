@@ -102,6 +102,7 @@ class Rtp_cluster(object):
     def up_command(self, clim, orig_cmd):
         #print 'up_command', orig_cmd
         cmd = Rtp_proxy_cmd(orig_cmd)
+        response_handler = self.down_command
         #print cmd
         if len(self.active) == 0:
             self.down_command('E999', clim, cmd, None)
@@ -128,6 +129,12 @@ class Rtp_cluster(object):
                     rtpp = None
             if rtpp != None and cmd.type == 'D':
                 rtpp.unbind_session(cmd.call_id)
+                if not rtpp.online:
+                    self.global_config['_sip_logger'].write('Delete request to a ' \
+                      '(possibly) offline node "%s", sending fake reply and proceeding ' \
+                      'in the background' % rtpp.name)
+                    self.down_command('0', clim, cmd, None)
+                    response_handler = self.ignore_response
             if rtpp == None and new_session:
                 # New session
                 rtpp = self.pick_proxy(cmd.call_id)
@@ -154,7 +161,13 @@ class Rtp_cluster(object):
             rtpp = self.active[0]
             #print 'up', cmd
         #print 'rtpp.send_command'
-        rtpp.send_command(orig_cmd, self.down_command, clim, cmd, rtpp)
+        rtpp.send_command(orig_cmd, response_handler, clim, cmd, rtpp)
+
+    def ignore_response(self, result, clim, cmd, rtpp):
+        self.global_config['_sip_logger'].write('Got delayed response ' \
+          'from node "%s" to already completed request, ignoring: "%s"' \
+          % (rtpp.name, result))
+        return
 
     def down_command(self, result, clim, cmd, rtpp):
         #print 'down', result
