@@ -382,11 +382,13 @@ class Rtp_cluster(object):
         if rtpp in self.active:
             if rtpp.active_sessions in (0, None):
                 self.active.remove(rtpp)
+                rtpp.shutdown()
                 return
             rtpp.status = 'DRAINING'
             rtpp.on_active_update = self.rtpp_active_change
             return
         self.pending.remove(rtpp)
+        rtpp.shutdown()
 
     def rtpp_active_change(self, rtpp, active_sessions):
         if rtpp.status == 'DRAINING' and active_sessions == 0:
