@@ -788,7 +788,3 @@ def main_func():
 
     reactor.suggestThreadPoolSize(50)
     reactor.run(installSignalHandlers = True)
-
-
-if __name__ == '__main__':
-    main_func()
