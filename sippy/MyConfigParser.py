@@ -29,73 +29,74 @@
 from ConfigParser import RawConfigParser
 from SipConf import SipConf
 
-SUPPORTED_OPTIONS = { \
- 'acct_enable':       ('B', 'enable or disable Radius accounting'), \
- 'precise_acct':      ('B', 'do Radius accounting with millisecond precision'), \
- 'alive_acct_int':    ('I', 'interval for sending alive Radius accounting in ' \
-                             'second (0 to disable alive accounting)'), \
- 'config':            ('S', 'load configuration from file (path to file)'), \
- 'auth_enable':       ('B', 'enable or disable Radius authentication'), \
- 'b2bua_socket':      ('S', 'path to the B2BUA command socket or address to listen ' \
-                             'for commands in the format "udp:host[:port]"'), \
- 'digest_auth':       ('B', 'enable or disable SIP Digest authentication of ' \
-                             'incoming INVITE requests'), \
- 'foreground':        ('B', 'run in foreground'), \
- 'hide_call_id':      ('B', 'do not pass Call-ID header value from ingress call ' \
-                             'leg to egress call leg'), \
- 'keepalive_ans':     ('I', 'send periodic "keep-alive" re-INVITE requests on ' \
-                             'answering (ingress) call leg and disconnect a call ' \
-                             'if the re-INVITE fails (period in seconds, 0 to ' \
-                             'disable)'), \
- 'keepalive_orig':    ('I', 'send periodic "keep-alive" re-INVITE requests on ' \
-                             'originating (egress) call leg and disconnect a call ' \
-                             'if the re-INVITE fails (period in seconds, 0 to ' \
-                             'disable)'), \
- 'logfile':           ('S', 'path to the B2BUA log file'), \
- 'max_credit_time':   ('I', 'upper limit of session time for all calls in ' \
-                             'seconds'), \
- 'max_radiusclients': ('I', 'maximum number of Radius Client helper ' \
-                             'processes to start'), \
- 'pidfile':           ('S', 'path to the B2BUA PID file'), \
- 'radiusclient.conf': ('S', 'path to the radiusclient.conf file'), \
- 'sip_address':       ('S', 'local SIP address to listen for incoming SIP requests ' \
-                             '("*", "0.0.0.0" or "::" to listen on all IPv4 ' \
+SUPPORTED_OPTIONS = {
+ 'acct_enable':       ('B', 'enable or disable Radius accounting'),
+ 'precise_acct':      ('B', 'do Radius accounting with millisecond precision'),
+ 'alive_acct_int':    ('I', 'interval for sending alive Radius accounting in '
+                             'second (0 to disable alive accounting)'),
+ 'config':            ('S', 'load configuration from file (path to file)'),
+ 'auth_enable':       ('B', 'enable or disable Radius authentication'),
+ 'b2bua_socket':      ('S', 'path to the B2BUA command socket or address to listen '
+                             'for commands in the format "udp:host[:port]"'),
+ 'digest_auth':       ('B', 'enable or disable SIP Digest authentication of '
+                             'incoming INVITE requests'),
+ 'foreground':        ('B', 'run in foreground'),
+ 'hide_call_id':      ('B', 'do not pass Call-ID header value from ingress call '
+                             'leg to egress call leg'),
+ 'keepalive_ans':     ('I', 'send periodic "keep-alive" re-INVITE requests on '
+                             'answering (ingress) call leg and disconnect a call '
+                             'if the re-INVITE fails (period in seconds, 0 to '
+                             'disable)'),
+ 'keepalive_orig':    ('I', 'send periodic "keep-alive" re-INVITE requests on '
+                             'originating (egress) call leg and disconnect a call '
+                             'if the re-INVITE fails (period in seconds, 0 to '
+                             'disable)'),
+ 'logfile':           ('S', 'path to the B2BUA log file'),
+ 'max_credit_time':   ('I', 'upper limit of session time for all calls in '
+                             'seconds'),
+ 'max_radiusclients': ('I', 'maximum number of Radius Client helper '
+                             'processes to start'),
+ 'pidfile':           ('S', 'path to the B2BUA PID file'),
+ 'radiusclient.conf': ('S', 'path to the radiusclient.conf file'),
+ 'sip_address':       ('S', 'local SIP address to listen for incoming SIP requests '
+                             '("*", "0.0.0.0" or "::" to listen on all IPv4 '
                              'or IPv6 interfaces)'),
- 'sip_port':          ('I', 'local UDP port to listen for incoming SIP requests'), \
- 'start_acct_enable': ('B', 'enable start Radius accounting'), \
- 'static_route':      ('S', 'static route for all SIP calls'), \
- 'static_tr_in':      ('S', 'translation rule (regexp) to apply to all incoming ' \
-                             '(ingress) destination numbers'), \
- 'static_tr_out':     ('S', 'translation rule (regexp) to apply to all outgoing ' \
-                             '(egress) destination numbers'), \
- 'allowed_pts':       ('S', 'list of allowed media (RTP) IANA-assigned payload ' \
-                             'types that the B2BUA will pass from input to ' \
-                             'output, payload types not in this list will be ' \
-                             'filtered out (comma separated list)'), \
- 'pass_headers':      ('S', 'list of SIP header field names that the B2BUA will ' \
-                             'pass from ingress call leg to egress call leg ' \
-                             'unmodified (comma-separated list)'), \
- 'accept_ips':        ('S', 'IP addresses that we will only be accepting incoming ' \
-                             'calls from (comma-separated list). If the parameter ' \
-                             'is not specified, we will accept from any IP and ' \
-                             'then either try to authenticate if authentication ' \
+ 'sip_port':          ('I', 'local UDP port to listen for incoming SIP requests'),
+ 'start_acct_enable': ('B', 'enable start Radius accounting'),
+ 'static_route':      ('S', 'static route for all SIP calls'),
+ 'static_tr_in':      ('S', 'translation rule (regexp) to apply to all incoming '
+                             '(ingress) destination numbers'),
+ 'static_tr_out':     ('S', 'translation rule (regexp) to apply to all outgoing '
+                             '(egress) destination numbers'),
+ 'allowed_pts':       ('S', 'list of allowed media (RTP) IANA-assigned payload '
+                             'types that the B2BUA will pass from input to '
+                             'output, payload types not in this list will be '
+                             'filtered out (comma separated list)'),
+ 'pass_headers':      ('S', 'list of SIP header field names that the B2BUA will '
+                             'pass from ingress call leg to egress call leg '
+                             'unmodified (comma-separated list)'),
+ 'accept_ips':        ('S', 'IP addresses that we will only be accepting incoming '
+                             'calls from (comma-separated list). If the parameter '
+                             'is not specified, we will accept from any IP and '
+                             'then either try to authenticate if authentication '
                              'is enabled, or just let them to pass through'),
- 'digest_auth_only':  ('B', 'only use SIP Digest method to authenticate ' \
-                             'incoming INVITE requests. If the option is not ' \
-                             'specified or set to "off" then B2BUA will try to ' \
+ 'digest_auth_only':  ('B', 'only use SIP Digest method to authenticate '
+                             'incoming INVITE requests. If the option is not '
+                             'specified or set to "off" then B2BUA will try to '
                              'do remote IP authentication first and if that fails '
-                             'then send a challenge and re-authenticate when ' \
-                             'challenge response comes in'), \
- 'rtp_proxy_clients': ('S', 'comma-separated list of paths or addresses of the ' \
-                             'RTPproxy control socket. Address in the format ' \
-                             '"udp:host[:port]" (comma-separated list)'), \
- 'sip_proxy':         ('S', 'address of the helper proxy to handle "REGISTER" ' \
-                             'and "SUBSCRIBE" messages. Address in the format ' \
+                             'then send a challenge and re-authenticate when '
+                             'challenge response comes in'),
+ 'rtp_proxy_clients': ('S', 'comma-separated list of paths or addresses of the '
+                             'RTPproxy control socket. Address in the format '
+                             '"udp:host[:port]" (comma-separated list)'),
+ 'sip_proxy':         ('S', 'address of the helper proxy to handle "REGISTER" '
+                             'and "SUBSCRIBE" messages. Address in the format '
                              '"host[:port]"'),
- 'nat_traversal':     ('B', 'enable NAT traversal for signalling'), \
- 'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server'), \
- 'hrtb_retr_ival':    ('I', 'Heartbeat retransmit value for rtpproxy client'), \
+ 'nat_traversal':     ('B', 'enable NAT traversal for signalling'),
+ 'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server'),
+ 'hrtb_retr_ival':    ('I', 'Heartbeat retransmit value for rtpproxy client'),
  'hrtb_ival':         ('I', 'Heartbeat interval for rpproxy client')}
+
 
 class MyConfigParser(RawConfigParser):
     default_section = None
@@ -110,8 +111,8 @@ class MyConfigParser(RawConfigParser):
     def __getitem__(self, key):
         if key.startswith('_'):
             return self._private_keys[key]
-        value_type  = SUPPORTED_OPTIONS[key][0]
-        if value_type  == 'B':
+        value_type = SUPPORTED_OPTIONS[key][0]
+        if value_type == 'B':
             return self.getboolean(self.default_section, key)
         elif value_type == 'I':
             return self.getint(self.default_section, key)
@@ -148,8 +149,8 @@ class MyConfigParser(RawConfigParser):
     def read(self, fname):
         RawConfigParser.readfp(self, open(fname))
         for key in tuple(self.options(self.default_section)):
-            self.check_and_set(key, RawConfigParser.get(self, \
-              self.default_section, key), False)
+            self.check_and_set(key, RawConfigParser.get(self,
+                               self.default_section, key), False)
 
     def check_and_set(self, key, value, compat = True):
         value = value.strip()
@@ -159,7 +160,7 @@ class MyConfigParser(RawConfigParser):
                 if self.has_key('_rtp_proxy_clients'):
                     self['_rtp_proxy_clients'].append(value)
                 else:
-                    self['_rtp_proxy_clients'] = [value,]
+                    self['_rtp_proxy_clients'] = [value, ]
                 if self.has_key('rtp_proxy_clients'):
                     self['rtp_proxy_clients'] += ',' + value
                 else:
@@ -170,25 +171,25 @@ class MyConfigParser(RawConfigParser):
                 if self.has_key('_pass_headers'):
                     self['_pass_headers'].append(value)
                 else:
-                    self['_pass_headers'] = [value,]
+                    self['_pass_headers'] = [value, ]
                 if self.has_key('pass_headers'):
                     self['pass_headers'] += ',' + value
                 else:
                     self['pass_headers'] = value
                 return
 
-        value_type  = SUPPORTED_OPTIONS[key][0]
+        value_type = SUPPORTED_OPTIONS[key][0]
         if value_type == 'B':
             if value.lower() not in self._boolean_states:
-                raise ValueError, 'Not a boolean: %s' % value
+                raise ValueError('Not a boolean: {}'.format(value))
         elif value_type == 'I':
             _value = int(value)
         if key in ('keepalive_ans', 'keepalive_orig'):
             if _value < 0:
-                raise ValueError, 'keepalive_ans should be non-negative'
+                raise ValueError('keepalive_ans should be non-negative')
         elif key == 'max_credit_time':
             if _value <= 0:
-                raise ValueError, 'max_credit_time should be more than zero'
+                raise ValueError('max_credit_time should be more than zero')
         elif key == 'allowed_pts':
             self['_allowed_pts'] = [int(x) for x in value.split(',')]
         elif key in ('accept_ips', 'rtp_proxy_clients'):
@@ -205,7 +206,7 @@ class MyConfigParser(RawConfigParser):
                 self['_sip_address'] = value
         elif key == 'sip_port':
             if _value <= 0 or _value > 65535:
-                raise ValueError, 'sip_port should be in the range 1-65535'
+                raise ValueError('sip_port should be in the range 1-65535')
             self['_sip_port'] = _value
         self[key] = value
 
@@ -220,6 +221,7 @@ class MyConfigParser(RawConfigParser):
             else:
                 value = '"string"'
             print '--%s=%s\n\t%s\n' % (option, value, helptext)
+
 
 if __name__ == '__main__':
     m = MyConfigParser()
