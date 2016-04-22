@@ -94,8 +94,8 @@ SUPPORTED_OPTIONS = {
                              '"host[:port]"'),
  'nat_traversal':     ('B', 'enable NAT traversal for signalling'),
  'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server'),
- 'hrtb_retr_ival':    ('I', 'Heartbeat retransmit value for rtpproxy client'),
- 'hrtb_ival':         ('I', 'Heartbeat interval for rpproxy client')}
+ 'hrtb_retr_ival':    ('F', 'Heartbeat retransmit value for rtpproxy client'),
+ 'hrtb_ival':         ('F', 'Heartbeat interval for rpproxy client')}
 
 
 class MyConfigParser(RawConfigParser):
@@ -116,6 +116,8 @@ class MyConfigParser(RawConfigParser):
             return self.getboolean(self.default_section, key)
         elif value_type == 'I':
             return self.getint(self.default_section, key)
+        elif value_type == 'F':
+            return self.getfloat(self.default_section, key)
         return self.get(self.default_section, key)
 
     def __setitem__(self, key, value):
@@ -184,6 +186,8 @@ class MyConfigParser(RawConfigParser):
                 raise ValueError('Not a boolean: {}'.format(value))
         elif value_type == 'I':
             _value = int(value)
+        elif value_type == 'F':
+            _value = float(value)
         if key in ('keepalive_ans', 'keepalive_orig'):
             if _value < 0:
                 raise ValueError('keepalive_ans should be non-negative')
@@ -218,33 +222,8 @@ class MyConfigParser(RawConfigParser):
                 value = 'on/off'
             elif value_type == 'I':
                 value = 'number'
+            elif value_type == 'F':
+                value = 'float'
             else:
                 value = '"string"'
             print '--%s=%s\n\t%s\n' % (option, value, helptext)
-
-
-if __name__ == '__main__':
-    m = MyConfigParser()
-    m['_foo'] = 'bar'
-    m['b2bua_socket'] = 'bar1'
-    m['acct_enable'] = True
-    m['auth_enable'] = 'False'
-    assert m.has_key('_foo')
-    assert m['_foo'] == 'bar'
-    assert m['b2bua_socket'] == 'bar1'
-    assert m.get('_foo') == 'bar'
-    assert m.get('b2bua_socket') == 'bar1'
-    assert m.get('general', 'b2bua_socket') == 'bar1'
-    assert m.get('acct_enable')
-    assert not m.get('auth_enable')
-    m.check_and_set('keepalive_ans', '15')
-    assert m['keepalive_ans'] == 15
-    m.check_and_set('pass_header', 'a')
-    m.check_and_set('pass_header', 'b')
-    assert m['pass_headers'] == 'a,b'
-    assert m['_pass_headers'][0] == 'a'
-    assert m['_pass_headers'][1] == 'b'
-    m.check_and_set('accept_ips', '1.2.3.4, 5.6.7.8')
-    assert m['accept_ips'] == '1.2.3.4, 5.6.7.8'
-    assert m['_accept_ips'][0] == '1.2.3.4'
-    assert m['_accept_ips'][1] == '5.6.7.8'

@@ -89,12 +89,6 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
             no_version_check = kwargs['no_version_check']
             del kwargs['no_version_check']
 
-        if 'hrtb_ival' in global_config:
-            self.hrtb_ival = global_config['hrtb_ival']
-
-        if 'hrtb_retr_ival' in global_config:
-            self.hrtb_retr_ival = global_config['hrtb_retr_ival']
-
         if len(address) == 0 and kwargs.has_key('spath'):
             a = kwargs['spath']
             del kwargs['spath']

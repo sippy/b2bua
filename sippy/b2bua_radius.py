@@ -757,7 +757,15 @@ def main_func():
     if len(rtp_proxy_clients) > 0:
         global_config['_rtp_proxy_clients'] = []
         for address in rtp_proxy_clients:
-            global_config['_rtp_proxy_clients'].append(Rtp_proxy_client(global_config, spath = address))
+            client = Rtp_proxy_client(global_config, spath = address)
+
+            if 'hrtb_ival' in global_config:
+                client.hrtb_ival = global_config['hrtb_ival']
+
+            if 'hrtb_retr_ival' in global_config:
+                client.hrtb_retr_ival = global_config['hrtb_retr_ival']
+
+            global_config['_rtp_proxy_clients'].append(client)
 
     if global_config['auth_enable'] or global_config['acct_enable']:
         global_config['_radius_client'] = RadiusAuthorisation(global_config)
