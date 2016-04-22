@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import print_function
 import os, sys
 
 def daemonize(logfile = None):
@@ -40,10 +41,14 @@ def daemonize(logfile = None):
     fd = os.open('/dev/null', os.O_RDWR)
     os.dup2(fd, sys.__stdin__.fileno())
     if logfile != None:
-        fake_stdout = file(logfile, 'a', 1)
-        sys.stdout = fake_stdout
-        sys.stderr = fake_stdout
-        fd = fake_stdout.fileno()
+        try:
+            fake_stdout = file(logfile, 'a', 1)
+            sys.stdout = fake_stdout
+            sys.stderr = fake_stdout
+            fd = fake_stdout.fileno()
+        except IOError:
+            print("Can't open {}".format(logfile), file=sys.stderr)
+
     os.dup2(fd, sys.__stdout__.fileno())
     os.dup2(fd, sys.__stderr__.fileno())
     if logfile == None:
