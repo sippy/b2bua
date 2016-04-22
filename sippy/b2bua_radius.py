@@ -750,7 +750,12 @@ def main_func():
         global_config.write(open(writeconf, 'w'))
 
     if not global_config['foreground']:
-        daemonize(logfile = global_config['logfile'])
+        try:
+            daemonize(logfile = global_config['logfile'])
+        except IOError as e:
+            print("IOError: {}".format(e))
+            sys.exit(e.errno)
+
 
     global_config['_sip_logger'] = SipLogger('b2bua')
 
