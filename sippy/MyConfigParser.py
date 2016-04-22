@@ -93,7 +93,9 @@ SUPPORTED_OPTIONS = { \
                              'and "SUBSCRIBE" messages. Address in the format ' \
                              '"host[:port]"'),
  'nat_traversal':     ('B', 'enable NAT traversal for signalling'), \
- 'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server')}
+ 'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server'), \
+ 'hrtb_retr_ival':    ('I', 'Heartbeat retransmit value for rtpproxy client'), \
+ 'hrtb_ival':         ('I', 'Heartbeat interval for rpproxy client')}
 
 class MyConfigParser(RawConfigParser):
     default_section = None
