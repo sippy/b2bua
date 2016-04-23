@@ -756,7 +756,6 @@ def main_func():
             print("IOError: {}".format(e))
             sys.exit(e.errno)
 
-
     global_config['_sip_logger'] = SipLogger('b2bua')
 
     if len(rtp_proxy_clients) > 0:

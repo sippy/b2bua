@@ -97,7 +97,6 @@ SUPPORTED_OPTIONS = {
  'hrtb_retr_ival':    ('F', 'Heartbeat retransmit value for rtpproxy client'),
  'hrtb_ival':         ('F', 'Heartbeat interval for rpproxy client')}
 
-
 class MyConfigParser(RawConfigParser):
     default_section = None
     _private_keys = None
@@ -152,7 +151,7 @@ class MyConfigParser(RawConfigParser):
         RawConfigParser.readfp(self, open(fname))
         for key in tuple(self.options(self.default_section)):
             self.check_and_set(key, RawConfigParser.get(self,
-                self.default_section, key), False)
+              self.default_section, key), False)
 
     def check_and_set(self, key, value, compat = True):
         value = value.strip()
