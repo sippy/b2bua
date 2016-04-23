@@ -26,7 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
 import os, sys
 
 def daemonize(logfile = None):
@@ -45,7 +44,6 @@ def daemonize(logfile = None):
         sys.stdout = fake_stdout
         sys.stderr = fake_stdout
         fd = fake_stdout.fileno()
-
     os.dup2(fd, sys.__stdout__.fileno())
     os.dup2(fd, sys.__stderr__.fileno())
     if logfile == None:
