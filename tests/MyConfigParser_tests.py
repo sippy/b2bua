@@ -3,7 +3,7 @@ from sippy.MyConfigParser import MyConfigParser
 
 
 class TestMyConfigParser(unittest.TestCase):
-    def test(self):
+    def TestParamHandling(self):
         m = MyConfigParser()
         m['_foo'] = 'bar'
         m['b2bua_socket'] = 'bar1'
@@ -44,3 +44,24 @@ class TestMyConfigParser(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             m.check_and_set('non_existant_key', "1")
+
+    def TestSipPortValidation(self):
+        m = MyConfigParser()
+        with self.assertRaises(ValueError):
+            m.check_and_set('sip_port', "-1")
+        with self.assertRaises(ValueError):
+            m.check_and_set('sip_port', "0")
+        with self.assertRaises(ValueError):
+            m.check_and_set('sip_port', "65536")
+        self.assertEquals(m.check_and_set('sip_port', "1"), None)
+        self.assertEquals(m.check_and_set('sip_port', "65535"), None)
+
+    def TestMaxCreditTime(self):
+        m = MyConfigParser()
+        with self.assertRaises(ValueError):
+            m.check_and_set('max_credit_time', "-1")
+
+    def TestMaxKeepAlive(self):
+        m = MyConfigParser()
+        with self.assertRaises(ValueError):
+            m.check_and_set('keepalive_ans', "-1")
