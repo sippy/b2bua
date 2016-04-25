@@ -88,7 +88,6 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
         if kwargs.has_key('no_version_check'):
             no_version_check = kwargs['no_version_check']
             del kwargs['no_version_check']
-
         if len(address) == 0 and kwargs.has_key('spath'):
             a = kwargs['spath']
             del kwargs['spath']
