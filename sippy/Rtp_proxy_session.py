@@ -103,6 +103,9 @@ class _rtpps_side(object):
             result_callback(None, rtpps, *cpo.callback_parameters)
             return
         t1 = result.split()
+        if t1[0][0] == 'E':
+            result_callback(None, *callback_parameters)
+            return
         rtpproxy_port = int(t1[0])
         if rtpproxy_port == 0:
             result_callback(None, rtpps, *cpo.callback_parameters)
