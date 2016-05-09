@@ -52,6 +52,8 @@ class SdpBody(object):
     first_half = ('v', 'o', 's', 'i', 'u', 'e', 'p')
     second_half = ('b', 't', 'r', 'z', 'k')
     all_headers = ('v', 'o', 's', 'i', 'u', 'e', 'p', 'c', 'b', 't', 'r', 'z', 'k')
+    top_hdrs_req = ('v', 'o', 's', 't')
+    sect_hdrs_req = ('c', 'm')
     sections = None
 
     def __init__(self, body = None, cself = None):
@@ -91,6 +93,14 @@ class SdpBody(object):
                     section.addHeader('c', c_header)
             if len(self.sections) == 0:
                 self.addHeader('c', c_header)
+        # Do some sanity checking, RFC4566
+        for header_name in [x + '_header' for x in self.top_hdrs_req]:
+            if getattr(self, header_name) == None:
+                raise Exception('Mandatory "%=" session header is missing' % header_name[0])
+        for section in self.sections:
+            for header_name in [x + '_header' for x in self.sect_hdrs_req]:
+                if getattr(section, header_name) == None:
+                    raise Exception('Mandatory "%s=" media header is missing' % header_name[0])
 
     def __str__(self):
         s = ''
