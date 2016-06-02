@@ -29,6 +29,7 @@ from Udp_server import Udp_server, Udp_server_opts
 from Time.MonoTime import MonoTime
 from Math.recfilter import recfilter
 from Rtp_proxy_cmd import Rtp_proxy_cmd
+from Time.MovingAverager import MovingAverager
 
 from time import time
 from hashlib import md5
@@ -68,8 +69,11 @@ class Rtp_proxy_client_udp(object):
     uopts = None
     global_config = None
     delay_flt = None
-    ploss_out_rate = 0.0
+    ploss_out_rate = 0.30
     pdelay_out_max = 0.0
+    ncmds_out = 0
+    nrepls_in = 0
+    pdelay_ma = None
 
     def __init__(self, global_config, address, bind_address = None, family = None, nworkers = None):
         self.address = address
@@ -83,7 +87,15 @@ class Rtp_proxy_client_udp(object):
         self.worker = Udp_server(global_config, self.uopts)
         self.pending_requests = {}
         self.global_config = global_config
-        self.delay_flt = recfilter(0.95, 0.25)
+        self.delay_flt = recfilter(0.95, 0.01)
+        self.pdelay_ma = MovingAverager(1.0, 60.0, self.get_ploss_data)
+
+    def get_ploss_data(self):
+        if self.ncmds_out == 0:
+            return None
+        rval = float(self.ncmds_out - self.nrepls_in) / float(self.ncmds_out)
+        self.ncmds_out = self.nrepls_in = 0
+        return rval
 
     def send_command(self, command, result_callback = None, *callback_parameters):
         cookie = md5(str(random()) + str(time())).hexdigest()
@@ -105,8 +117,10 @@ class Rtp_proxy_client_udp(object):
         if nretr == None:
             nretr = getnretrans(next_retr, rtime)
         command = '%s %s' % (cookie, command)
+        print 'next_retr =', next_retr, 'nretr =', nretr
         timer = Timeout(self.retransmit, next_retr, 1, cookie)
         self.worker.send_to(command, self.address)
+        self.ncmds_out += 1
         nretr -= 1
         preq = Rtp_proxy_pending_req(next_retr, nretr, timer, command, result_callback, \
           callback_parameters)
@@ -114,6 +128,7 @@ class Rtp_proxy_client_udp(object):
 
     def retransmit(self, cookie):
         preq = self.pending_requests[cookie]
+        print 'retransmit', preq.triesleft, self.worker, self.pdelay_ma.lastval
         #print 'command to %s timeout %s cookie %s triesleft %d' % (str(self.address), preq.command, cookie, preq.triesleft)
         if preq.triesleft <= 0 or self.worker == None:
             del self.pending_requests[cookie]
@@ -125,6 +140,7 @@ class Rtp_proxy_client_udp(object):
         preq.next_retr *= 2
         preq.timer = Timeout(self.retransmit, preq.next_retr, 1, cookie)
         self.worker.send_to(preq.command, self.address)
+        self.ncmds_out += 1
         preq.triesleft -= 1
 
     def go_offline(self):
@@ -137,6 +153,7 @@ class Rtp_proxy_client_udp(object):
         except:
             print('Rtp_proxy_client_udp.process_reply(): invalid response %s' % data)
             return
+        self.nrepls_in += 1
         preq = self.pending_requests.pop(cookie, None)
         if preq == None:
             return
@@ -163,6 +180,7 @@ class Rtp_proxy_client_udp(object):
             self.delay_flt = recfilter(0.95, 0.25)
 
     def shutdown(self):
+        self.pdelay_ma.cancel()
         self.worker.shutdown()
         self.worker = None
 
