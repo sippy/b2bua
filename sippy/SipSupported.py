@@ -47,8 +47,8 @@ class SipSupported(SipGenericHF):
 
     def getCopy(self):
         if not self.parsed:
-            return SipSupported(self.body)
-        return SipSupported(caps = self.caps)
+            return self.__class__(self.body)
+        return self.__class__(caps = self.caps)
 
     def getCanName(self, name, compact = False):
         if compact:
