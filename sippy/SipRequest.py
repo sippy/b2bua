@@ -32,6 +32,7 @@ from SipResponse import SipResponse
 from SipURL import SipURL
 from SipAddress import SipAddress
 from SipExpires import SipExpires
+from SipSupported import SipSupported
 
 class SipRequest(SipMsg):
     method = None
@@ -68,10 +69,12 @@ class SipRequest(SipMsg):
         self.appendHeader(SipHeader(name = 'cseq', body = SipCSeq(cseq = cseq, method = method)))
         if contact != None:
             self.appendHeader(SipHeader(name = 'contact', body = contact))
-        if expires == None and method == 'INVITE':
-            expires = SipHeader(name = 'expires')
-            self.appendHeader(expires)
-        elif expires != None:
+        if method == 'INVITE':
+            if expires == None:
+                expires = SipExpires()
+            supported = SipHeader(name = 'supported', body = SipSupported(caps = ('100rel',)))
+            self.appendHeader(supported)
+        if expires != None:
             expires = SipHeader(name = 'expires', body = expires)
             self.appendHeader(expires)
         if user_agent != None:
