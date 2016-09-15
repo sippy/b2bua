@@ -32,6 +32,7 @@ from SipAddress import SipAddress
 from SipRoute import SipRoute
 from SipHeader import SipHeader
 from SipRSeq import SipRSeq
+from SipRequire import SipRequire
 from datetime import datetime
 from hashlib import md5
 from traceback import print_exc
@@ -730,6 +731,9 @@ class SipTransactionManager(object):
             t.rseq.incNum()
             rseq_h = SipHeader(name = 'rseq', body = rseq)
             resp.appendHeader(rseq_h)
+            req = SipRequire(caps = ('100rel',))
+            req_h = SipHeader(name = 'require', body = req)
+            resp.appendHeader(req_h)
             tid = resp.getTId(wBRN = True)
             rtid = resp.getRTId()
             self.rtid2tid[rtid] = tid
