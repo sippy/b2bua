@@ -79,7 +79,11 @@ a=connection:new
 """
 
 
-sdp_h323 = """c=IN IP4 224.5.6.7
+sdp_h323 = """v=0
+o=H.323 45678 901234 IN IP4 192.168.1.2
+s=H.323 SIP Call
+c=IN IP4 224.5.6.7
+t=0 0
 a=type:H332
 m=audio 49230 RTP/AVP 0
 m=video 49232 RTP/AVP 31
