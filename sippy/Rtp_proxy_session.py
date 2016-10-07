@@ -53,6 +53,7 @@ class _rtpps_side(object):
     raddress = None
     laddress = None
     origin = None
+    oh_remote = None
     repacketize = None
 
     def __init__(self):
@@ -220,8 +221,13 @@ class _rtpps_side(object):
                         fidx = sect.a_headers.index(a_header) + 1
                 sect.a_headers.insert(fidx, 'ptime:%d' % self.repacketize)
         if len([x for x in sects if x.needs_update]) == 0:
+            if self.oh_remote != None:
+                if self.oh_remote.session_id != sdp_body.content.o_header.session_id:
+                    self.origin = SdpOrigin()
+                elif self.oh_remote.version != sdp_body.content.o_header.version:
+                    self.origin.version += 1
+            self.oh_remote = sdp_body.content.o_header.getCopy()
             sdp_body.content.o_header = self.origin.getCopy()
-            self.origin.version += 1
             if rtpps.insert_nortpp:
                 sdp_body.content += 'a=nortpproxy:yes\r\n'
             sdp_body.needs_update = False
