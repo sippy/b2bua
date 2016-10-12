@@ -224,3 +224,8 @@ class SipLogger(object):
             self.signal_handler = None
         self.logger.shutdown()
         self.logger = None
+
+if __name__ == '__main__':
+    log = SipLogger(sys.argv[1])
+    log.write(sys.argv[2])
+    log.shutdown()
