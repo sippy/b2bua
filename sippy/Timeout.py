@@ -88,6 +88,7 @@ class TimeoutInact(object):
             self._ticks_left -= 1
 
     def _run_once(self, *callback_arguments):
+        self.cancel = self.cancel_callLater_in_run_once
         try:
             self._timeout_callback(*callback_arguments)
         except:
@@ -96,11 +97,12 @@ class TimeoutInact(object):
             print_exc(file = stdout)
             print '-' * 70
             stdout.flush()
-        if self._ticks_left == 1:
+        self._ticks_left -= 1
+        if self._ticks_left == 0:
             self._cleanup()
             return
-        self._ticks_left -= 1
         self._schedule_call_later()
+        self.cancel = self.cancel_callLater
 
     def cancel(self):
         self._task.stop()
@@ -109,6 +111,9 @@ class TimeoutInact(object):
     def cancel_callLater(self):
         self._task.cancel()
         self._cleanup()
+
+    def cancel_callLater_in_run_once(self):
+        self._ticks_left = 1
 
     def _cleanup(self):
         self._task = None
