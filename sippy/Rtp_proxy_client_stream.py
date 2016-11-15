@@ -175,7 +175,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
         self.rtpp_class._reconnect(self, address, bind_address)
 
     def _reconnect(self, address, bind_address = None):
-        self.shutdown()
+        Rtp_proxy_client_stream.shutdown(self)
         self.address = address
         self.workers = []
         for i in range(0, self.nworkers):
