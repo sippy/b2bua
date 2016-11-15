@@ -33,6 +33,7 @@ from twisted.internet import reactor
 from Time.MonoTime import MonoTime
 from Math.recfilter import recfilter
 from Rtp_proxy_client_net import Rtp_proxy_client_net
+from Rtp_proxy_cmd import Rtp_proxy_cmd
 
 from datetime import datetime
 import socket
@@ -57,8 +58,6 @@ class _RTPPLWorker(Thread):
     def send_raw(self, command, _recurse = 0, stime = None):
         if _recurse > _MAX_RECURSE:
             raise Exception('Cannot reconnect: %s' % (str(self.userv.address),))
-        if not command.endswith('\n'):
-            command += '\n'
         #print('%s.send_raw(%s)' % (id(self), command))
         if stime == None:
             stime = MonoTime()
@@ -162,7 +161,9 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
     def send_command(self, command, result_callback = None, *callback_parameters):
         if self.nworkers_act == 0:
             self.rtpp_class._reconnect(self, self.address)
-        if not command.endswith('\n'):
+        if isinstance(command, Rtp_proxy_cmd):
+            command = str(command)
+        elif not command.endswith('\n'):
             command += '\n'
         self.wi_available.acquire()
         self.wi.append((command, result_callback, callback_parameters))
