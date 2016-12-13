@@ -61,7 +61,7 @@ class UacStateIdle(UaStateGeneric):
             self.ua.rUri.getUrl().port = None
             if self.ua.to_username != None:
                 self.ua.rUri.getUrl().username = self.ua.to_username
-            self.ua.lUri = SipFrom(address = SipAddress(url = SipURL(username = callingID), hadbrace = True, name = callingName))
+            self.ua.lUri = SipFrom(address = SipAddress(url = SipURL(username = callingID, host = self.ua.rAddr[0]), hadbrace = True, name = callingName))
             self.ua.lUri.getUrl().port = None
             if self.ua.from_domain != None:
                 self.ua.lUri.getUrl().host = self.ua.from_domain
