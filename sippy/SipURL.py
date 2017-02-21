@@ -31,6 +31,10 @@ except ImportError:
     from urllib.parse import quote, unquote
 
 RFC3261_USER_UNRESERVED = '&=+$,;?/#'
+# Quote from RFC-3261:
+# Several rules are incorporated from RFC 2396 [5] but are updated to
+# make them compliant with RFC 2234
+RFC3261_UNRESERVED = "-_.!~*'()"
 
 class SipURL(object):
     username = None
@@ -170,7 +174,7 @@ class SipURL(object):
         l = []; w = l.append
         w('sip:')
         if self.username != None:
-            w(quote(self.username, RFC3261_USER_UNRESERVED))
+            w(quote(self.username, RFC3261_USER_UNRESERVED + RFC3261_UNRESERVED))
             for v in self.userparams:
                 w(';%s' % v)
             if self.password != None:
