@@ -272,6 +272,8 @@ class _rtpps_side(object):
     def _sdp_change_finish(self, ur, rtpps, sdp_body, sect, sects, result_callback):
         sect.needs_update = False
         if ur != None:
+            if self.after_sdp_change != None:
+                self.after_sdp_change(ur.rtpproxy_address) # pylint: disable=not-callable
             sect.c_header.atype = ur.family
             sect.c_header.addr = ur.rtpproxy_address
             if sect.m_header.port != 0:
