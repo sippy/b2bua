@@ -36,12 +36,12 @@ class UasStateUpdating(UaStateGeneric):
     def recvRequest(self, req):
         if req.getMethod() == 'INVITE':
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(491, \
-              'Request Pending', server = self.ua.local_ua, lossemul = self.ua.uas_lossemul))
+              'Request Pending', server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
             return None
         elif req.getMethod() == 'BYE':
             self.ua.sendUasResponse(487, 'Request Terminated')
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', \
-              server = self.ua.local_ua, lossemul = self.ua.uas_lossemul))
+              server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
             #print 'BYE received in the Updating state, going to the Disconnected state'
             event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
             try:
@@ -55,11 +55,11 @@ class UasStateUpdating(UaStateGeneric):
         elif req.getMethod() == 'REFER':
             if req.countHFs('refer-to') == 0:
                 self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(400, 'Bad Request',
-                  server = self.ua.local_ua, lossemul = self.ua.uas_lossemul))
+                  server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
                 return None
             self.ua.sendUasResponse(487, 'Request Terminated')
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(202, 'Accepted', \
-              server = self.ua.local_ua, lossemul = self.ua.uas_lossemul))
+              server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
             also = req.getHFBody('refer-to').getUrl().getCopy()
             self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
             self.ua.cancelCreditTimer()
