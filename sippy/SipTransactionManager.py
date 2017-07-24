@@ -345,8 +345,9 @@ class SipTransactionManager(object):
 
     # 1. Client transaction methods
     def newTransaction(self, msg, resp_cb = None, laddress = None, userv = None, \
-      cb_ifver = 1, compact = False):
-        t = SipTransaction()
+      cb_ifver = 1, compact = False, t = None):
+        if t == None:
+            t = SipTransaction()
         t.rtime = time()
         t.compact = compact
         t.method = msg.getMethod()
