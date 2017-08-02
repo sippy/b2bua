@@ -32,6 +32,7 @@ from SipAddress import SipAddress
 from SipRoute import SipRoute
 from SipHeader import SipHeader
 from SipRSeq import SipRSeq
+from ESipParseException import ESipParseException
 from datetime import datetime
 from hashlib import md5
 from traceback import print_exc
@@ -324,6 +325,8 @@ class SipTransactionManager(object):
                 req = SipRequest(data)
                 tids = req.getTIds()
             except Exception, exception:
+                if isinstance(exception, ESipParseException) and exception.sip_response != None:
+                    self.transmitMsg(server, exception.sip_response, address, checksum)
                 print datetime.now(), 'can\'t parse SIP request from %s:%d: %s:' % (address[0], address[1], str(exception))
                 print '-' * 70
                 print_exc(file = sys.stdout)
@@ -366,8 +369,9 @@ class SipTransactionManager(object):
 
     # 1. Client transaction methods
     def newTransaction(self, msg, resp_cb = None, laddress = None, userv = None, \
-      cb_ifver = 1, compact = False):
-        t = SipUACTransaction()
+      cb_ifver = 1, compact = False, t = None):
+        if t == None:
+            t = SipUACTransaction()
         t.rtime = time()
         t.compact = compact
         t.method = msg.getMethod()

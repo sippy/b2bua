@@ -36,6 +36,8 @@ class SipResponse(SipMsg):
                  cseq = None, body = None, rrs = (), server = None):
         SipMsg.__init__(self, buf)
         if buf != None:
+            if self.scode > 100 and self.scode < 400:
+                SipMsg.init_body(self)
             return
         self.scode, self.reason, self.sipver = scode, reason, sipver
         if vias != None:
@@ -59,8 +61,6 @@ class SipResponse(SipMsg):
         else:
             self.sipver, scode, self.reason = startline.split(None, 2)
         self.scode = int(scode)
-        if self.scode == 100 or self.scode >= 400:
-            self.ignorebody = True
 
     def setSCode(self, scode, reason):
         self.scode = scode

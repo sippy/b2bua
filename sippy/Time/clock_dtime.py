@@ -23,14 +23,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import ctypes, os
+import ctypes, os, platform
 import ctypes.util
 
 CLOCK_REALTIME = 0
 CLOCK_MONOTONIC = 4 # see <linux/time.h> / <include/time.h>
-CLOCK_UPTIME = 5 # FreeBSD-specific. 
-CLOCK_UPTIME_PRECISE = 7 # FreeBSD-specific.
-CLOCK_UPTIME_FAST = 8 # FreeBSD-specific.
+if platform.system() == 'FreeBSD':
+    # FreeBSD-specific
+    CLOCK_UPTIME = 5
+    CLOCK_UPTIME_PRECISE = 7
+    CLOCK_UPTIME_FAST = 8
+    CLOCK_MONOTONIC_PRECISE = 11
+    CLOCK_MONOTONIC_FAST = 12
+elif platform.system() == 'Linux':
+    # Linux-specific
+    CLOCK_BOOTTIME = 7
 
 class timespec(ctypes.Structure):
     _fields_ = [
@@ -45,7 +52,7 @@ def find_lib(libname, paths):
             libcname = os.readlink(path)
             return (libcname)
         elif os.path.isfile(path):
-            for line in file(path, 'r').readlines():
+            for line in open(path, 'r').readlines():
                 parts = line.split(' ')
                 if parts[0] != 'GROUP':
                     continue
@@ -76,8 +83,11 @@ def clock_getdtime(type):
     return float(t.tv_sec) + float(t.tv_nsec * 1e-09)
 
 if __name__ == "__main__":
-    print '%.10f' % (clock_getdtime(CLOCK_REALTIME),)
-    print '%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_UPTIME),)
-    print '%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_UPTIME_PRECISE),)
-    print '%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_UPTIME_FAST),)
-    print '%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_MONOTONIC),)
+    print('%.10f' % (clock_getdtime(CLOCK_REALTIME),))
+    print('%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_MONOTONIC),))
+    if platform.system() == 'FreeBSD':
+        print('%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_UPTIME),))
+        print('%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_UPTIME_PRECISE),))
+        print('%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_UPTIME_FAST),))
+        print('%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_MONOTONIC_PRECISE),))
+        print('%.10f' % (clock_getdtime(CLOCK_REALTIME) - clock_getdtime(CLOCK_MONOTONIC_FAST),))
