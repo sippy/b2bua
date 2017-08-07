@@ -39,6 +39,7 @@ RFC3261_MARK = '-_.!~*\'()'
 USERNAME_SAFE = RFC3261_USER_UNRESERVED + RFC3261_MARK
 
 class SipURL(object):
+    scheme = None
     username = None
     userparams = None
     password = None
@@ -56,10 +57,11 @@ class SipURL(object):
 
     def __init__(self, url = None, username = None, password = None, host = None, port = None, headers = None, \
       usertype = None, transport = None, ttl = None, maddr = None, method = None, tag = None, other = None, \
-      userparams = None, lr = False, relaxedparser = False):
+      userparams = None, lr = False, relaxedparser = False, scheme = "sip"):
         self.other = []
         self.userparams = []
         if url == None:
+            self.scheme = scheme
             self.username = username
             if userparams != None:
                 self.userparams = userparams
@@ -81,13 +83,38 @@ class SipURL(object):
                 self.other = other
             self.lr = lr
             return
-        sidx = url.find(':')
-        if sidx == 3 or (sidx != -1 and sidx < url.find('.')):
-            if not url.lower().startswith('sip:'):
-                raise ValueError('unsupported scheme: ' + url[:4])
-            url = url[4:]
-        # else:
-        #     scheme is missing, assume sip:
+        parts = url.split(':', 1)
+        if len(parts) < 2:
+            # scheme is missing, assume sip:
+            parts.insert(0, 'sip')
+        parts[0] = parts[0].lower()
+        if parts[0] not in ('sip', 'sips', 'tel'):
+            raise ValueError('unsupported scheme: %s:' + parts[0])
+        self.scheme, url = parts
+        if self.scheme == 'tel':
+            self.convertTelURL(url, relaxedparser)
+        else:
+            self.parseSipURL(url, relaxedparser)
+
+    def convertTelURL(self, url, relaxedparser):
+        self.scheme = 'sip'
+        if relaxedparser:
+            self.host = ''
+        else:
+            self.host = SipConf.my_address
+            self.port = SipConf.my_port
+        parts = url.split(';')
+        self.username = unquote(parts[0])
+        if len(parts) > 1:
+            # parse userparams
+            self.userparams = []
+            for part in parts[1:]:
+                # The RFC-3261 suggests the user parameter keys should
+                # be converted to lower case.
+                k, v = part.split('=')
+                self.userparams.append(k.lower() + '=' + v)
+
+    def parseSipURL(self, url, relaxedparser):
         ear = url.find('@') + 1
         parts = url[ear:].split(';')
         userdomain, params = url[0:ear] + parts[0], parts[1:]
@@ -174,7 +201,7 @@ class SipURL(object):
 
     def localStr(self, local_addr = None, local_port = None):
         l = []; w = l.append
-        w('sip:')
+        w(self.scheme + ':')
         if self.username != None:
             w(quote(self.username, USERNAME_SAFE))
             for v in self.userparams:
