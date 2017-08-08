@@ -89,10 +89,13 @@ class SipURL(object):
             parts.insert(0, 'sip')
         parts[0] = parts[0].lower()
         if parts[0] not in ('sip', 'sips', 'tel'):
-            raise ValueError('unsupported scheme: %s:' + parts[0])
+            raise ValueError('unsupported scheme: %s:' % parts[0])
         self.scheme, url = parts
         if self.scheme == 'tel':
-            self.convertTelURL(url, relaxedparser)
+            if SipConf.autoconvert_tel_url:
+                self.convertTelURL(url, relaxedparser)
+            else:
+                raise ValueError('tel: scheme is not supported')
         else:
             self.parseSipURL(url, relaxedparser)
 
