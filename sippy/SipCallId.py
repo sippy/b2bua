@@ -27,8 +27,22 @@
 from random import random
 from hashlib import md5
 from time import time
+from math import floor
 from SipConf import SipConf
 from SipGenericHF import SipGenericHF
+
+CALL_ID_CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-.!%*_+`\'~()<>:\\"/[]?{}'
+_clen = len(CALL_ID_CHARSET)
+DEFAULT_TEST_LEN = (32, 16)
+
+def gen_test_cid(lens = DEFAULT_TEST_LEN):
+    r = ''
+    for j in (0, 1):
+        for i in range(0, lens[j]):
+            r += CALL_ID_CHARSET[int(floor(random() * _clen))]
+        if j == 0:
+            r += '@'
+    return r
 
 class SipCallId(SipGenericHF):
     hf_names = ('call-id', 'i')

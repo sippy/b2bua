@@ -27,10 +27,21 @@
 from random import random
 from hashlib import md5
 from time import time
+from math import floor
 from SipAddressHF import SipAddressHF
 from SipAddress import SipAddress
 from SipURL import SipURL
 from SipConf import SipConf
+
+TOKEN_CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-.!%*_+`\'~'
+_clen = len(TOKEN_CHARSET)
+DEFAULT_TTAG_LEN = 32
+
+def gen_test_tag(len = DEFAULT_TTAG_LEN):
+    r = ''
+    for i in range(0, len):
+        r += TOKEN_CHARSET[int(floor(random() * _clen))]
+    return r
 
 class SipFrom(SipAddressHF):
     hf_names = ('from', 'f')

@@ -41,18 +41,18 @@ class MsgBody(object):
             self.mtype = mtype
             self.content = content
         else:
-            self.parsed = True
             if type(cself.content) == StringType:
                 self.content = cself.content
             else:
                 self.content = cself.content.getCopy()
             self.mtype = cself.mtype
+            self.parsed = True
 
     def parse(self):
         if not self.parsed:
-            self.parsed = True
             if b_types.has_key(self.mtype):
                 self.content = b_types[self.mtype](self.content)
+            self.parsed = True
 
     def __str__(self):
         return str(self.content)
