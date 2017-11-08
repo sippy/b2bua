@@ -291,13 +291,14 @@ class UA(object):
         self.reqs[self.lCSeq] = req
         return req
 
-    def sendUasResponse(self, scode, reason, body = None, contact = None, \
+    def sendUasResponse(self, scode, reason, body = None, contacts = None, \
       reason_rfc3326 = None, extra_headers = None, ack_wait = False):
         uasResp = self.uasResp.getCopy()
         uasResp.setSCode(scode, reason)
         uasResp.setBody(body)
-        if contact != None:
-            uasResp.appendHeader(SipHeader(name = 'contact', body = contact))
+        if contacts != None:
+            for contact in contacts:
+                uasResp.appendHeader(SipHeader(name = 'contact', body = contact))
         if reason_rfc3326 != None:
             uasResp.appendHeader(SipHeader(body = reason_rfc3326))
         if extra_headers != None:

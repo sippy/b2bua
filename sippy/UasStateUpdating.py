@@ -60,7 +60,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.sendUasResponse(487, 'Request Terminated')
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(202, 'Accepted', \
               server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
-            also = req.getHFBody('refer-to').getUrl().getCopy()
+            also = [ req.getHFBody('refer-to').getCopy() ]
             self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime
@@ -86,13 +86,16 @@ class UasStateUpdating(UaStateGeneric):
                 self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event))
                 return None
             self.ua.lSDP = body
-            self.ua.sendUasResponse(code, reason, body, self.ua.lContact)
+            self.ua.sendUasResponse(code, reason, body, [ self.ua.lContact ])
             return (UaStateConnected,)
         elif isinstance(event, CCEventRedirect):
             scode = event.getData()
+            contacts = None
             if scode == None:
                 scode = (500, 'Failed', None, None)
-            self.ua.sendUasResponse(scode[0], scode[1], scode[2], SipContact(address = SipAddress(url = scode[3])))
+            elif scode[3] != None:
+                contacts = [ SipContact(address = x) for x in scode[3] ]
+            self.ua.sendUasResponse(scode[0], scode[1], scode[2], contacts)
             return (UaStateConnected,)
         elif isinstance(event, CCEventFail):
             scode = event.getData()
