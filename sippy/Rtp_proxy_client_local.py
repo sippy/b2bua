@@ -35,7 +35,7 @@ class Rtp_proxy_client_local(Rtp_proxy_client_stream):
       bind_address = None, nworkers = 1):
         Rtp_proxy_client_stream.__init__(self, global_config = global_config, \
           address = address, bind_address = bind_address, nworkers = nworkers, \
-          family == socket.AF_UNIX)
+          family = socket.AF_UNIX)
 
 if __name__ == '__main__':
     from twisted.internet import reactor
