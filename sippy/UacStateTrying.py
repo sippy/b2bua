@@ -28,7 +28,8 @@ from SipAddress import SipAddress
 from SipRoute import SipRoute
 from UaStateGeneric import UaStateGeneric
 from Timeout import TimeoutAbs
-from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, CCEventDisconnect
+from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
+  CCEventDisconnect, CCEventPreConnect
 
 class UacStateTrying(UaStateGeneric):
     sname = 'Trying(UAC)'
