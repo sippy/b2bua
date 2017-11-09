@@ -71,21 +71,22 @@ class SipAuthorization(SipGenericHF):
     def parse(self):
         self.otherparams = []
         for name, value in [x.strip(', ').split('=', 1) for x in self.body.split(' ', 1)[1].split(',')]:
-            if name == 'username':
+            ci_name = name.lower()
+            if ci_name == 'username':
                 self.username = value.strip('"')
-            elif name == 'uri':
+            elif ci_name == 'uri':
                 self.uri = value.strip('"')
-            elif name == 'realm':
+            elif ci_name == 'realm':
                 self.realm = value.strip('"')
-            elif name == 'nonce':
+            elif ci_name == 'nonce':
                 self.nonce = value.strip('"')
-            elif name == 'response':
+            elif ci_name == 'response':
                 self.response = value.strip('"')
-            elif name == 'qop':
+            elif ci_name == 'qop':
                 self.qop = value.strip('"')
-            elif name == 'cnonce':
+            elif ci_name == 'cnonce':
                 self.cnonce = value.strip('"')
-            elif name == 'nc':
+            elif ci_name == 'nc':
                 self.nc = value.strip('"')
             else:
                 self.otherparams.append((name, value))
