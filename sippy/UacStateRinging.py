@@ -130,7 +130,7 @@ class UacStateRinging(UaStateGeneric):
             self.ua.equeue.append(event)
             return rval
         if code in (301, 302) and resp.countHFs('contact') > 0:
-            scode = (code, reason, body, [ resp.getHFBody('contact').getCopy() ])
+            scode = (code, reason, body, (resp.getHFBody('contact').getCopy(),))
             self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
         elif code == 300 and resp.countHFs('contact') > 0:
             scode = (code, reason, body, resp.getHFBCopys('contact'))

@@ -45,7 +45,6 @@ class SipAddress(object):
     params_order = None
     hadbrace = None
     transtable = maketrans('-.!%*_+`\'~', 'a' * 10)
-    q = None
 
     def __init__(self, address = None, name = None, url = None, params = None,
       hadbrace = None, params_order = None, relaxedparser = False):
@@ -164,11 +163,3 @@ class SipAddress(object):
     def delParam(self, name):
         del self.params[name]
         self.params_order.remove(name)
-
-    def getQ(self):
-        if self.q == None:
-            try:
-                self.q = float(self.params['q'])
-            except:
-                self.q = 1.0
-        return self.q
