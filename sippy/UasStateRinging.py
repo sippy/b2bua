@@ -123,7 +123,7 @@ class UasStateRinging(UaStateGeneric):
               server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
             #print 'BYE received in the Ringing state, going to the Disconnected state'
             if req.countHFs('also') > 0:
-                also = req.getHFBody('also').getUrl().getCopy()
+                also = req.getHFBody('also').getCopy()
             else:
                 also = None
             event = CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin)

@@ -60,7 +60,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.sendUasResponse(487, 'Request Terminated')
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(202, 'Accepted', \
               server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
-            also = req.getHFBody('refer-to').getUrl().getCopy()
+            also = req.getHFBody('refer-to').getCopy()
             self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime

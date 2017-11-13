@@ -56,7 +56,7 @@ class UaStateConnected(UaStateGeneric):
                 self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(400, 'Bad Request', server = self.ua.local_ua))
                 return None
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(202, 'Accepted', server = self.ua.local_ua))
-            also = req.getHFBody('refer-to').getUrl().getCopy()
+            also = req.getHFBody('refer-to').getCopy()
             self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
             self.ua.recvEvent(CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin))
             return None
@@ -98,7 +98,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', server = self.ua.local_ua))
             #print 'BYE received in the Connected state, going to the Disconnected state'
             if req.countHFs('also') > 0:
-                also = req.getHFBody('also').getUrl().getCopy()
+                also = req.getHFBody('also').getCopy()
             else:
                 also = None
             event = CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin)
@@ -153,8 +153,6 @@ class UaStateConnected(UaStateGeneric):
             redirect = None
             if isinstance(event, CCEventDisconnect):
                 redirect = event.getData()
-                if redirect != None:
-                    redirect = SipAddress(url = redirect)
             elif isinstance(event, CCEventRedirect):
                 redirects = event.getData()
                 if redirects != None:
