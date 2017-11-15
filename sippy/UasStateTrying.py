@@ -70,7 +70,7 @@ class UasStateTrying(UaStateGeneric):
                 self.ua.no_progress_timer.cancel()
                 self.ua.no_progress_timer = None
             if isinstance(event, CCEventConnect):
-                self.ua.sendUasResponse(code, reason, body, self.ua.lContact, ack_wait = False, \
+                self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), ack_wait = False, \
                   extra_headers = extra_headers)
                 if self.ua.expire_timer != None:
                     self.ua.expire_timer.cancel()
@@ -79,14 +79,17 @@ class UasStateTrying(UaStateGeneric):
                 self.ua.connect_ts = event.rtime
                 return (UaStateConnected, self.ua.conn_cbs, event.rtime, event.origin)
             else:
-                self.ua.sendUasResponse(code, reason, body, self.ua.lContact, ack_wait = True, \
+                self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), ack_wait = True, \
                   extra_headers = extra_headers)
                 return (UaStateConnected,)
         elif isinstance(event, CCEventRedirect):
             scode = event.getData()
+            contacts = None
             if scode == None:
                 scode = (500, 'Failed', None, None)
-            self.ua.sendUasResponse(scode[0], scode[1], scode[2], SipContact(address = SipAddress(url = scode[3])))
+            elif scode[3] != None:
+                contacts = tuple(SipContact(address = x) for x in scode[3])
+            self.ua.sendUasResponse(scode[0], scode[1], scode[2], contacts)
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None

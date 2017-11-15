@@ -56,7 +56,7 @@ class UaStateConnected(UaStateGeneric):
                 self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(400, 'Bad Request', server = self.ua.local_ua))
                 return None
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(202, 'Accepted', server = self.ua.local_ua))
-            also = req.getHFBody('refer-to').getUrl().getCopy()
+            also = req.getHFBody('refer-to').getCopy()
             self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
             self.ua.recvEvent(CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin))
             return None
@@ -98,7 +98,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', server = self.ua.local_ua))
             #print 'BYE received in the Connected state, going to the Disconnected state'
             if req.countHFs('also') > 0:
-                also = req.getHFBody('also').getUrl().getCopy()
+                also = req.getHFBody('also').getCopy()
             else:
                 also = None
             event = CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin)
@@ -150,14 +150,17 @@ class UaStateConnected(UaStateGeneric):
     def recvEvent(self, event):
         if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
             #print 'event', event, 'received in the Connected state sending BYE'
-            if not isinstance(event, CCEventFail):
+            redirect = None
+            if isinstance(event, CCEventDisconnect):
                 redirect = event.getData()
-            else:
-                redirect = None
+            elif isinstance(event, CCEventRedirect):
+                redirects = event.getData()
+                if redirects != None:
+                    redirect = redirects[0]
             if redirect != None and self.ua.useRefer:
                 req = self.ua.genRequest('REFER', reason = event.reason)
                 self.ua.lCSeq += 1
-                also = SipReferTo(address = SipAddress(url = redirect))
+                also = SipReferTo(address = redirect)
                 req.appendHeader(SipHeader(name = 'refer-to', body = also))
                 rby = SipReferredBy(address = SipAddress(url = self.ua.lUri.getUrl()))
                 req.appendHeader(SipHeader(name = 'referred-by', body = rby))
@@ -167,7 +170,7 @@ class UaStateConnected(UaStateGeneric):
                 req = self.ua.genRequest('BYE', reason = event.reason)
                 self.ua.lCSeq += 1
                 if redirect != None:
-                    also = SipAlso(address = SipAddress(url = redirect))
+                    also = SipAlso(address = redirect)
                     req.appendHeader(SipHeader(name = 'also', body = also))
                 self.ua.global_config['_sip_tm'].newTransaction(req, \
                   laddress = self.ua.source_address, compact = self.ua.compact_sip)
