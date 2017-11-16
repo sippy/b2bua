@@ -148,10 +148,10 @@ class UacStateTrying(UaStateGeneric):
             self.ua.equeue.append(event)
             return rval
         if code in (301, 302) and resp.countHFs('contact') > 0:
-            scode = (code, reason, body, (resp.getHFBody('contact').getCopy(),))
+            scode = (code, reason, body, (resp.getHFBody('contact').getUri().getCopy(),))
             self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
         elif code == 300 and resp.countHFs('contact') > 0:
-            redirects = tuple(x.getCopy() for x in resp.getHFBodys('contact'))
+            redirects = tuple(x.getUri().getCopy() for x in resp.getHFBodys('contact'))
             scode = (code, reason, body, redirects)
             self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
         else:
