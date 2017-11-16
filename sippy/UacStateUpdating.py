@@ -82,7 +82,7 @@ class UacStateUpdating(UaStateGeneric):
             scode = (code, reason, body, (resp.getHFBody('contact').getCopy(),))
             event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
         elif code == 300 and resp.countHFs('contact') > 0:
-            redirects = tuple(x.getCopy() for x in getHFBodys('contact'))
+            redirects = tuple(x.getCopy() for x in resp.getHFBodys('contact'))
             scode = (code, reason, body, redirects)
             event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
         else:
