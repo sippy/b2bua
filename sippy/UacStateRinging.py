@@ -133,7 +133,8 @@ class UacStateRinging(UaStateGeneric):
             scode = (code, reason, body, (resp.getHFBody('contact').getCopy(),))
             self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
         elif code == 300 and resp.countHFs('contact') > 0:
-            scode = (code, reason, body, resp.getHFBCopys('contact'))
+            redirects = tuple(x.getCopy() for x in getHFBodys('contact'))
+            scode = (code, reason, body, redirects)
             self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
         else:
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
