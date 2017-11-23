@@ -115,6 +115,7 @@ class _RTPPLWorker(Thread):
                 reactor.callFromThread(self.dispatch, result_callback, data, callback_parameters)
             if rtpc_delay != None:
                 reactor.callFromThread(self.userv.register_delay, rtpc_delay)
+        self.userv = None
 
     def dispatch(self, result_callback, data, callback_parameters):
         try:

@@ -28,7 +28,8 @@ from SipAddress import SipAddress
 from SipRoute import SipRoute
 from UaStateGeneric import UaStateGeneric
 from Timeout import TimeoutAbs
-from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, CCEventDisconnect
+from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
+  CCEventDisconnect, CCEventPreConnect
 from SipHeader import SipHeader
 from SipRAck import SipRAck
 
@@ -160,7 +161,11 @@ class UacStateTrying(UaStateGeneric):
             self.ua.equeue.append(event)
             return rval
         if code in (301, 302) and resp.countHFs('contact') > 0:
-            scode = (code, reason, body, resp.getHFBody('contact').getUrl().getCopy())
+            scode = (code, reason, body, (resp.getHFBody('contact').getUri().getCopy(),))
+            self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
+        elif code == 300 and resp.countHFs('contact') > 0:
+            redirects = tuple(x.getUri().getCopy() for x in resp.getHFBodys('contact'))
+            scode = (code, reason, body, redirects)
             self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
         else:
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
