@@ -379,8 +379,8 @@ class CallController(object):
             po_proc(self, event)
         self.uaO.recvEvent(event)
 
-    def disconnect(self, rtime = None):
-        self.uaA.disconnect(rtime = rtime)
+    def disconnect(self, rtime = None, origin = None):
+        self.uaA.disconnect(rtime = rtime, origin = origin)
 
     def oConn(self, ua, rtime, origin):
         if self.acctO != None:
@@ -687,10 +687,10 @@ class CallMap(object):
                 if not cc.proxied:
                     continue
                 if cc.state == CCStateConnected:
-                    cc.disconnect(MonoTime().getOffsetCopy(-60))
+                    cc.disconnect(MonoTime().getOffsetCopy(-60), origin = 'media_timeout')
                     continue
                 if cc.state == CCStateARComplete:
-                    cc.uaO.disconnect(MonoTime().getOffsetCopy(-60))
+                    cc.uaO.disconnect(MonoTime().getOffsetCopy(-60), origin = 'media_timeout')
                     continue
             clim.send('OK\n')
             return False

@@ -227,11 +227,11 @@ class UA(object):
             self.changeState(newstate)
         self.emitPendingEvents()
 
-    def disconnect(self, rtime = None):
+    def disconnect(self, rtime = None, origin = None):
         if rtime == None:
             rtime = MonoTime()
-        self.equeue.append(CCEventDisconnect(rtime = rtime))
-        self.recvEvent(CCEventDisconnect(rtime = rtime))
+        self.equeue.append(CCEventDisconnect(rtime = rtime, origin = origin))
+        self.recvEvent(CCEventDisconnect(rtime = rtime, origin = origin))
 
     def expires(self):
         self.expire_timer = None
