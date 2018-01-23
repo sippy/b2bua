@@ -54,9 +54,12 @@ class _RTPPLWorker(Thread):
     def connect(self):
         self.s = socket.socket(self.userv.family, socket.SOCK_STREAM)
         if self.userv.family == socket.AF_INET6:
+            print('_RTPPLWorker.connect', self.userv.address[1:-1])
             self.s.connect(self.userv.address[1:-1])
         else:
+            print('_RTPPLWorker.connect', self.userv.address)
             self.s.connect(self.userv.address)
+        print('_RTPPLWorker.connect: done')
 
     def send_raw(self, command, _recurse = 0, stime = None):
         if _recurse > _MAX_RECURSE:
