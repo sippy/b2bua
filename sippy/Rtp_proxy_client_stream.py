@@ -140,6 +140,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
 
     def __init__(self, global_config, address = '/var/run/rtpproxy.sock', \
       bind_address = None, nworkers = 1, family = socket.AF_UNIX):
+        printf('Rtp_proxy_client_stream.__init__', address, bind_address, nworkers, family)
         if family == socket.AF_UNIX:
             self.is_local = True
             self.address = address
