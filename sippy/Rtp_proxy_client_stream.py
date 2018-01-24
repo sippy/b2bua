@@ -57,9 +57,7 @@ class _RTPPLWorker(Thread):
             address = (self.userv.address[0][1:-1], self.userv.address[1])
         else:
             address = self.userv.address
-        print('_RTPPLWorker.connect', address)
         self.s.connect(address)
-        print('_RTPPLWorker.connect: done')
 
     def send_raw(self, command, _recurse = 0, stime = None):
         if _recurse > _MAX_RECURSE:
@@ -146,7 +144,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
 
     def __init__(self, global_config, address = '/var/run/rtpproxy.sock', \
       bind_address = None, nworkers = 1, family = socket.AF_UNIX):
-        print('Rtp_proxy_client_stream.__init__', address, bind_address, nworkers, family)
+        #print('Rtp_proxy_client_stream.__init__', address, bind_address, nworkers, family)
         if family == socket.AF_UNIX:
             self.is_local = True
             self.address = address
