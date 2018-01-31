@@ -36,7 +36,7 @@ class StdException(Exception):
         pin_exception(self, 2)
         super(self.__class__, self).__init__(*args)
 
-def dump_exception(msg, f = sys.stdout):
+def dump_exception(msg, f = sys.stdout, extra = None):
     exc_type, exc_value, exc_traceback = sys.exc_info()
     if isinstance(exc_value, StdException):
         cus_traceback = exc_value.traceback
@@ -53,6 +53,9 @@ def dump_exception(msg, f = sys.stdout):
     else:
         print_exception(exc_type, exc_value, exc_traceback, file = f)
     f.write(SEPT)
+    if extra != None:
+        f.write(extra)
+        f.write(SEPT)
     f.flush()
 
 def pin_exception(exc_value, undepth = 1):
