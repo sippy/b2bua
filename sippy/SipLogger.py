@@ -73,7 +73,7 @@ class AsyncLogger(Thread):
         my_flock = flock
         try:
             my_flock(self.log, LOCK_EX)
-        except IOError, e:
+        except IOError as e:
             # Catch ENOTSUP
             if e.args[0] != 45:
                 raise e
@@ -88,8 +88,8 @@ class AsyncLogger(Thread):
     def safe_open(self):
         try:
             self.log = file(self.master.logfile, 'a')
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
 
     def shutdown(self):
         self.master.wi_available.acquire()
@@ -106,14 +106,14 @@ class AsyncLoggerSyslog(AsyncLogger):
     def safe_open(self):
         try:
             syslog.openlog(self.app, syslog.LOG_PID)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
 
     def do_write(self, obuf):
         try:
             syslog.syslog(syslog.LOG_NOTICE, obuf)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             pass
 
     def closelog(self):
@@ -195,7 +195,7 @@ class SipLogger(object):
         self.wi_available.notify()
         self.wi_available.release()
         if discarded and self.discarded % 1000 == 0:
-            print 'SipLogger: discarded %d requests, I/O too slow' % self.discarded
+            print('SipLogger: discarded %d requests, I/O too slow' % self.discarded)
 
     def format(self, args, kwargs):
         ltime = kwargs.get('ltime', None)
