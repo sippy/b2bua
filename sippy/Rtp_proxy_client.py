@@ -272,6 +272,7 @@ if __name__ == '__main__':
     t = Timeout(waitonline, 0.1, 10, r)
     ED2.loop()
     assert(r.online)
+    t.cancel()
     r.send_command('VF 123456', display, 'abcd')
     ED2.loop()
     r.shutdown()
