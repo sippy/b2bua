@@ -29,12 +29,14 @@ from SdpOrigin import SdpOrigin
 from hashlib import md5
 from random import random
 from time import time
-from datetime import datetime
-from traceback import print_exc
-from thread import get_ident
+try:
+    from _thread import get_ident
+except ImportError:
+    from thread import get_ident
 import sys
 
-from twisted.internet import reactor
+from Core.Exceptions import dump_exception
+from Core.EventDispatcher import ED2
 
 class _rtpps_callback_params(object):
     proxy_address = None
@@ -143,6 +145,7 @@ class _rtpps_side(object):
 
     def _play(self, rtpps, prompt_name, times = 1, result_callback = None, index = 0):
         if not self.session_exists:
+            ED2.callFromThread(rtpps.command_result, None, result_callback)
             return
         otherside = self.getother(rtpps)
         if not otherside.session_exists:
@@ -152,6 +155,7 @@ class _rtpps_side(object):
 
     def _stop_play(self, rtpps, result_callback = None, index = 0):
         if not self.session_exists:
+            ED2.callFromThread(rtpps.command_result, None, result_callback)
             return
         from_tag, to_tag = self.gettags(rtpps)
         command = 'S %s %s %s' % ('%s-%d' % (rtpps.call_id, index), from_tag, to_tag)
@@ -161,14 +165,8 @@ class _rtpps_side(object):
         sects = []
         try:
             sdp_body.parse()
-        except Exception, exception:
-            print datetime.now(), 'can\'t parse SDP body: %s:' % str(exception)
-            print '-' * 70
-            print_exc(file = sys.stdout)
-            print '-' * 70
-            print sdp_body.content
-            print '-' * 70
-            sys.stdout.flush()
+        except Exception as exception:
+            dump_exception('can\'t parse SDP body', extra = sdp_body.content)
             if en_excpt:
                 raise exception
             else:
@@ -262,7 +260,7 @@ class Rtp_proxy_session(object):
       notify_socket = None, notify_tag = None):
         self.global_config = global_config
         self.my_ident = get_ident()
-        if global_config.has_key('_rtp_proxy_clients'):
+        if '_rtp_proxy_clients' in global_config:
             rtp_proxy_clients = [x for x in global_config['_rtp_proxy_clients'] if x.online]
             n = len(rtp_proxy_clients)
             if n == 0:
@@ -368,6 +366,47 @@ class Rtp_proxy_session(object):
     def __del__(self):
         if self.my_ident != get_ident():
             #print 'Rtp_proxy_session.__del__() from wrong thread, re-routing'
-            reactor.callFromThread(self.delete)
+            ED2.callFromThread(self.delete)
         else:
             self.delete()
+
+if __name__ == '__main__':
+    from Time.Timeout import Timeout
+    from Rtp_proxy_client import Rtp_proxy_client
+    def display(*args):
+        print('got:', args)
+        ED2.breakLoop()
+    def waitonline(rpc):
+        if rpc.online:
+            ED2.breakLoop()
+    gc = {'_sip_address':'1.2.3.4'}
+    r = Rtp_proxy_client(gc)
+    t = Timeout(waitonline, 0.1, 10, r)
+    ED2.loop()
+    assert(r.online)
+    t.cancel()
+
+    gc['rtp_proxy_client'] = r
+    rs = Rtp_proxy_session(gc, 'call_id1', 'from_tag1', 'to_tag1')
+    rs.version(display)
+    ED2.loop()
+
+    rs.start_recording('bogus', result_callback = display)
+    print(1)
+    ED2.loop()
+    print(2)
+    rs.play_callee('bogus', result_callback = display)
+    ED2.loop()
+    print(3)
+    rs.stop_play_callee(result_callback = display)
+    ED2.loop()
+    print(4)
+    rs.play_caller('bogus', result_callback = display)
+    ED2.loop()
+    print(5)
+    rs.stop_play_caller(result_callback = display)
+    ED2.loop()
+    print(6)
+    del rs
+    r.shutdown()
+    print(7)
