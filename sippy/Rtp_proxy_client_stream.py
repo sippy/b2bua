@@ -29,15 +29,15 @@ from __future__ import print_function
 from Time.Timeout import Timeout
 from threading import Thread, Condition
 from errno import EINTR, EPIPE, ENOTCONN, ECONNRESET
-from twisted.internet import reactor
 from Time.MonoTime import MonoTime
 from Math.recfilter import recfilter
 from Rtp_proxy_client_net import Rtp_proxy_client_net
 from Rtp_proxy_cmd import Rtp_proxy_cmd
 
-from datetime import datetime
 import socket
-import sys, traceback
+
+from Core.Exceptions import dump_exception
+from Core.EventDispatcher import ED2
 
 _MAX_RECURSE = 10
 
@@ -67,7 +67,7 @@ class _RTPPLWorker(Thread):
             stime = MonoTime()
         while True:
             try:
-                self.s.send(command)
+                self.s.send(command.encode())
                 break
             except socket.error as why:
                 if why[0] == EINTR:
@@ -82,7 +82,7 @@ class _RTPPLWorker(Thread):
                 if len(rval) == 0:
                     self.connect()
                     return self.send_raw(command, _MAX_RECURSE, stime)
-                rval = rval.strip()
+                rval = rval.decode().strip()
                 break
             except socket.error as why:
                 if why[0] == EINTR:
@@ -116,20 +116,16 @@ class _RTPPLWorker(Thread):
                 print(e)
                 data, rtpc_delay = None, None
             if result_callback != None:
-                reactor.callFromThread(self.dispatch, result_callback, data, callback_parameters)
+                ED2.callFromThread(self.dispatch, result_callback, data, callback_parameters)
             if rtpc_delay != None:
-                reactor.callFromThread(self.userv.register_delay, rtpc_delay)
+                ED2.callFromThread(self.userv.register_delay, rtpc_delay)
         self.userv = None
 
     def dispatch(self, result_callback, data, callback_parameters):
         try:
             result_callback(data, *callback_parameters)
         except:
-            print(datetime.now(), 'Rtp_proxy_client_stream: unhandled exception when processing RTPproxy reply')
-            print('-' * 70)
-            traceback.print_exc(file = sys.stdout)
-            print('-' * 70)
-            sys.stdout.flush()
+            dump_exception('Rtp_proxy_client_stream: unhandled exception when processing RTPproxy reply')
 
 class Rtp_proxy_client_stream(Rtp_proxy_client_net):
     is_local = None
@@ -209,11 +205,10 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
         return self.delay_flt.lastval
 
 if __name__ == '__main__':
-    from twisted.internet import reactor
     def display(*args):
         print(args)
-        reactor.crash()
+        ED2.breakLoop()
     r = Rtp_proxy_client_stream({'_sip_address':'1.2.3.4'})
     r.send_command('VF 123456', display, 'abcd')
-    reactor.run(installSignalHandlers = 1)
+    ED2.loop()
     r.shutdown()
