@@ -38,11 +38,11 @@ class Rtp_proxy_client_local(Rtp_proxy_client_stream):
           family = socket.AF_UNIX)
 
 if __name__ == '__main__':
-    from twisted.internet import reactor
+    from Core.EventDispatcher import ED2
     def display(*args):
-        print args
-        reactor.crash()
+        print(args)
+        ED2.breakLoop()
     r = Rtp_proxy_client_local({'_sip_address':'1.2.3.4'})
     r.send_command('VF 123456', display, 'abcd')
-    reactor.run(installSignalHandlers = 1)
+    ED2.loop()
     r.shutdown()
