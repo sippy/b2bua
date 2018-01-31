@@ -193,7 +193,9 @@ class EventDispatcher2(Singleton):
                     el.cb_func(*el.cb_params)
                 else:
                     el.cb_func(self.last_ts, *el.cb_params)
-            except:
+            except Exception as ex:
+                if isinstance(ex, SystemExit):
+                    raise
                 dump_exception('EventDispatcher2: unhandled exception when processing timeout event')
             if self.endloop:
                 return
@@ -225,7 +227,9 @@ class EventDispatcher2(Singleton):
                     continue
                 try:
                     sl.cb_func(*sl.cb_params, **sl.cb_kw_args)
-                except:
+                except Exception as ex:
+                    if isinstance(ex, SystemExit):
+                        raise
                     dump_exception('EventDispatcher2: unhandled exception when processing signal event')
                 if self.endloop:
                     return
@@ -248,7 +252,9 @@ class EventDispatcher2(Singleton):
         for thread_cb, cb_params in thread_cbs:
             try:
                 thread_cb(*cb_params)
-            except:
+            except Exception as ex:
+                if isinstance(ex, SystemExit):
+                    raise
                 dump_exception('EventDispatcher2: unhandled exception when processing from-thread-call')
             #print('dispatchThreadCallbacks dispatched', thread_cb, cb_params)
             if self.endloop:
