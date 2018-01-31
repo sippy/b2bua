@@ -70,9 +70,9 @@ class _RTPPLWorker(Thread):
                 self.s.send(command.encode())
                 break
             except socket.error as why:
-                if why[0] == EINTR:
+                if why.errno == EINTR:
                     continue
-                elif why[0] in (EPIPE, ENOTCONN, ECONNRESET):
+                elif why.errno in (EPIPE, ENOTCONN, ECONNRESET):
                     self.connect()
                     return self.send_raw(command, _recurse + 1, stime)
                 raise why
@@ -85,9 +85,9 @@ class _RTPPLWorker(Thread):
                 rval = rval.decode().strip()
                 break
             except socket.error as why:
-                if why[0] == EINTR:
+                if why.errno == EINTR:
                     continue
-                elif why[0] in (EPIPE, ENOTCONN, ECONNRESET):
+                elif why.errno in (EPIPE, ENOTCONN, ECONNRESET):
                     self.connect()
                     return self.send_raw(command, _recurse + 1, stime)
                 raise why
@@ -113,7 +113,7 @@ class _RTPPLWorker(Thread):
                 if len(data) == 0:
                     data, rtpc_delay = None, None
             except Exception as e:
-                print(e)
+                dump_exception('Rtp_proxy_client_stream: unhandled exception I/O RTPproxy')
                 data, rtpc_delay = None, None
             if result_callback != None:
                 ED2.callFromThread(self.dispatch, result_callback, data, callback_parameters)
