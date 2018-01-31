@@ -37,7 +37,7 @@ from MsgBody import MsgBody
 from hashlib import md5
 from random import random
 from time import time
-from Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbs
 
 class UA(object):
     global_config = None

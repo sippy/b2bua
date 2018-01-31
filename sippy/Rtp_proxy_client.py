@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Timeout import TimeoutInact
+from Time.Timeout import TimeoutInact
 from Rtp_proxy_client_udp import Rtp_proxy_client_udp
 from Rtp_proxy_client_stream import Rtp_proxy_client_stream
 

@@ -26,7 +26,7 @@
 
 from __future__ import print_function
 
-from Timeout import Timeout
+from Time.Timeout import Timeout
 from threading import Thread, Condition
 from errno import EINTR, EPIPE, ENOTCONN, ECONNRESET
 from twisted.internet import reactor

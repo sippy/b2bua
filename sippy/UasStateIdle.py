@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbs
 from SipAddress import SipAddress
 from SipRoute import SipRoute
 from UaStateGeneric import UaStateGeneric

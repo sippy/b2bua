@@ -26,7 +26,7 @@
 
 from __future__ import print_function
 
-from Timeout import Timeout
+from Time.Timeout import Timeout
 from Udp_server import Udp_server, Udp_server_opts
 from Time.MonoTime import MonoTime
 from Math.recfilter import recfilter

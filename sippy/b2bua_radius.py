@@ -29,7 +29,7 @@
 #import sys
 #sys.path.append('..')
 
-from sippy.Timeout import Timeout
+from sippy.Time.Timeout import Timeout
 from sippy.Signal import Signal
 from sippy.SipFrom import SipFrom
 from sippy.SipTo import SipTo

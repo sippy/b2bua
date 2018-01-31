@@ -29,7 +29,7 @@ from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, 
   CCEventDisconnect, CCEventPreConnect
 from SipContact import SipContact
 from SipAddress import SipAddress
-from Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbs
 
 class UasStateTrying(UaStateGeneric):
     sname = 'Trying(UAS)'

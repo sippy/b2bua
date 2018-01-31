@@ -27,7 +27,7 @@
 from SipAddress import SipAddress
 from SipRoute import SipRoute
 from UaStateGeneric import UaStateGeneric
-from Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbs
 from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 

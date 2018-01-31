@@ -36,7 +36,7 @@ from random import random
 import socket
 import sys, traceback
 
-from Timeout import Timeout
+from Time.Timeout import Timeout
 from Time.MonoTime import MonoTime
 
 class AsyncSender(Thread):
