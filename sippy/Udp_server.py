@@ -26,7 +26,6 @@
 
 from __future__ import print_function
 
-from twisted.internet import reactor
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, EWOULDBLOCK, ENOBUFS, EAGAIN, \
   EINTR
 from datetime import datetime
@@ -36,6 +35,7 @@ from random import random
 import socket
 import sys, traceback
 
+from Core.EventDispatcher import ED2
 from Time.Timeout import Timeout
 from Time.MonoTime import MonoTime
 
@@ -121,7 +121,7 @@ class AsyncReceiver(Thread):
                     continue
             if self.userv.uopts.family == socket.AF_INET6:
                 address = ('[%s]' % address[0], address[1])
-            reactor.callFromThread(self.userv.handle_read, data, address, rtime)
+            ED2.callFromThread(self.userv.handle_read, data, address, rtime)
         self.userv = None
 
 _DEFAULT_FLAGS = socket.SO_REUSEADDR
@@ -241,7 +241,9 @@ class Udp_server(object):
                 return
             try:
                 self.uopts.data_callback(data, address, self, rtime)
-            except:
+            except Exception as ex:
+                if isinstance(ex, SystemExit):
+                    raise 
                 print(datetime.now(), 'Udp_server: unhandled exception when processing incoming data')
                 print('-' * 70)
                 traceback.print_exc(file = sys.stdout)
@@ -270,8 +272,8 @@ class self_test(object):
     ping_data6 = b'ping6!'
     pong_laddr = None
     pong_laddr6 = None
-    pong_data = 'pong!'
-    pong_data6 = 'pong6!'
+    pong_data = b'pong!'
+    pong_data6 = b'pong6!'
     ping_laddr = None
     ping_laddr6 = None
     ping_raddr = None
@@ -289,6 +291,7 @@ class self_test(object):
         else:
             print('ping_received6')
             if data != self.ping_data6 or address != self.pong_raddr6:
+                print(data, address, self.ping_data6, self.pong_raddr6)
                 exit(1)
             udp_server.send_to(self.pong_data6, address)
 
@@ -296,14 +299,16 @@ class self_test(object):
         if udp_server.uopts.family == socket.AF_INET:
             print('pong_received')
             if data != self.pong_data or address != self.ping_raddr:
+                print(data, address, self.pong_data, self.ping_raddr)
                 exit(1)
         else:
             print('pong_received6')
             if data != self.pong_data6 or address != self.ping_raddr6:
+                print(data, address, self.pong_data6, self.ping_raddr6)
                 exit(1)
         self.npongs -= 1
         if self.npongs == 0:
-            reactor.stop()
+            ED2.breakLoop()
 
     def run(self):
         local_host = '127.0.0.1'
@@ -328,7 +333,7 @@ class self_test(object):
         udp_server_ping6 = Udp_server({}, uopts_ping6)
         udp_server_pong6 = Udp_server({}, uopts_pong6)
         udp_server_pong6.send_to(self.ping_data6, self.ping_laddr6)
-        reactor.run()
+        ED2.loop()
         udp_server_ping.shutdown()
         udp_server_pong.shutdown()
         udp_server_ping6.shutdown()
