@@ -29,35 +29,33 @@
 #import sys
 #sys.path.append('..')
 
-from Core.EventDispatcher import ED2
-from Time.MonoTime import MonoTime
-from Time.Timeout import Timeout
-from Signal import Signal
-from SipFrom import SipFrom
-from SipTo import SipTo
-from SipCiscoGUID import SipCiscoGUID
-from UA import UA
-from CCEvents import CCEventRing, CCEventConnect, CCEventDisconnect, CCEventTry, CCEventUpdate, CCEventFail
-from UasStateTrying import UasStateTrying
-from UasStateRinging import UasStateRinging
-from UaStateDead import UaStateDead
-from SipConf import SipConf
-from SipHeader import SipHeader
-from RadiusAuthorisation import RadiusAuthorisation
-from RadiusAccounting import RadiusAccounting
-from FakeAccounting import FakeAccounting
-from SipLogger import SipLogger
-from Rtp_proxy_session import Rtp_proxy_session
-from Rtp_proxy_client import Rtp_proxy_client
-from CLIManager import CLIConnectionManager
-from SipTransactionManager import SipTransactionManager
-from SipCallId import SipCallId
-from StatefulProxy import StatefulProxy
-from misc import daemonize
-from B2BRoute import B2BRoute
-from MyConfigParser import MyConfigParser
-
+from sippy.Core.EventDispatcher import ED2
+from sippy.Time.MonoTime import MonoTime
+from sippy.Time.Timeout import Timeout
+from sippy.Signal import Signal
+from sippy.SipFrom import SipFrom
+from sippy.SipTo import SipTo
+from sippy.SipCiscoGUID import SipCiscoGUID
+from sippy.UA import UA
+from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventDisconnect, CCEventTry, CCEventUpdate, CCEventFail
+from sippy.UasStateTrying import UasStateTrying
+from sippy.UasStateRinging import UasStateRinging
+from sippy.UaStateDead import UaStateDead
+from sippy.SipConf import SipConf
+from sippy.SipHeader import SipHeader
+from sippy.RadiusAuthorisation import RadiusAuthorisation
+from sippy.RadiusAccounting import RadiusAccounting
+from sippy.FakeAccounting import FakeAccounting
+from sippy.SipLogger import SipLogger
+from sippy.Rtp_proxy_session import Rtp_proxy_session
+from sippy.Rtp_proxy_client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2
+from sippy.CLIManager import CLIConnectionManager
+from sippy.SipTransactionManager import SipTransactionManager
+from sippy.SipCallId import SipCallId
+from sippy.StatefulProxy import StatefulProxy
+from sippy.misc import daemonize
+from sippy.B2BRoute import B2BRoute
 import gc, getopt, os, sys
 from re import sub
 try:
@@ -65,6 +63,7 @@ try:
 except ImportError:
     from urllib.parse import quote
 from hashlib import md5
+from sippy.MyConfigParser import MyConfigParser
 from traceback import print_exc
 from datetime import datetime
 

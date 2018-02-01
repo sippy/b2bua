@@ -26,15 +26,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from UA import UA
-from CCEvents import CCEventDisconnect, CCEventTry
-from UaStateDead import UaStateDead
-from SipConf import SipConf
-from SipLogger import SipLogger
-from SipTransactionManager import SipTransactionManager
-from StatefulProxy import StatefulProxy
-from misc import daemonize
-from Core.EventDispatcher import ED2
+from sippy.UA import UA
+from sippy.CCEvents import CCEventDisconnect, CCEventTry
+from sippy.UaStateDead import UaStateDead
+from sippy.SipConf import SipConf
+from sippy.SipLogger import SipLogger
+from sippy.SipTransactionManager import SipTransactionManager
+from sippy.StatefulProxy import StatefulProxy
+from sippy.misc import daemonize
+from sippy.Core.EventDispatcher import ED2
+
 import getopt, os, sys
 #import gc
 
