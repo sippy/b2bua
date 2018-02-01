@@ -26,11 +26,11 @@
 
 from __future__ import print_function
 
-import sys
-sys.path.append('..')
+#import sys
+#sys.path.append('..')
 
-from Core.EventDispatcher import ED2
-from Time.MonoTime import MonoTime
+from sippy.Core.EventDispatcher import ED2
+from sippy.Time.MonoTime import MonoTime
 
 def Timeout(timeout_cb, ival, nticks = 1, *cb_params):
     el = ED2.regTimer(timeout_cb, ival, nticks, False, *cb_params)
