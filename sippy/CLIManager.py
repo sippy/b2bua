@@ -57,7 +57,9 @@ class _Acceptor(Thread):
         self.start()
 
     def run(self):
+        #print(self.run, 'enter')
         while True:
+            #print(self.run, 'cycle')
             pollret = dict(self.pollobj.poll()).get(self.fileno, 0)
             if pollret & POLLNVAL != 0:
                 break
@@ -75,8 +77,10 @@ class _Acceptor(Thread):
                         raise
                 dump_exception('CLIConnectionManager: unhandled exception when accepting incoming connection')
                 break
+            #print(self.run, 'handle_accept')
             ED2.callFromThread(self.clicm.handle_accept, clientsock, addr)
         self.clicm = None
+        #print(self.run, 'exit')
 
 class CLIConnectionManager(object):
     command_cb = None
@@ -87,6 +91,7 @@ class CLIConnectionManager(object):
 
     def __init__(self, command_cb, address = None, sock_owner = None, backlog = 16, \
       tcp = False, sock_mode = None):
+        #print(CLIConnectionManager.__init__, ED2)
         self.command_cb = command_cb
         if not tcp:
             self.serversock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -114,6 +119,7 @@ class CLIConnectionManager(object):
         self.atr = _Acceptor(self)
 
     def handle_accept(self, conn, address):
+        #print(self.handle_accept)
         if self.tcp and self.accept_list != None and address[0] not in self.accept_list:
             conn.close()
             return
@@ -136,6 +142,7 @@ class _CLIManager_w(Thread):
     close_pendind = False
 
     def __init__(self, clientsock, clim):
+        #print(self.__init__)
         Thread.__init__(self)
         self.clientsock = clientsock
         self.clim = clim
@@ -145,7 +152,9 @@ class _CLIManager_w(Thread):
         self.start()
 
     def run(self):
+        #print(self.run, 'enter')
         while True:
+            #print(self.run, 'cycle')
             self.w_available.acquire()
             while self.wbuffer != None and len(self.wbuffer) == 0 and not self.close_pendind:
                 self.w_available.wait()
@@ -167,6 +176,7 @@ class _CLIManager_w(Thread):
         if self.close_pendind:
             ED2.callFromThread(self.clim.shutdown)
         self.clim = None
+        #print(self.run, 'exit')
 
     def send(self, data):
         self.w_available.acquire()
@@ -188,6 +198,7 @@ class _CLIManager_r(Thread):
     clim = None
 
     def __init__(self, clientsock, clim):
+        #print(self.__init__)
         Thread.__init__(self)
         self.clientsock = clientsock
         self.clim = clim
@@ -250,7 +261,8 @@ class CLIManager(object):
         try:
             self.clientsock.shutdown(socket.SHUT_RDWR)
         except Exception as e:
-            dump_exception('self.clientsock.shutdown(socket.SHUT_RDWR)')
+            if not isinstance(e, socket.error) or e.errno != ENOTCONN:
+                dump_exception('self.clientsock.shutdown(socket.SHUT_RDWR)')
         self.clientsock.close()
         self.wthr = None
         self.rthr = None
