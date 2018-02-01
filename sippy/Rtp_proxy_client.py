@@ -24,9 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Time.Timeout import TimeoutInact
-from Rtp_proxy_client_udp import Rtp_proxy_client_udp
-from Rtp_proxy_client_stream import Rtp_proxy_client_stream
+from sippy.Time.Timeout import TimeoutInact
+from sippy.Rtp_proxy_client_udp import Rtp_proxy_client_udp
+from sippy.Rtp_proxy_client_stream import Rtp_proxy_client_stream
 
 import socket
 
@@ -260,8 +260,8 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
         return self.rtpp_class.get_rtpc_delay(self)
 
 if __name__ == '__main__':
-    from Core.EventDispatcher import ED2
-    from Time.Timeout import Timeout
+    from sippy.Core.EventDispatcher import ED2
+    from sippy.Time.Timeout import Timeout
     def display(*args):
         print(args)
         ED2.breakLoop()
@@ -270,9 +270,10 @@ if __name__ == '__main__':
             ED2.breakLoop()
     r = Rtp_proxy_client({'_sip_address':'1.2.3.4'})
     t = Timeout(waitonline, 0.1, 10, r)
-    ED2.loop()
+    ED2.loop(2.0)
     assert(r.online)
     t.cancel()
     r.send_command('VF 123456', display, 'abcd')
     ED2.loop()
     r.shutdown()
+    print('passed')

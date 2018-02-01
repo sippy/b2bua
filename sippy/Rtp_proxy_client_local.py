@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Rtp_proxy_client_stream import Rtp_proxy_client_stream
+from sippy.Rtp_proxy_client_stream import Rtp_proxy_client_stream
 
 import socket
 
@@ -38,11 +38,16 @@ class Rtp_proxy_client_local(Rtp_proxy_client_stream):
           family = socket.AF_UNIX)
 
 if __name__ == '__main__':
-    from Core.EventDispatcher import ED2
-    def display(*args):
-        print(args)
+    from sippy.Core.EventDispatcher import ED2
+    class robj(object):
+        rval = None
+    r = robj()
+    def display(res, ro, arg):
+        print(res, arg)
+        ro.rval = (res, arg)
         ED2.breakLoop()
-    r = Rtp_proxy_client_local({'_sip_address':'1.2.3.4'})
-    r.send_command('VF 123456', display, 'abcd')
+    rc = Rtp_proxy_client_local({'_sip_address':'1.2.3.4'})
+    rc.send_command('VF 123456', display, r, 'abcd')
     ED2.loop()
-    r.shutdown()
+    rc.shutdown()
+    assert(r.rval == ('0', 'abcd'))

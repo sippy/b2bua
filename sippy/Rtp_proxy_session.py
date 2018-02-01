@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SdpOrigin import SdpOrigin
+from sippy.SdpOrigin import SdpOrigin
 
 from hashlib import md5
 from random import random
@@ -35,8 +35,8 @@ except ImportError:
     from thread import get_ident
 import sys
 
-from Core.Exceptions import dump_exception
-from Core.EventDispatcher import ED2
+from sippy.Core.Exceptions import dump_exception
+from sippy.Core.EventDispatcher import ED2
 
 class _rtpps_callback_params(object):
     proxy_address = None
@@ -374,8 +374,8 @@ class Rtp_proxy_session(object):
             self.delete()
 
 if __name__ == '__main__':
-    from Time.Timeout import Timeout
-    from Rtp_proxy_client import Rtp_proxy_client
+    from sippy.Time.Timeout import Timeout
+    from sippy.Rtp_proxy_client import Rtp_proxy_client
     def display(*args):
         print('got:', args)
         ED2.breakLoop()
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     gc = {'_sip_address':'1.2.3.4'}
     r = Rtp_proxy_client(gc)
     t = Timeout(waitonline, 0.1, 10, r)
-    ED2.loop()
+    ED2.loop(2.0)
     assert(r.online)
     t.cancel()
 
@@ -412,4 +412,4 @@ if __name__ == '__main__':
     print(6)
     del rs
     r.shutdown()
-    print(7)
+    print(7, 'passed')
