@@ -29,7 +29,7 @@ from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, 
   CCEventDisconnect, CCEventPreConnect
 from SipContact import SipContact
 from SipAddress import SipAddress
-from Time.Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbsMono
 
 class UasStateTrying(UaStateGeneric):
     sname = 'Trying(UAS)'
@@ -52,7 +52,7 @@ class UasStateTrying(UaStateGeneric):
                 self.ua.no_progress_timer.cancel()
                 self.ua.no_progress_timer = None
                 if self.ua.expire_time != None:
-                    self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                    self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
             if self.ua.p1xx_ts == None:
                 self.ua.p1xx_ts = event.rtime
             return (UasStateRinging, self.ua.ring_cbs, event.rtime, event.origin, code)

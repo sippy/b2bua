@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Time.Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbsMono
 from SipAddress import SipAddress
 from SipRoute import SipRoute
 from UaStateGeneric import UaStateGeneric
@@ -106,9 +106,9 @@ class UasStateIdle(UaStateGeneric):
             if self.ua.expire_time != None and self.ua.no_progress_time >= self.ua.expire_time:
                 self.ua.no_progress_time = None
         if self.ua.no_progress_time != None:
-            self.ua.no_progress_timer = TimeoutAbs(self.ua.no_progress_expires, self.ua.no_progress_time)
+            self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
         elif self.ua.expire_time != None:
-            self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+            self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
         if body != None:
             if self.ua.on_remote_sdp_change != None:
                 self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))
