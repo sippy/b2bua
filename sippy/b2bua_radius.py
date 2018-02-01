@@ -49,7 +49,7 @@ from sippy.Rtp_proxy_session import Rtp_proxy_session
 from sippy.Rtp_proxy_client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2
 from twisted.internet import reactor
-from sippy.Cli_server_local import Cli_server_local
+from sippy.CLIManager import CLIConnectionManager
 from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
@@ -146,7 +146,7 @@ class CallController(object):
                     self.uaA.recvEvent(CCEventFail((500, 'Internal Server Error (1)'), rtime = event.rtime))
                     self.state = CCStateDead
                     return
-                if body != None and self.global_config.has_key('_allowed_pts'):
+                if body != None and '_allowed_pts' in self.global_config:
                     try:
                         body.parse()
                     except:
@@ -169,10 +169,10 @@ class CallController(object):
                     if body != None:
                         body.content += 'a=nated:yes\r\n'
                     event.data = (self.cId, cGUID, self.cli, self.cld, body, auth, self.caller_name)
-                if self.global_config.has_key('static_tr_in'):
+                if 'static_tr_in' in self.global_config:
                     self.cld = re_replace(self.global_config['static_tr_in'], self.cld)
                     event.data = (self.cId, cGUID, self.cli, self.cld, body, auth, self.caller_name)
-                if self.global_config.has_key('_rtp_proxy_clients'):
+                if '_rtp_proxy_clients' in self.global_config:
                     self.rtp_proxy_session = Rtp_proxy_session(self.global_config, call_id = self.cId, \
                       notify_socket = self.global_config['b2bua_socket'], \
                       notify_tag = quote('r %s' % str(self.id)))
@@ -246,7 +246,7 @@ class CallController(object):
             credit_time = int(credit_time[0][1])
         else:
             credit_time = None
-        if not self.global_config.has_key('_static_route'):
+        if not '_static_route' in self.global_config:
             routing = [x for x in results[0] if x[0] == 'h323-ivr-in' and x[1].startswith('Routing:')]
             if len(routing) == 0:
                 self.uaA.recvEvent(CCEventFail((500, 'Internal Server Error (2)')))
@@ -276,7 +276,7 @@ class CallController(object):
         cId, cGUID, cli, cld, body, auth, caller_name = self.eTry.getData()
         cld = oroute.cld
         self.huntstop_scodes = oroute.params.get('huntstop_scodes', ())
-        if self.global_config.has_key('static_tr_out'):
+        if 'static_tr_out' in self.global_config:
             cld = re_replace(self.global_config['static_tr_out'], cld)
         if oroute.hostport == 'sip-ua':
             host = self.source[0]
@@ -312,7 +312,7 @@ class CallController(object):
                 body = body.getCopy()
             self.proxied = True
         self.uaO.kaInterval = self.global_config['keepalive_orig']
-        if oroute.params.has_key('group_timeout'):
+        if 'group_timeout' in oroute.params:
             timeout, skipto = oroute.params['group_timeout']
             Timeout(self.group_expires, timeout, 1, skipto)
         if self.global_config.getdefault('hide_call_id', False):
@@ -432,7 +432,7 @@ class CallMap(object):
 
             # First check if request comes from IP that
             # we want to accept our traffic from
-            if self.global_config.has_key('_accept_ips') and \
+            if '_accept_ips' in self.global_config and \
               not source[0] in self.global_config['_accept_ips']:
                 resp = req.genResponse(403, 'Forbidden')
                 return (resp, None, None)
@@ -742,11 +742,11 @@ def main_func():
             writeconf = a.strip()
             continue
 
-    if global_config.has_key('_rtp_proxy_clients'):
+    if '_rtp_proxy_clients' in global_config:
         for a in global_config['_rtp_proxy_clients']:
             rtp_proxy_clients.append(a)
 
-    if global_config.has_key('static_route'):
+    if 'static_route' in global_config:
         global_config['_static_route'] = B2BRoute(global_config['static_route'])
     elif not global_config['auth_enable']:
         sys.__stderr__.write('ERROR: static route should be specified when Radius auth is disabled\n')
@@ -770,7 +770,7 @@ def main_func():
     global_config['_uaname'] = 'Sippy B2BUA (RADIUS)'
 
     global_config['_cmap'] = CallMap(global_config)
-    if global_config.has_key('sip_proxy'):
+    if 'sip_proxy' in global_config:
         host_port = global_config['sip_proxy'].split(':', 1)
         if len(host_port) == 1:
             global_config['_sip_proxy'] = (host_port[0], 5060)
@@ -786,7 +786,7 @@ def main_func():
     cmdfile = global_config['b2bua_socket']
     if cmdfile.startswith('unix:'):
         cmdfile = cmdfile[5:]
-    cli_server = Cli_server_local(global_config['_cmap'].recvCommand, cmdfile)
+    cli_server = CLIConnectionManager(global_config['_cmap'].recvCommand, cmdfile)
 
     if not global_config['foreground']:
         file(global_config['pidfile'], 'w').write(str(os.getpid()) + '\n')
