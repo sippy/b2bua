@@ -30,6 +30,7 @@
 #sys.path.append('..')
 
 from sippy.Core.EventDispatcher import ED2
+from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import Timeout
 from sippy.Signal import Signal
 from sippy.SipFrom import SipFrom
@@ -57,8 +58,10 @@ from sippy.misc import daemonize
 from sippy.B2BRoute import B2BRoute
 import gc, getopt, os, sys
 from re import sub
-from time import time
-from urllib import quote
+try:
+    from urllib import quote
+except ImportError:
+    from urllib.parse import quote
 from hashlib import md5
 from sippy.MyConfigParser import MyConfigParser
 from traceback import print_exc
@@ -229,7 +232,7 @@ class CallController(object):
             self.acctA = FakeAccounting()
         # Check that uaA is still in a valid state, send acct stop
         if not isinstance(self.uaA.state, UasStateTrying):
-            self.acctA.disc(self.uaA, time(), 'caller')
+            self.acctA.disc(self.uaA, MonoTime(), 'caller')
             return
         cli = [x[1][4:] for x in results[0] if x[0] == 'h323-ivr-in' and x[1].startswith('CLI:')]
         if len(cli) > 0:
@@ -551,7 +554,7 @@ class CallMap(object):
                 mindur = 60.0
             else:
                 mindur = 0.0
-            ctime = time()
+            ctime = MonoTime()
             res = 'In-memory server transactions:\n'
             for tid, t in self.global_config['_sip_tm'].tserver.iteritems():
                 duration = ctime - t.rtime
@@ -595,10 +598,10 @@ class CallMap(object):
                 if not cc.proxied:
                     continue
                 if cc.state == CCStateConnected:
-                    cc.disconnect(time() - 60)
+                    cc.disconnect(MonoTime().getOffsetCopy(-60))
                     continue
                 if cc.state == CCStateARComplete:
-                    cc.uaO.disconnect(time() - 60)
+                    cc.uaO.disconnect(MonoTime().getOffsetCopy(-60))
                     continue
             clim.send('OK\n')
             return False
