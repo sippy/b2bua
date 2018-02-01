@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Time.Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbsMono
 from UaStateGeneric import UaStateGeneric
 from CCEvents import CCEventTry, CCEventFail, CCEventRedirect, CCEventDisconnect
 from SipContact import SipContact
@@ -95,11 +95,11 @@ class UacStateIdle(UaStateGeneric):
                 else:
                         self.ua.no_reply_time = None
             if self.ua.no_reply_time != None:
-                self.ua.no_reply_timer = TimeoutAbs(self.ua.no_reply_expires, self.ua.no_reply_time)
+                self.ua.no_reply_timer = TimeoutAbsMono(self.ua.no_reply_expires, self.ua.no_reply_time)
             elif self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbs(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
             elif self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
             return (UacStateTrying,)
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
             return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)
