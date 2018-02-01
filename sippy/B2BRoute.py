@@ -24,8 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from sippy.SipHeader import SipHeader
-from sippy.SipConf import SipConf
+from SipHeader import SipHeader
+from SipConf import SipConf
 
 try:
     from urllib import unquote
