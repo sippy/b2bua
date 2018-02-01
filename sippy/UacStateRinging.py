@@ -80,7 +80,7 @@ class UacStateRinging(UaStateGeneric):
                 self.ua.rAddr = self.ua.rTarget.getAddr()
             tag = resp.getHFBody('to').getTag()
             if tag == None:
-                print 'tag-less 200 OK, disconnecting'
+                print('tag-less 200 OK, disconnecting')
                 scode = (502, 'Bad Gateway')
                 self.ua.equeue.append(CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin))
                 if resp.countHFs('contact') > 0:
