@@ -86,7 +86,7 @@ class SipHeader(object):
                     body = hf_types[self.name](bodys)
                 except KeyError:
                     body = SipGenericHF(bodys, name)
-            except ESipHeaderCSV, einst:
+            except ESipHeaderCSV as einst:
                 einst.name = self.name
                 raise einst
         self.body = body
