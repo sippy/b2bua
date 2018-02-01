@@ -37,7 +37,8 @@ from MsgBody import MsgBody
 from hashlib import md5
 from random import random
 from time import time
-from Time.Timeout import TimeoutAbs
+from Time.MonoTime import MonoTime
+from Time.Timeout import TimeoutAbsMono
 
 class UA(object):
     global_config = None
@@ -142,7 +143,7 @@ class UA(object):
         if ltag != None:
             self.lTag = ltag
         else:
-            self.lTag = md5(str((random() * 1000000000L) + time())).hexdigest()
+            self.lTag = md5(str((random() * 1000000000) + time())).hexdigest()
         self.reqs = {}
         self.extra_headers = extra_headers
         self.expire_time = expire_time
@@ -219,7 +220,7 @@ class UA(object):
 
     def disconnect(self, rtime = None):
         if rtime == None:
-            rtime = time()
+            rtime = MonoTime()
         self.equeue.append(CCEventDisconnect(rtime = rtime))
         self.recvEvent(CCEventDisconnect(rtime = rtime))
 
@@ -386,7 +387,7 @@ class UA(object):
             disconnect_ts = self.disconnect_ts
             disconnected = True
         else:
-            disconnect_ts = time()
+            disconnect_ts = MonoTime()
             disconnected = False
         if self.connect_ts != None:
             return (disconnect_ts - self.connect_ts, self.connect_ts - self.setup_ts, True, disconnected)
@@ -412,7 +413,7 @@ class UA(object):
             credit_time = min([x for x in self.credit_times.values() if x != None])
         except ValueError:
             return
-        self.credit_timer = TimeoutAbs(self.credit_expires, credit_time, credit_time)
+        self.credit_timer = TimeoutAbsMono(self.credit_expires, credit_time, credit_time)
 
     def resetCreditTime(self, rtime, new_credit_times):
         self.credit_times.update(new_credit_times)

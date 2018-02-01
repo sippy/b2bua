@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from Core.Exceptions import dump_exception
+from Time.MonoTime import MonoTime
 from Time.Timeout import Timeout
 from SipHeader import SipHeader
 from SipResponse import SipResponse
@@ -35,16 +37,16 @@ from ESipParseException import ESipParseException
 from datetime import datetime
 from hashlib import md5
 from traceback import print_exc
-from time import time
+from functools import reduce
 import sys, socket
 
 class NETS_1918(object):
-    nets = (('10.0.0.0', 0xffffffffl << 24), ('172.16.0.0',  0xffffffffl << 20), ('192.168.0.0', 0xffffffffl << 16))
-    nets = [(reduce(lambda z, v: (int(z) << 8l) | int(v), x[0].split('.', 4)) & x[1], x[1]) for x in nets]
+    nets = (('10.0.0.0', 0xffffffff << 24), ('172.16.0.0',  0xffffffff << 20), ('192.168.0.0', 0xffffffff << 16))
+    nets = [(reduce(lambda z, v: (int(z) << 8) | int(v), x[0].split('.', 4)) & x[1], x[1]) for x in nets]
 
 def check1918(addr):
     try:
-        addr = reduce(lambda x, y: (int(x) << 8l) | int(y), addr.split('.', 4))
+        addr = reduce(lambda x, y: (int(x) << 8) | int(y), addr.split('.', 4))
         for naddr, mask in NETS_1918.nets:
             if addr & mask == naddr:
                 return True
@@ -264,19 +266,13 @@ class SipTransactionManager(object):
             try:
                 resp = SipResponse(data)
                 tid = resp.getTId(True, True)
-            except Exception, exception:
-                print datetime.now(), 'can\'t parse SIP response from %s:%d: %s:' % (address[0], address[1], str(exception))
-                print '-' * 70
-                print_exc(file = sys.stdout)
-                print '-' * 70
-                print data
-                print '-' * 70
-                sys.stdout.flush()
+            except Exception as exception:
+                dump_exception('can\'t parse SIP response from %s:%d' % (address[0], address[1]), extra = data)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             if resp.getSCode()[0] < 100 or resp.getSCode()[0] > 999:
-                print datetime.now(), 'invalid status code in SIP response from %s:%d:' % address
-                print data
+                print(datetime.now(), 'invalid status code in SIP response from %s:%d:' % address)
+                print(data)
                 sys.stdout.flush()
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
@@ -300,16 +296,10 @@ class SipTransactionManager(object):
             try:
                 req = SipRequest(data)
                 tids = req.getTIds()
-            except Exception, exception:
+            except Exception as exception:
                 if isinstance(exception, ESipParseException) and exception.sip_response != None:
                     self.transmitMsg(server, exception.sip_response, address, checksum)
-                print datetime.now(), 'can\'t parse SIP request from %s:%d: %s:' % (address[0], address[1], str(exception))
-                print '-' * 70
-                print_exc(file = sys.stdout)
-                print '-' * 70
-                print data
-                print '-' * 70
-                sys.stdout.flush()
+                dump_exception('can\'t parse SIP request from %s:%d' % (address[0], address[1]), extra = data)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             req.rtime = rtime
@@ -325,14 +315,8 @@ class SipTransactionManager(object):
             if self.nat_traversal and req.countHFs('contact') > 0 and req.countHFs('via') == 1:
                 try:
                     cbody = req.getHFBody('contact')
-                except Exception, exception:
-                    print datetime.now(), 'can\'t parse SIP request from %s:%d: %s:' % (address[0], address[1], str(exception))
-                    print '-' * 70
-                    print_exc(file = sys.stdout)
-                    print '-' * 70
-                    print data
-                    print '-' * 70
-                    sys.stdout.flush()
+                except Exception as exception:
+                    dump_exception('can\'t parse SIP request from %s:%d: %s:' % (address[0], address[1]), extra = data)
                     self.l1rcache[checksum] = SipTMRetransmitO()
                     return
                 if not cbody.asterisk:
@@ -348,7 +332,7 @@ class SipTransactionManager(object):
       cb_ifver = 1, compact = False, t = None):
         if t == None:
             t = SipTransaction()
-        t.rtime = time()
+        t.rtime = MonoTime()
         t.compact = compact
         t.method = msg.getMethod()
         t.cb_ifver = cb_ifver
@@ -508,7 +492,7 @@ class SipTransactionManager(object):
         t.teC = Timeout(self.timerC, 32.0, 1, t)
         if t.resp_cb == None:
             return
-        t.r408.rtime = time()
+        t.r408.rtime = MonoTime()
         if t.cb_ifver == 1:
             t.resp_cb(t.r408)
         else:
@@ -571,7 +555,7 @@ class SipTransactionManager(object):
             # Some ACK that doesn't match any existing transaction.
             # Drop and forget it - upper layer is unlikely to be interested
             # to seeing this anyway.
-            print datetime.now(), 'unmatched ACK transaction - ignoring'
+            print(datetime.now(), 'unmatched ACK transaction - ignoring')
             sys.stdout.flush()
             self.l1rcache[checksum] = SipTMRetransmitO()
         elif msg.getMethod() == 'CANCEL':
@@ -710,7 +694,7 @@ class SipTransactionManager(object):
 
     def doCancel(self, t, rtime = None, req = None):
         if rtime == None:
-            rtime = time()
+            rtime = MonoTime()
         if t.r487 != None:
             self.sendResponse(t.r487, t, True)
         if t.cancel_cb != None:
@@ -751,7 +735,7 @@ class SipTransactionManager(object):
         #print 'timerG', t.state
         t.teG = None
         if t.state == UACK:
-            print datetime.now(), 'INVITE transaction stuck in the UACK state, possible UAC bug'
+            print(datetime.now(), 'INVITE transaction stuck in the UACK state, possible UAC bug')
 
     def rCachePurge(self):
         self.l2rcache = self.l1rcache
