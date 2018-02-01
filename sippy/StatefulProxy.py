@@ -32,7 +32,7 @@ class StatefulProxy:
     destination = None
 
     def __init__(self, global_config, destination):
-        print destination
+        print(destination)
         self.global_config = global_config
         self.destination = destination
 
@@ -42,7 +42,7 @@ class StatefulProxy:
         via1 = req.getHF('via')
         req.insertHeaderBefore(via1, SipHeader(name = 'via', body = via0))
         req.setTarget(self.destination)
-        print req
+        print(req)
         self.global_config['_sip_tm'].newTransaction(req, self.recvResponse)
         return (None, None, None)
 
