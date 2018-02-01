@@ -25,7 +25,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from SipURL import SipURL
-from string import maketrans
+try:
+    from string import maketrans
+except ImportError:
+    maketrans = str.maketrans
 
 def findquotes(s, pos = 1):
     rval = []
