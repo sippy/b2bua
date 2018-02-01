@@ -273,15 +273,18 @@ class Rtp_proxy_session(object):
         if call_id != None:
             self.call_id = call_id
         else:
-            self.call_id = md5(str(random()) + str(time())).hexdigest()
+            salt = str(random()) + str(time())
+            self.call_id = md5(salt.encode()).hexdigest()
         if from_tag != None:
             self.from_tag = from_tag
         else:
-            self.from_tag = md5(str(random()) + str(time())).hexdigest()
+            salt = str(random()) + str(time())
+            self.from_tag = md5(salt.encode()).hexdigest()
         if to_tag != None:
             self.to_tag = to_tag
         else:
-            self.to_tag = md5(str(random()) + str(time())).hexdigest()
+            salt = str(random()) + str(time())
+            self.to_tag = md5(salt.encode()).hexdigest()
         self.notify_socket = notify_socket
         self.notify_tag = notify_tag
         self.caller = _rtpps_side()

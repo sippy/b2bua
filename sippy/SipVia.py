@@ -119,7 +119,8 @@ class SipVia(SipGenericHF):
         return SipVia(sipver = self.sipver, hostname = self.hostname, port = self.port, params = self.params.copy())
 
     def genBranch(self):
-        self.params['branch'] = 'z9hG4bK' + md5(str((random() * 1000000000) + time())).hexdigest()
+        salt = str((random() * 1000000000) + time())
+        self.params['branch'] = 'z9hG4bK' + md5(salt.encode()).hexdigest()
 
     def getBranch(self):
         return self.params.get('branch', None)

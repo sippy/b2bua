@@ -143,7 +143,8 @@ class UA(object):
         if ltag != None:
             self.lTag = ltag
         else:
-            self.lTag = md5(str((random() * 1000000000) + time())).hexdigest()
+            salt = str((random() * 1000000000) + time())
+            self.lTag = md5(salt.encode()).hexdigest()
         self.reqs = {}
         self.extra_headers = extra_headers
         self.expire_time = expire_time

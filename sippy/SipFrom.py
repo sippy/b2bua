@@ -56,7 +56,8 @@ class SipFrom(SipAddressHF):
         return self.address.getParam('tag')
 
     def genTag(self):
-        self.address.setParam('tag', md5(str((random() * 1000000000) + time())).hexdigest())
+        salt = str((random() * 1000000000) + time())
+        self.address.setParam('tag', md5(salt.encode()).hexdigest())
 
     def setTag(self, value):
         self.address.setParam('tag', value)

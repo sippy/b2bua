@@ -320,7 +320,7 @@ class CallController(object):
             timeout, skipto = oroute.params['group_timeout']
             Timeout(self.group_expires, timeout, 1, skipto)
         if self.global_config.getdefault('hide_call_id', False):
-            cId = SipCallId(md5(str(cId)).hexdigest() + ('-b2b_%d' % oroute.rnum))
+            cId = SipCallId(md5(str(cId).encode()).hexdigest() + ('-b2b_%d' % oroute.rnum))
         else:
             cId += '-b2b_%d' % oroute.rnum
         event = CCEventTry((cId, cGUID, oroute.cli, cld, body, auth, \
