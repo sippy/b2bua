@@ -34,7 +34,7 @@ from SipLogger import SipLogger
 from SipTransactionManager import SipTransactionManager
 from StatefulProxy import StatefulProxy
 from misc import daemonize
-from twisted.internet import reactor
+from Core.EventDispatcher import ED2
 import getopt, os, sys
 #import gc
 
@@ -145,7 +145,7 @@ def main_func():
 
     global_config['_sip_tm'] = SipTransactionManager(global_config, cmap.recvRequest)
 
-    reactor.run(installSignalHandlers = True)
+    ED2.loop()
 
 if __name__ == '__main__':
     main_func()
