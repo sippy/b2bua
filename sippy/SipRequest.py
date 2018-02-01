@@ -47,11 +47,11 @@ class SipRequest(SipMsg):
         if buf != None:
             try:
                 SipMsg.init_body(self)
-            except ESipParseException, e:
+            except ESipParseException as e:
                 try:
                     e.sip_response = self.genResponse(400, 'Bad Request - %s' % str(e))
-                except Exception, e1:
-                    print 'BUG: Double exception, should not be happening:\n', str(e1)
+                except Exception as e1:
+                    print('BUG: Double exception, should not be happening:\n', str(e1))
                 raise e
             return
         self.method = method
