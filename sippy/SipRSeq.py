@@ -37,6 +37,6 @@ class SipRSeq(SipNumericHF):
 if __name__ == '__main__':
     rs = SipRSeq(body = '50')
     rs.parse()
-    print rs.number
+    print(rs.number)
     rs.number = 100
-    print str(rs)
+    print(str(rs))
