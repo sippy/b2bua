@@ -24,10 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipAddress import SipAddress
-from SipRoute import SipRoute
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 
 class UacStateRinging(UaStateGeneric):
@@ -158,8 +158,8 @@ class UacStateRinging(UaStateGeneric):
         return None
 
 if not 'UaStateFailed' in globals():
-    from UaStateFailed import UaStateFailed
+    from sippy.UaStateFailed import UaStateFailed
 if not 'UaStateConnected' in globals():
-    from UaStateConnected import UaStateConnected
+    from sippy.UaStateConnected import UaStateConnected
 if not 'UacStateCancelling' in globals():
-    from UacStateCancelling import UacStateCancelling
+    from sippy.UacStateCancelling import UacStateCancelling

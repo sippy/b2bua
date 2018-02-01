@@ -30,8 +30,8 @@ from sys import platform
 from threading import Thread, Lock
 from errno import EINTR
 
-from Core.Exceptions import dump_exception
-from Core.EventDispatcher import ED2
+from sippy.Core.Exceptions import dump_exception
+from sippy.Core.EventDispatcher import ED2
 
 _MAX_WORKERS = 20
 

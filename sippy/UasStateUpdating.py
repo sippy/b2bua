@@ -24,10 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipContact import SipContact
-from SipAddress import SipAddress
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
+from sippy.SipContact import SipContact
+from sippy.SipAddress import SipAddress
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
 
 class UasStateUpdating(UaStateGeneric):
     sname = 'Updating(UAS)'
@@ -137,6 +137,6 @@ class UasStateUpdating(UaStateGeneric):
         self.ua.emitEvent(event)
 
 if not 'UaStateConnected' in globals():
-    from UaStateConnected import UaStateConnected
+    from sippy.UaStateConnected import UaStateConnected
 if not 'UaStateDisconnected' in globals():
-    from UaStateDisconnected import UaStateDisconnected
+    from sippy.UaStateDisconnected import UaStateDisconnected

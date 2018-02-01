@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipWWWAuthenticate import SipWWWAuthenticate
+from sippy.SipWWWAuthenticate import SipWWWAuthenticate
 
 class SipProxyAuthenticate(SipWWWAuthenticate):
     hf_names = ('proxy-authenticate',)

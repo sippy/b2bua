@@ -35,8 +35,8 @@ if sys.version_info[0] < 3:
     from thread import get_ident
 else:
     from _thread import get_ident
-from Time.MonoTime import MonoTime
-from Core.Exceptions import dump_exception, StdException
+from sippy.Time.MonoTime import MonoTime
+from sippy.Core.Exceptions import dump_exception, StdException
 
 from elperiodic.ElPeriodic import ElPeriodic
 

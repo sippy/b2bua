@@ -28,8 +28,8 @@ from random import random
 from hashlib import md5
 from time import time
 from math import floor
-from SipConf import SipConf
-from SipGenericHF import SipGenericHF
+from sippy.SipConf import SipConf
+from sippy.SipGenericHF import SipGenericHF
 
 CALL_ID_CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-.!%*_+`\'~()<>:\\"/[]?{}'
 _clen = len(CALL_ID_CHARSET)

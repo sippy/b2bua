@@ -35,9 +35,9 @@ from random import random
 import socket
 import sys, traceback
 
-from Core.EventDispatcher import ED2
-from Time.Timeout import Timeout
-from Time.MonoTime import MonoTime
+from sippy.Core.EventDispatcher import ED2
+from sippy.Time.Timeout import Timeout
+from sippy.Time.MonoTime import MonoTime
 
 class AsyncSender(Thread):
     userv = None

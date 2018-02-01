@@ -34,8 +34,8 @@ from select import poll, POLLIN, POLLNVAL
 
 from threading import Thread, Condition
 
-from Core.Exceptions import dump_exception
-from Core.EventDispatcher import ED2
+from sippy.Core.Exceptions import dump_exception
+from sippy.Core.EventDispatcher import ED2
 
 try:
     _uobj = unicode

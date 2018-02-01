@@ -27,7 +27,7 @@
 from random import random
 from hashlib import md5
 from time import time
-from SipGenericHF import SipGenericHF
+from sippy.SipGenericHF import SipGenericHF
 
 class SipCiscoGUID(SipGenericHF):
     hf_names = ('cisco-guid', 'h323-conf-id')

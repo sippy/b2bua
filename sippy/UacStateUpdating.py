@@ -24,8 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
 
 class UacStateUpdating(UaStateGeneric):
     sname = 'Updating(UAC)'
@@ -130,6 +130,6 @@ class UacStateUpdating(UaStateGeneric):
         return None
 
 if not 'UaStateConnected' in globals():
-    from UaStateConnected import UaStateConnected
+    from sippy.UaStateConnected import UaStateConnected
 if not 'UaStateDisconnected' in globals():
-    from UaStateDisconnected import UaStateDisconnected
+    from sippy.UaStateDisconnected import UaStateDisconnected

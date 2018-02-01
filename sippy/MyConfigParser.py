@@ -32,7 +32,7 @@ try:
 except ImportError:
     from configparser import RawConfigParser
     _boolean_states = RawConfigParser.BOOLEAN_STATES
-from SipConf import SipConf
+from sippy.SipConf import SipConf
 
 SUPPORTED_OPTIONS = { \
  'acct_enable':       ('B', 'enable or disable Radius accounting'), \

@@ -24,15 +24,15 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipMsg import SipMsg
-from SipHeader import SipHeader
-from SipCSeq import SipCSeq
-from SipTo import SipTo
-from SipResponse import SipResponse
-from SipURL import SipURL
-from SipAddress import SipAddress
-from SipExpires import SipExpires
-from ESipParseException import ESipParseException
+from sippy.SipMsg import SipMsg
+from sippy.SipHeader import SipHeader
+from sippy.SipCSeq import SipCSeq
+from sippy.SipTo import SipTo
+from sippy.SipResponse import SipResponse
+from sippy.SipURL import SipURL
+from sippy.SipAddress import SipAddress
+from sippy.SipExpires import SipExpires
+from sippy.ESipParseException import ESipParseException
 
 class SipRequest(SipMsg):
     method = None

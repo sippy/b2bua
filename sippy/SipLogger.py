@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Signal import LogSignal
+from sippy.Signal import LogSignal
 from time import time, localtime, strftime
 from fcntl import flock, LOCK_EX, LOCK_UN
 from signal import SIGUSR1

@@ -24,8 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Time.Timeout import Timeout
-from UaStateGeneric import UaStateGeneric
+from sippy.Time.Timeout import Timeout
+from sippy.UaStateGeneric import UaStateGeneric
 
 class UaStateFailed(UaStateGeneric):
     sname = 'Failed'
@@ -41,4 +41,4 @@ class UaStateFailed(UaStateGeneric):
         self.ua.changeState((UaStateDead,))
 
 if not 'UaStateDead' in globals():
-    from UaStateDead import UaStateDead
+    from sippy.UaStateDead import UaStateDead

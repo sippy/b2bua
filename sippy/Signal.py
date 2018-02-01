@@ -26,8 +26,8 @@
 
 from signal import signal, SIG_IGN, SIG_DFL
 
-from Core.Exceptions import dump_exception
-from Core.EventDispatcher import ED2
+from sippy.Core.Exceptions import dump_exception
+from sippy.Core.EventDispatcher import ED2
 
 class Signal(object):
     callback = None
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     kill(getpid(), SIGHUP)
     ED2.loop()
     assert(not arguments['test'])
-    from SipLogger import SipLogger
+    from sippy.SipLogger import SipLogger
     sip_logger = SipLogger('Signal::selftest')
     LogSignal(sip_logger, SIGTERM, test, arguments)
     kill(getpid(), SIGTERM)

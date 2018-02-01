@@ -24,12 +24,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipAddressHF import SipAddressHF
-from SipGenericHF import SipGenericHF
-from SipConf import SipConf
-from SipAddress import SipAddress
-from SipURL import SipURL
-from ESipHeaderIgnore import ESipHeaderIgnore
+from sippy.SipAddressHF import SipAddressHF
+from sippy.SipGenericHF import SipGenericHF
+from sippy.SipConf import SipConf
+from sippy.SipAddress import SipAddress
+from sippy.SipURL import SipURL
+from sippy.ESipHeaderIgnore import ESipHeaderIgnore
 
 class SipContact(SipAddressHF):
     hf_names = ('contact', 'm')

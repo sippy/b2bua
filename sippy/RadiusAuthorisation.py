@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Radius_client import Radius_client
+from sippy.Radius_client import Radius_client
 from time import time
 
 class RadiusAuthorisation(Radius_client):

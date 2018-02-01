@@ -27,8 +27,8 @@
 from random import random
 from hashlib import md5
 from time import time
-from SipGenericHF import SipGenericHF
-from SipConf import SipConf
+from sippy.SipGenericHF import SipGenericHF
+from sippy.SipConf import SipConf
 
 class SipWWWAuthenticate(SipGenericHF):
     hf_names = ('www-authenticate',)

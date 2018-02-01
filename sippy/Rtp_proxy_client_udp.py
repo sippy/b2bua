@@ -26,12 +26,12 @@
 
 from __future__ import print_function
 
-from Time.Timeout import Timeout
-from Udp_server import Udp_server, Udp_server_opts
-from Time.MonoTime import MonoTime
-from Math.recfilter import recfilter
-from Rtp_proxy_cmd import Rtp_proxy_cmd
-from Rtp_proxy_client_net import Rtp_proxy_client_net
+from sippy.Time.Timeout import Timeout
+from sippy.Udp_server import Udp_server, Udp_server_opts
+from sippy.Time.MonoTime import MonoTime
+from sippy.Math.recfilter import recfilter
+from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd
+from sippy.Rtp_proxy_client_net import Rtp_proxy_client_net
 
 from socket import SOCK_DGRAM, AF_INET
 from time import time
@@ -194,7 +194,7 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
     def get_rtpc_delay(self):
         return self.delay_flt.lastval
 
-from Core.EventDispatcher import ED2
+from sippy.Core.EventDispatcher import ED2
 
 class selftest(object):
 

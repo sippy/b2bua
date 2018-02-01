@@ -24,16 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Core.Exceptions import dump_exception
-from Time.MonoTime import MonoTime
-from Time.Timeout import Timeout
-from SipHeader import SipHeader
-from SipResponse import SipResponse
-from SipRequest import SipRequest
-from SipAddress import SipAddress
-from SipRoute import SipRoute
-from SipHeader import SipHeader
-from ESipParseException import ESipParseException
+from sippy.Core.Exceptions import dump_exception
+from sippy.Time.MonoTime import MonoTime
+from sippy.Time.Timeout import Timeout
+from sippy.SipHeader import SipHeader
+from sippy.SipResponse import SipResponse
+from sippy.SipRequest import SipRequest
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.SipHeader import SipHeader
+from sippy.ESipParseException import ESipParseException
 from datetime import datetime
 from hashlib import md5
 from traceback import print_exc
@@ -124,11 +124,11 @@ class local4remote(object):
 
     def __init__(self, global_config, handleIncoming):
         if not '_xmpp_mode' in global_config or not global_config['_xmpp_mode']:
-            from Udp_server import Udp_server, Udp_server_opts
+            from sippy.Udp_server import Udp_server, Udp_server_opts
             self.Udp_server_opts = Udp_server_opts
             self.udp_server_class = Udp_server
         else:
-            from XMPP_server import XMPP_server, XMPP_server_opts
+            from sippy.XMPP_server import XMPP_server, XMPP_server_opts
             self.Udp_server_opts = XMPP_server_opts
             self.udp_server_class = XMPP_server
         self.global_config = global_config

@@ -24,16 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Time.Timeout import Timeout
-from UaStateGeneric import UaStateGeneric
-from SipAlso import SipAlso
-from SipAddress import SipAddress
-from SipHeader import SipHeader
-from SipReferTo import SipReferTo
-from SipReferredBy import SipReferredBy
-from SipProxyAuthorization import SipProxyAuthorization
-from SipMaxForwards import SipMaxForwards
-from CCEvents import CCEventDisconnect, CCEventFail, CCEventRedirect, CCEventUpdate, CCEventInfo, CCEventConnect
+from sippy.Time.Timeout import Timeout
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.SipAlso import SipAlso
+from sippy.SipAddress import SipAddress
+from sippy.SipHeader import SipHeader
+from sippy.SipReferTo import SipReferTo
+from sippy.SipReferredBy import SipReferredBy
+from sippy.SipProxyAuthorization import SipProxyAuthorization
+from sippy.SipMaxForwards import SipMaxForwards
+from sippy.CCEvents import CCEventDisconnect, CCEventFail, CCEventRedirect, CCEventUpdate, CCEventInfo, CCEventConnect
 
 class UaStateConnected(UaStateGeneric):
     sname = 'Connected'
@@ -302,8 +302,8 @@ class UaStateConnected(UaStateGeneric):
           laddress = self.ua.source_address, compact = self.ua.compact_sip)
 
 if not 'UaStateDisconnected' in globals():
-    from UaStateDisconnected import UaStateDisconnected
+    from sippy.UaStateDisconnected import UaStateDisconnected
 if not 'UasStateUpdating' in globals():
-    from UasStateUpdating import UasStateUpdating
+    from sippy.UasStateUpdating import UasStateUpdating
 if not 'UacStateUpdating' in globals():
-    from UacStateUpdating import UacStateUpdating
+    from sippy.UacStateUpdating import UacStateUpdating

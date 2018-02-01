@@ -24,21 +24,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipHeader import SipHeader
-from SipAuthorization import SipAuthorization
-from UasStateIdle import UasStateIdle
-from UacStateIdle import UacStateIdle
-from SipRequest import SipRequest
-from SipContentType import SipContentType
-from SipProxyAuthorization import SipProxyAuthorization
-from SipMaxForwards import SipMaxForwards
-from CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
-from MsgBody import MsgBody
+from sippy.SipHeader import SipHeader
+from sippy.SipAuthorization import SipAuthorization
+from sippy.UasStateIdle import UasStateIdle
+from sippy.UacStateIdle import UacStateIdle
+from sippy.SipRequest import SipRequest
+from sippy.SipContentType import SipContentType
+from sippy.SipProxyAuthorization import SipProxyAuthorization
+from sippy.SipMaxForwards import SipMaxForwards
+from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
+from sippy.MsgBody import MsgBody
 from hashlib import md5
 from random import random
 from time import time
-from Time.MonoTime import MonoTime
-from Time.Timeout import TimeoutAbsMono
+from sippy.Time.MonoTime import MonoTime
+from sippy.Time.Timeout import TimeoutAbsMono
 
 class UA(object):
     global_config = None

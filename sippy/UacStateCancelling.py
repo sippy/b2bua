@@ -24,10 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Time.Timeout import Timeout
-from UaStateGeneric import UaStateGeneric
-from SipAddress import SipAddress
-from SipRoute import SipRoute
+from sippy.Time.Timeout import Timeout
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
 
 class UacStateCancelling(UaStateGeneric):
     sname = 'Cancelling(UAC)'
@@ -101,6 +101,6 @@ class UacStateCancelling(UaStateGeneric):
         return None
 
 if not 'UaStateDead' in globals():
-    from UaStateDead import UaStateDead
+    from sippy.UaStateDead import UaStateDead
 if not 'UaStateDisconnected' in globals():
-    from UaStateDisconnected import UaStateDisconnected
+    from sippy.UaStateDisconnected import UaStateDisconnected

@@ -27,9 +27,9 @@
 from random import random
 from hashlib import md5
 from time import time
-from SipGenericHF import SipGenericHF
-from SipConf import SipConf
-from ESipHeaderCSV import ESipHeaderCSV
+from sippy.SipGenericHF import SipGenericHF
+from sippy.SipConf import SipConf
+from sippy.ESipHeaderCSV import ESipHeaderCSV
 
 class SipVia(SipGenericHF):
     hf_names = ('via', 'v')

@@ -24,15 +24,15 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Time.Timeout import TimeoutAbsMono
-from SipAddress import SipAddress
-from SipRoute import SipRoute
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventTry
-from SipContact import SipContact
-from SipCiscoGUID import SipCiscoGUID
-from SipFrom import SipFrom
-from SipTo import SipTo
+from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventTry
+from sippy.SipContact import SipContact
+from sippy.SipCiscoGUID import SipCiscoGUID
+from sippy.SipFrom import SipFrom
+from sippy.SipTo import SipTo
 
 class UasStateIdle(UaStateGeneric):
     sname = 'Idle(UAS)'
@@ -123,4 +123,4 @@ class UasStateIdle(UaStateGeneric):
         return (UasStateTrying,)
 
 if not 'UasStateTrying' in globals():
-    from UasStateTrying import UasStateTrying
+    from sippy.UasStateTrying import UasStateTrying

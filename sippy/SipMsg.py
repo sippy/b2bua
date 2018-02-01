@@ -24,13 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipHeader import SipHeader
-from SipContentLength import SipContentLength
-from SipContentType import SipContentType
-from MsgBody import MsgBody
-from ESipHeaderCSV import ESipHeaderCSV
-from ESipHeaderIgnore import ESipHeaderIgnore
-from ESipParseException import ESipParseException
+from sippy.SipHeader import SipHeader
+from sippy.SipContentLength import SipContentLength
+from sippy.SipContentType import SipContentType
+from sippy.MsgBody import MsgBody
+from sippy.ESipHeaderCSV import ESipHeaderCSV
+from sippy.ESipHeaderIgnore import ESipHeaderIgnore
+from sippy.ESipParseException import ESipParseException
 
 class SipMsg(object):
     headers = None
