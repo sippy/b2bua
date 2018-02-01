@@ -212,7 +212,11 @@ class _CLIManager_r(Thread):
             if len(data) == 0:
                 ED2.callFromThread(self.clim.shutdown)
                 break
-            rbuffer += data.decode('ascii')
+            try:
+                rbuffer += data.decode('ascii')
+            except UnicodeDecodeError:
+                ED2.callFromThread(self.clim.shutdown)
+                break
             while rbuffer.find('\n') != -1:
                 cmd, rbuffer = rbuffer.split('\n', 1)
                 cmd = cmd.strip()
