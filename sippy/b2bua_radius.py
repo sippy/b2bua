@@ -29,6 +29,7 @@
 #import sys
 #sys.path.append('..')
 
+from sippy.Core.EventDispatcher import ED2
 from sippy.Time.Timeout import Timeout
 from sippy.Signal import Signal
 from sippy.SipFrom import SipFrom
@@ -48,7 +49,6 @@ from sippy.SipLogger import SipLogger
 from sippy.Rtp_proxy_session import Rtp_proxy_session
 from sippy.Rtp_proxy_client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2
-from twisted.internet import reactor
 from sippy.CLIManager import CLIConnectionManager
 from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
@@ -792,9 +792,7 @@ def main_func():
         file(global_config['pidfile'], 'w').write(str(os.getpid()) + '\n')
         Signal(SIGUSR1, reopen, SIGUSR1, global_config['logfile'])
 
-    reactor.suggestThreadPoolSize(50)
-    reactor.run(installSignalHandlers = True)
-
+    ED2.loop()
 
 if __name__ == '__main__':
     main_func()
