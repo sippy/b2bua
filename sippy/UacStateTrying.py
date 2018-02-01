@@ -27,7 +27,7 @@
 from SipAddress import SipAddress
 from SipRoute import SipRoute
 from UaStateGeneric import UaStateGeneric
-from Time.Timeout import TimeoutAbs
+from Time.Timeout import TimeoutAbsMono
 from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 
@@ -45,9 +45,9 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_reply_timer.cancel()
             self.ua.no_reply_timer = None
             if code == 100 and self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbs(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
             elif code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
         if code == 100:
             if self.ua.p100_ts == None:
                 self.ua.p100_ts = resp.rtime
@@ -57,7 +57,7 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_progress_timer.cancel()
             self.ua.no_progress_timer = None
             if code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
         if code < 200:
             event = CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin)
             if body != None:
@@ -97,7 +97,7 @@ class UacStateTrying(UaStateGeneric):
                 self.ua.rAddr = self.ua.rTarget.getAddr()
             tag = resp.getHFBody('to').getTag()
             if tag == None:
-                print 'tag-less 200 OK, disconnecting'
+                print('tag-less 200 OK, disconnecting')
                 scode = (502, 'Bad Gateway')
                 self.ua.equeue.append(CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin))
                 # Generate and send BYE
