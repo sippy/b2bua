@@ -27,7 +27,10 @@
 from sippy.SipHeader import SipHeader
 from sippy.SipConf import SipConf
 
-from urllib import unquote
+try:
+    from urllib import unquote
+except ImportError:
+    from urllib.parse import unquote
 from socket import getaddrinfo, SOCK_STREAM, AF_INET, AF_INET6
 
 class B2BRoute(object):

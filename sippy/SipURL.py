@@ -25,7 +25,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from SipConf import SipConf
-from urllib import quote, unquote
+try:
+    from urllib import quote, unquote
+except ImportError:
+    from urllib.parse import quote, unquote
 
 class SipURL(object):
     username = None
@@ -117,7 +120,7 @@ class SipURL(object):
                 self.host = hpparts[0]
                 try:
                     self.port = int(hpparts[1])
-                except Exception, e:
+                except Exception as e:
                     # XXX: some bad-ass devices send us port number twice
                     # While not allowed by the RFC, deal with it
                     portparts = hpparts[1].split(':', 1)
