@@ -121,7 +121,7 @@ class local4remote(object):
     pdelay_out_max = 0.0
 
     def __init__(self, global_config, handleIncoming):
-        if not global_config.has_key('_xmpp_mode') or not global_config['_xmpp_mode']:
+        if not '_xmpp_mode' in global_config or not global_config['_xmpp_mode']:
             from Udp_server import Udp_server, Udp_server_opts
             self.Udp_server_opts = Udp_server_opts
             self.udp_server_class = Udp_server
@@ -281,7 +281,7 @@ class SipTransactionManager(object):
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             resp.rtime = rtime
-            if not self.tclient.has_key(tid):
+            if not tid in self.tclient:
                 #print 'no transaction with tid of %s in progress' % str(tid)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
@@ -320,7 +320,7 @@ class SipTransactionManager(object):
                 req.nated = True
             if ahost != rhost:
                 via0.params['received'] = rhost
-            if via0.params.has_key('rport') or req.nated:
+            if 'rport' in via0.params or req.nated:
                 via0.params['rport'] = str(rport)
             if self.nat_traversal and req.countHFs('contact') > 0 and req.countHFs('via') == 1:
                 try:
@@ -353,7 +353,7 @@ class SipTransactionManager(object):
         t.method = msg.getMethod()
         t.cb_ifver = cb_ifver
         t.tid = msg.getTId(True, True)
-        if self.tclient.has_key(t.tid):
+        if t.tid in self.tclient:
             raise ValueError('BUG: Attempt to initiate transaction with the same TID as existing one!!!')
         t.tout = 0.5
         t.fcode = None
@@ -528,7 +528,7 @@ class SipTransactionManager(object):
     # 2. Server transaction methods
     def incomingRequest(self, msg, checksum, tids, server):
         for tid in tids:
-            if self.tclient.has_key(tid):
+            if tid in self.tclient:
                 t = self.tclient[tid]
                 resp = msg.genResponse(482, 'Loop Detected')
                 self.transmitMsg(server, resp, resp.getHFBody('via').getTAddr(), checksum, \
@@ -628,7 +628,7 @@ class SipTransactionManager(object):
             if rval == None:
                 if t.teA != None or t.teD != None or t.teE != None or t.teF != None:
                     return
-                if self.tserver.has_key(t.tid):
+                if t.tid in self.tserver:
                     del self.tserver[t.tid]
                 t.cleanup()
                 return

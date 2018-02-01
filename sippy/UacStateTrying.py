@@ -184,11 +184,11 @@ class UacStateTrying(UaStateGeneric):
         #print 'wrong event %s in the Trying state' % event
         return None
 
-if not globals().has_key('UacStateRinging'):
+if not 'UacStateRinging' in globals():
     from UacStateRinging import UacStateRinging
-if not globals().has_key('UaStateFailed'):
+if not 'UaStateFailed' in globals():
     from UaStateFailed import UaStateFailed
-if not globals().has_key('UaStateConnected'):
+if not 'UaStateConnected' in globals():
     from UaStateConnected import UaStateConnected
-if not globals().has_key('UacStateCancelling'):
+if not 'UacStateCancelling' in globals():
     from UacStateCancelling import UacStateCancelling

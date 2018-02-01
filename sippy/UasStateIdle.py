@@ -122,5 +122,5 @@ class UasStateIdle(UaStateGeneric):
         self.ua.setup_ts = req.rtime
         return (UasStateTrying,)
 
-if not globals().has_key('UasStateTrying'):
+if not 'UasStateTrying' in globals():
     from UasStateTrying import UasStateTrying

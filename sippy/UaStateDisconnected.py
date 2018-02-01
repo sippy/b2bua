@@ -48,5 +48,5 @@ class UaStateDisconnected(UaStateGeneric):
         #print 'Time in Disconnected state expired, going to the Dead state'
         self.ua.changeState((UaStateDead,))
 
-if not globals().has_key('UaStateDead'):
+if not 'UaStateDead' in globals():
     from UaStateDead import UaStateDead

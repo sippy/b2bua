@@ -178,7 +178,7 @@ class UA(object):
         self.update_ua(resp)
         code, reason = resp.getSCode()
         cseq, method = resp.getHFBody('cseq').getCSeq()
-        if method == 'INVITE' and not self.pass_auth and self.reqs.has_key(cseq) and code == 401 and \
+        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 401 and \
           resp.countHFs('www-authenticate') != 0 and \
           self.username != None and self.password != None and self.reqs[cseq].countHFs('authorization') == 0:
             challenge = resp.getHFBody('www-authenticate')
@@ -188,7 +188,7 @@ class UA(object):
               laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
             del self.reqs[cseq]
             return None
-        if method == 'INVITE' and not self.pass_auth and self.reqs.has_key(cseq) and code == 407 and \
+        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 407 and \
           resp.countHFs('proxy-authenticate') != 0 and \
           self.username != None and self.password != None and self.reqs[cseq].countHFs('proxy-authorization') == 0:
             challenge = resp.getHFBody('proxy-authenticate')
@@ -198,7 +198,7 @@ class UA(object):
               laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
             del self.reqs[cseq]
             return None
-        if code >= 200 and self.reqs.has_key(cseq):
+        if code >= 200 and cseq in self.reqs:
             del self.reqs[cseq]
         newstate = self.state.recvResponse(resp, tr)
         if newstate != None:

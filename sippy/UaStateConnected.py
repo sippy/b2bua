@@ -301,9 +301,9 @@ class UaStateConnected(UaStateGeneric):
         self.ua.global_config['_sip_tm'].newTransaction(req, \
           laddress = self.ua.source_address, compact = self.ua.compact_sip)
 
-if not globals().has_key('UaStateDisconnected'):
+if not 'UaStateDisconnected' in globals():
     from UaStateDisconnected import UaStateDisconnected
-if not globals().has_key('UasStateUpdating'):
+if not 'UasStateUpdating' in globals():
     from UasStateUpdating import UasStateUpdating
-if not globals().has_key('UacStateUpdating'):
+if not 'UacStateUpdating' in globals():
     from UacStateUpdating import UacStateUpdating

@@ -147,11 +147,11 @@ class UasStateTrying(UaStateGeneric):
                 pass
         self.ua.emitEvent(event)
 
-if not globals().has_key('UasStateRinging'):
+if not 'UasStateRinging' in globals():
     from UasStateRinging import UasStateRinging
-if not globals().has_key('UaStateFailed'):
+if not 'UaStateFailed' in globals():
     from UaStateFailed import UaStateFailed
-if not globals().has_key('UaStateConnected'):
+if not 'UaStateConnected' in globals():
     from UaStateConnected import UaStateConnected
-if not globals().has_key('UaStateDisconnected'):
+if not 'UaStateDisconnected' in globals():
     from UaStateDisconnected import UaStateDisconnected

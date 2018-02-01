@@ -158,7 +158,7 @@ class B2BRoute(object):
             self.cli = default_cli
         if not self.crt_set:
             self.crt_set = default_credit_time
-        if self.params.has_key('gt'):
+        if 'gt' in self.params:
             timeout, skip = self.params['gt'].split(',', 1)
             self.params['group_timeout'] = (int(timeout), rnum + int(skip))
         if self.extra_headers != None:

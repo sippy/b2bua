@@ -127,7 +127,7 @@ class MyConfigParser(RawConfigParser):
 
     def __contains__(self, key):
         if key.startswith('_'):
-            return self._private_keys.has_key(key)
+            return key in self._private_keys
         return self.has_option(self.default_section, key)
 
     def get(self, *args):

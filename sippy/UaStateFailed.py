@@ -40,5 +40,5 @@ class UaStateFailed(UaStateGeneric):
         #print 'Time in Failed state expired, going to the Dead state'
         self.ua.changeState((UaStateDead,))
 
-if not globals().has_key('UaStateDead'):
+if not 'UaStateDead' in globals():
     from UaStateDead import UaStateDead

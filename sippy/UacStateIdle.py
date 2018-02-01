@@ -105,7 +105,7 @@ class UacStateIdle(UaStateGeneric):
             return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)
         return None
 
-if not globals().has_key('UacStateTrying'):
+if not 'UacStateTrying' in globals():
     from UacStateTrying import UacStateTrying
-if not globals().has_key('UaStateDead'):
+if not 'UaStateDead' in globals():
     from UaStateDead import UaStateDead

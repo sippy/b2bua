@@ -136,7 +136,7 @@ class UasStateUpdating(UaStateGeneric):
                 pass
         self.ua.emitEvent(event)
 
-if not globals().has_key('UaStateConnected'):
+if not 'UaStateConnected' in globals():
     from UaStateConnected import UaStateConnected
-if not globals().has_key('UaStateDisconnected'):
+if not 'UaStateDisconnected' in globals():
     from UaStateDisconnected import UaStateDisconnected

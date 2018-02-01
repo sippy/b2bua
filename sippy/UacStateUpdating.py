@@ -129,7 +129,7 @@ class UacStateUpdating(UaStateGeneric):
         #print 'wrong event %s in the Updating state' % event
         return None
 
-if not globals().has_key('UaStateConnected'):
+if not 'UaStateConnected' in globals():
     from UaStateConnected import UaStateConnected
-if not globals().has_key('UaStateDisconnected'):
+if not 'UaStateDisconnected' in globals():
     from UaStateDisconnected import UaStateDisconnected

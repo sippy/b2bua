@@ -100,7 +100,7 @@ class UacStateCancelling(UaStateGeneric):
         #print 'wrong event %s in the Cancelling state' % event
         return None
 
-if not globals().has_key('UaStateDead'):
+if not 'UaStateDead' in globals():
     from UaStateDead import UaStateDead
-if not globals().has_key('UaStateDisconnected'):
+if not 'UaStateDisconnected' in globals():
     from UaStateDisconnected import UaStateDisconnected

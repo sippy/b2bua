@@ -50,7 +50,7 @@ class MsgBody(object):
 
     def parse(self):
         if not self.parsed:
-            if b_types.has_key(self.mtype):
+            if self.mtype in b_types:
                 self.content = b_types[self.mtype](self.content)
             self.parsed = True
 
