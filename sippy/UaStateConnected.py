@@ -190,7 +190,7 @@ class UaStateConnected(UaStateGeneric):
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
                 try:
                     self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event), en_excpt = True)
-                except Exception, e:
+                except Exception as e:
                     event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
                     event.setWarning(str(e))
                     self.ua.equeue.append(event)
@@ -276,10 +276,10 @@ class UaStateConnected(UaStateGeneric):
         self.keepalives += 1
         if code in (408, 481, 486):
             if self.keepalives == 1:
-                print '%s: Remote UAS at %s:%d does not support re-INVITES, disabling keep alives' % (self.ua.cId, self.ua.rAddr[0], self.ua.rAddr[1])
+                print('%s: Remote UAS at %s:%d does not support re-INVITES, disabling keep alives' % (self.ua.cId, self.ua.rAddr[0], self.ua.rAddr[1]))
                 Timeout(self.ua.disconnect, 600)
                 return
-            print '%s: Received %d response to keep alive from %s:%d, disconnecting the call' % (self.ua.cId, code, self.ua.rAddr[0], self.ua.rAddr[1])
+            print('%s: Received %d response to keep alive from %s:%d, disconnecting the call' % (self.ua.cId, code, self.ua.rAddr[0], self.ua.rAddr[1]))
             self.ua.disconnect()
             return
         Timeout(self.keepAlive, self.ua.kaInterval)
