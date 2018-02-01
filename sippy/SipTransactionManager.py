@@ -262,6 +262,7 @@ class SipTransactionManager(object):
             self.transmitData(retrans.userv, retrans.data, retrans.address, \
               lossemul = retrans.lossemul)
             return
+        data = data.decode()
         if data.startswith('SIP/2.0 '):
             try:
                 resp = SipResponse(data)
