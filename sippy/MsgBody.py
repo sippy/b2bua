@@ -26,7 +26,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from SdpBody import SdpBody
-from types import StringType
 
 b_types = {'application/sdp':SdpBody}
 
@@ -41,7 +40,7 @@ class MsgBody(object):
             self.mtype = mtype
             self.content = content
         else:
-            if type(cself.content) == StringType:
+            if type(cself.content) == str:
                 self.content = cself.content
             else:
                 self.content = cself.content.getCopy()
@@ -58,7 +57,7 @@ class MsgBody(object):
         return str(self.content)
 
     def localStr(self, local_addr = None, local_port = None):
-        if type(self.content) == StringType:
+        if type(self.content) == str:
             return self.content
         return self.content.localStr(local_addr, local_port)
 
