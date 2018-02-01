@@ -26,8 +26,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#import sys
-#sys.path.append('..')
+import sys
+from os.path import dirname, join as p_join
+sys.path.append(p_join(dirname(sys.argv[0]), '..'))
 
 from sippy.Core.EventDispatcher import ED2
 from sippy.Time.MonoTime import MonoTime
@@ -56,7 +57,8 @@ from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
 from sippy.misc import daemonize
 from sippy.B2BRoute import B2BRoute
-import gc, getopt, os, sys
+
+import gc, getopt, os
 from re import sub
 try:
     from urllib import quote
