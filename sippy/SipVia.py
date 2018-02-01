@@ -81,7 +81,7 @@ class SipVia(SipGenericHF):
         if len(hcomps) == 2:
             try:
                 self.port = int(hcomps[1])
-            except Exception, e:
+            except Exception as e:
                 # XXX: some bad-ass devices send us port number twice
                 # While not allowed by the RFC, deal with it
                 portparts = hcomps[1].split(':', 1)
@@ -119,7 +119,7 @@ class SipVia(SipGenericHF):
         return SipVia(sipver = self.sipver, hostname = self.hostname, port = self.port, params = self.params.copy())
 
     def genBranch(self):
-        self.params['branch'] = 'z9hG4bK' + md5(str((random() * 1000000000L) + time())).hexdigest()
+        self.params['branch'] = 'z9hG4bK' + md5(str((random() * 1000000000) + time())).hexdigest()
 
     def getBranch(self):
         return self.params.get('branch', None)
