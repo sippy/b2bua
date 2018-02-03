@@ -50,7 +50,7 @@ from sippy.FakeAccounting import FakeAccounting
 from sippy.SipLogger import SipLogger
 from sippy.Rtp_proxy_session import Rtp_proxy_session
 from sippy.Rtp_proxy_client import Rtp_proxy_client
-from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2
+from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2, SIGTERM
 from sippy.CLIManager import CLIConnectionManager
 from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
@@ -406,6 +406,7 @@ class CallMap(object):
         Signal(SIGHUP, self.discAll, SIGHUP)
         Signal(SIGUSR2, self.toggleDebug, SIGUSR2)
         Signal(SIGPROF, self.safeRestart, SIGPROF)
+        Signal(SIGTERM, self.safeStop, SIGTERM)
         #gc.disable()
         #gc.set_debug(gc.DEBUG_STATS)
         #gc.set_threshold(0)
@@ -491,6 +492,35 @@ class CallMap(object):
     def safeRestart(self, signum):
         print('Signal %d received, scheduling safe restart' % signum)
         self.safe_restart = True
+
+    def safeStop(self, signum):
+        print('Signal %d received, scheduling safe stop' % signum)
+        self.discAll(signum)
+        self.safe_stop = True
+        self.global_config['_executeStop_count'] = 0
+        self.er_timer = Timeout(self.executeStop, 0.5, -1)
+
+    def executeStop(self):
+        if not self.safe_stop:
+            return
+        self.global_config['_executeStop_count'] += 1
+        acalls = [x for x in self.ccmap if x.state in (CCStateConnected, CCStateARComplete)]
+        nactive = len(acalls)
+        print('[%d]: executeStop is invoked, %d calls in map, %d active' % \
+          (self.global_config['_my_pid'], len(self.ccmap), nactive))
+        if self.global_config['_executeStop_count'] >= 5 and nactive > 0:
+            print('executeStop: some sessions would not die, forcing exit:')
+            for cc in acalls:
+                print('\t' + str(cc))
+            nactive = 0
+        if nactive > 0:
+            return
+        self.er_timer.cancel()
+        del self.er_timer
+        sys.stdout.flush()
+        sys.stderr.flush()
+        ED2.breakLoop()
+        return
 
     def GClector(self):
         print('GC is invoked, %d calls in map' % len(self.ccmap))
@@ -647,6 +677,7 @@ def main_func():
     global_config['b2bua_socket'] = '/var/run/b2bua.sock'
     global_config['_sip_address'] = SipConf.my_address
     global_config['_sip_port'] = SipConf.my_port
+    global_config['_my_pid'] = os.getpid()
     rtp_proxy_clients = []
     writeconf = None
     for o, a in opts:
