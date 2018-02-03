@@ -142,6 +142,7 @@ class SipLogger(object):
             self.offstime = True
             itime = os.environ.get('SIPLOG_TSTART', self.itime)
             self.itime = float(itime)
+        self.level = eval('SIPLOG_' + os.environ.get('SIPLOG_LVL', 'INFO'))
         if bend == 'stderr':
             self.write = self.write_stderr
         elif bend == 'none':
@@ -157,7 +158,6 @@ class SipLogger(object):
             else:
                 self.logger = AsyncLoggerSyslog(app, self)
                 self.app = ''
-        self.level = eval('SIPLOG_' + os.environ.get('SIPLOG_LVL', 'INFO'))
 
     def ftime(self, ltime):
         if self.offstime:
