@@ -27,8 +27,10 @@
 from sippy.SipURL import SipURL
 try:
     from string import maketrans
+    needquotes = lambda x, y: not x.encode().translate(y).isalnum()
 except ImportError:
     maketrans = str.maketrans
+    needquotes = lambda x, y: not x.translate(y).isalnum()
 
 def findquotes(s, pos = 1):
     rval = []
@@ -136,7 +138,7 @@ class SipAddress(object):
             cd = ''
         s = ''
         if self.name != None and len(self.name) > 0:
-            if not self.name.translate(self.transtable).isalnum():
+            if needquotes(self.name, self.transtable):
                 s += '"%s" ' % self.name
             else:
                 s += self.name + ' '
