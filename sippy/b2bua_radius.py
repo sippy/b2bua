@@ -825,7 +825,7 @@ def main_func():
     cli_server = CLIConnectionManager(global_config['_cmap'].recvCommand, cmdfile)
 
     if not global_config['foreground']:
-        file(global_config['pidfile'], 'w').write(str(os.getpid()) + '\n')
+        open(global_config['pidfile'], 'w').write(str(os.getpid()) + '\n')
         Signal(SIGUSR1, reopen, SIGUSR1, global_config['logfile'])
 
     ED2.loop()

@@ -87,7 +87,7 @@ class AsyncLogger(Thread):
 
     def safe_open(self):
         try:
-            self.log = file(self.master.logfile, 'a')
+            self.log = open(self.master.logfile, 'a')
         except Exception as e:
             print(e)
 
