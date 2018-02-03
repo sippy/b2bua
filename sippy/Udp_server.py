@@ -237,7 +237,7 @@ class Udp_server(object):
                     return
             if self.uopts.pdelay_in_max > 0.0 and not delayed:
                 pdelay = self.uopts.pdelay_in_max * random()
-                Timeout(self.handle_read, pdelay, 1, data, address, rtime + pdelay, True)
+                Timeout(self.handle_read, pdelay, 1, data, address, rtime.getOffsetCopy(pdelay), True)
                 return
             try:
                 self.uopts.data_callback(data, address, self, rtime)
