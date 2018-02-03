@@ -26,6 +26,8 @@
 
 from sippy.SipGenericHF import SipGenericHF
 
+from functools import reduce
+
 class SipSupported(SipGenericHF):
     hf_names = ('supported',)
     caps = None

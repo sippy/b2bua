@@ -26,6 +26,8 @@
 
 from sippy.SipGenericHF import SipGenericHF
 
+from functools import reduce
+
 class SipAllow(SipGenericHF):
     hf_names = ('allow',)
     methods = None

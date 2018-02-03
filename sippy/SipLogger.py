@@ -29,7 +29,9 @@ from time import time, localtime, strftime
 from fcntl import flock, LOCK_EX, LOCK_UN
 from signal import SIGUSR1
 from threading import Thread, Condition
+
 import sys, os, syslog
+from functools import reduce
 
 SIPLOG_DBUG = 0
 SIPLOG_INFO = 1
