@@ -247,11 +247,12 @@ class SipTransactionManager(object):
         self.req_consumers = {}
         Timeout(self.rCachePurge, 32, -1)
 
-    def handleIncoming(self, data, address, server, rtime):
-        if len(data) < 32:
+    def handleIncoming(self, data_in, address, server, rtime):
+        if len(data_in) < 32:
             return
+        data = data_in.decode()
         self.global_config['_sip_logger'].write('RECEIVED message from %s:%d:\n' % address, data, ltime = rtime.realt)
-        checksum = md5(data).digest()
+        checksum = md5(data_in).digest()
         retrans = self.l1rcache.get(checksum, None)
         if retrans == None:
             retrans = self.l2rcache.get(checksum, None)
@@ -261,7 +262,6 @@ class SipTransactionManager(object):
             self.transmitData(retrans.userv, retrans.data, retrans.address, \
               lossemul = retrans.lossemul)
             return
-        data = data.decode()
         if data.startswith('SIP/2.0 '):
             try:
                 resp = SipResponse(data)
