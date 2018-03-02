@@ -146,7 +146,3 @@ def main_func():
     global_config['_sip_tm'] = SipTransactionManager(global_config, cmap.recvRequest)
 
     reactor.run(installSignalHandlers = True)
-
-if __name__ == '__main__':
-    main_func()
-

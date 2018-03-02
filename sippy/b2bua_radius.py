@@ -756,14 +756,26 @@ def main_func():
         global_config.write(open(writeconf, 'w'))
 
     if not global_config['foreground']:
-        daemonize(logfile = global_config['logfile'])
+        try:
+            daemonize(logfile = global_config['logfile'])
+        except IOError as e:
+            print("IOError: {}".format(e))
+            sys.exit(e.errno)
 
     global_config['_sip_logger'] = SipLogger('b2bua')
 
     if len(rtp_proxy_clients) > 0:
         global_config['_rtp_proxy_clients'] = []
         for address in rtp_proxy_clients:
-            global_config['_rtp_proxy_clients'].append(Rtp_proxy_client(global_config, spath = address))
+            client = Rtp_proxy_client(global_config, spath = address)
+
+            if 'hrtb_ival' in global_config:
+                client.hrtb_ival = global_config['hrtb_ival']
+
+            if 'hrtb_retr_ival' in global_config:
+                client.hrtb_retr_ival = global_config['hrtb_retr_ival']
+
+            global_config['_rtp_proxy_clients'].append(client)
 
     if global_config['auth_enable'] or global_config['acct_enable']:
         global_config['_radius_client'] = RadiusAuthorisation(global_config)
@@ -794,7 +806,3 @@ def main_func():
 
     reactor.suggestThreadPoolSize(50)
     reactor.run(installSignalHandlers = True)
-
-
-if __name__ == '__main__':
-    main_func()
