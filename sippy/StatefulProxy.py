@@ -24,15 +24,15 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipVia import SipVia
-from SipHeader import SipHeader
+from sippy.SipVia import SipVia
+from sippy.SipHeader import SipHeader
 
 class StatefulProxy:
     global_config = None
     destination = None
 
     def __init__(self, global_config, destination):
-        print destination
+        print(destination)
         self.global_config = global_config
         self.destination = destination
 
@@ -42,7 +42,7 @@ class StatefulProxy:
         via1 = req.getHF('via')
         req.insertHeaderBefore(via1, SipHeader(name = 'via', body = via0))
         req.setTarget(self.destination)
-        print req
+        print(req)
         self.global_config['_sip_tm'].newTransaction(req, self.recvResponse)
         return (None, None, None)
 

@@ -28,8 +28,8 @@ from random import random
 from hashlib import md5
 from time import time
 from math import floor
-from SipConf import SipConf
-from SipGenericHF import SipGenericHF
+from sippy.SipConf import SipConf
+from sippy.SipGenericHF import SipGenericHF
 
 CALL_ID_CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-.!%*_+`\'~()<>:\\"/[]?{}'
 _clen = len(CALL_ID_CHARSET)
@@ -52,13 +52,15 @@ class SipCallId(SipGenericHF):
         SipGenericHF.__init__(self, body)
         self.parsed = True
         if body == None:
-            self.body = md5(str((random() * 1000000000L) + time())).hexdigest() + '@' + str(SipConf.my_address)
+            salt = str((random() * 1000000000) + time())
+            self.body = md5(salt.encode()).hexdigest() + '@' + str(SipConf.my_address)
 
     def __add__(self, other):
         return SipCallId(self.body + str(other))
 
     def genCallId(self):
-        self.body = md5(str((random() * 1000000000L) + time())).hexdigest() + '@' + str(SipConf.my_address)
+        salt = str((random() * 1000000000) + time())
+        self.body = md5(salt.encode()).hexdigest() + '@' + str(SipConf.my_address)
 
     def getCanName(self, name, compact = False):
         if compact:

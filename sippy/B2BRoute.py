@@ -27,7 +27,10 @@
 from sippy.SipHeader import SipHeader
 from sippy.SipConf import SipConf
 
-from urllib import unquote
+try:
+    from urllib import unquote
+except ImportError:
+    from urllib.parse import unquote
 from socket import getaddrinfo, SOCK_STREAM, AF_INET, AF_INET6
 
 class B2BRoute(object):
@@ -158,7 +161,7 @@ class B2BRoute(object):
             self.cli = default_cli
         if not self.crt_set:
             self.crt_set = default_credit_time
-        if self.params.has_key('gt'):
+        if 'gt' in self.params:
             timeout, skip = self.params['gt'].split(',', 1)
             self.params['group_timeout'] = (int(timeout), rnum + int(skip))
         if self.extra_headers != None:

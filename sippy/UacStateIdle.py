@@ -24,15 +24,15 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Timeout import TimeoutAbs
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventTry, CCEventFail, CCEventRedirect, CCEventDisconnect
-from SipContact import SipContact
-from SipAddress import SipAddress
-from SipURL import SipURL
-from SipTo import SipTo
-from SipFrom import SipFrom
-from SipCallId import SipCallId
+from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventTry, CCEventFail, CCEventRedirect, CCEventDisconnect
+from sippy.SipContact import SipContact
+from sippy.SipAddress import SipAddress
+from sippy.SipURL import SipURL
+from sippy.SipTo import SipTo
+from sippy.SipFrom import SipFrom
+from sippy.SipCallId import SipCallId
 
 class UacStateIdle(UaStateGeneric):
     sname = 'Idle(UAC)'
@@ -95,17 +95,17 @@ class UacStateIdle(UaStateGeneric):
                 else:
                         self.ua.no_reply_time = None
             if self.ua.no_reply_time != None:
-                self.ua.no_reply_timer = TimeoutAbs(self.ua.no_reply_expires, self.ua.no_reply_time)
+                self.ua.no_reply_timer = TimeoutAbsMono(self.ua.no_reply_expires, self.ua.no_reply_time)
             elif self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbs(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
             elif self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
             return (UacStateTrying,)
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
             return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)
         return None
 
-if not globals().has_key('UacStateTrying'):
-    from UacStateTrying import UacStateTrying
-if not globals().has_key('UaStateDead'):
-    from UaStateDead import UaStateDead
+if not 'UacStateTrying' in globals():
+    from sippy.UacStateTrying import UacStateTrying
+if not 'UaStateDead' in globals():
+    from sippy.UaStateDead import UaStateDead

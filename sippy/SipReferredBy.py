@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipAddressHF import SipAddressHF
+from sippy.SipAddressHF import SipAddressHF
 
 class SipReferredBy(SipAddressHF):
     hf_names = ('referred-by',)

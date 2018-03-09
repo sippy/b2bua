@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipServer import SipServer
+from sippy.SipServer import SipServer
 
 class SipUserAgent(SipServer):
     hf_names = ('user-agent',)

@@ -24,15 +24,15 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Timeout import TimeoutAbs
-from SipAddress import SipAddress
-from SipRoute import SipRoute
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventTry
-from SipContact import SipContact
-from SipCiscoGUID import SipCiscoGUID
-from SipFrom import SipFrom
-from SipTo import SipTo
+from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventTry
+from sippy.SipContact import SipContact
+from sippy.SipCiscoGUID import SipCiscoGUID
+from sippy.SipFrom import SipFrom
+from sippy.SipTo import SipTo
 
 class UasStateIdle(UaStateGeneric):
     sname = 'Idle(UAS)'
@@ -106,9 +106,9 @@ class UasStateIdle(UaStateGeneric):
             if self.ua.expire_time != None and self.ua.no_progress_time >= self.ua.expire_time:
                 self.ua.no_progress_time = None
         if self.ua.no_progress_time != None:
-            self.ua.no_progress_timer = TimeoutAbs(self.ua.no_progress_expires, self.ua.no_progress_time)
+            self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
         elif self.ua.expire_time != None:
-            self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+            self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
         if body != None:
             if self.ua.on_remote_sdp_change != None:
                 self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))
@@ -122,5 +122,5 @@ class UasStateIdle(UaStateGeneric):
         self.ua.setup_ts = req.rtime
         return (UasStateTrying,)
 
-if not globals().has_key('UasStateTrying'):
-    from UasStateTrying import UasStateTrying
+if not 'UasStateTrying' in globals():
+    from sippy.UasStateTrying import UasStateTrying

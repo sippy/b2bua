@@ -24,11 +24,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipAddress import SipAddress
-from SipRoute import SipRoute
-from UaStateGeneric import UaStateGeneric
-from Timeout import TimeoutAbs
-from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 from SipHeader import SipHeader
 from SipRAck import SipRAck
@@ -47,9 +47,9 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_reply_timer.cancel()
             self.ua.no_reply_timer = None
             if code == 100 and self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbs(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
             elif code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
         if code == 100:
             if self.ua.p100_ts == None:
                 self.ua.p100_ts = resp.rtime
@@ -59,7 +59,7 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_progress_timer.cancel()
             self.ua.no_progress_timer = None
             if code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
         if code < 200:
             if resp.countHFs('rseq') > 0:
                 tag = resp.getHFBody('to').getTag()
@@ -110,7 +110,7 @@ class UacStateTrying(UaStateGeneric):
                 self.ua.rAddr = self.ua.rTarget.getAddr()
             tag = resp.getHFBody('to').getTag()
             if tag == None:
-                print 'tag-less 200 OK, disconnecting'
+                print('tag-less 200 OK, disconnecting')
                 scode = (502, 'Bad Gateway')
                 self.ua.equeue.append(CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin))
                 # Generate and send BYE
@@ -197,11 +197,11 @@ class UacStateTrying(UaStateGeneric):
         #print 'wrong event %s in the Trying state' % event
         return None
 
-if not globals().has_key('UacStateRinging'):
-    from UacStateRinging import UacStateRinging
-if not globals().has_key('UaStateFailed'):
-    from UaStateFailed import UaStateFailed
-if not globals().has_key('UaStateConnected'):
-    from UaStateConnected import UaStateConnected
-if not globals().has_key('UacStateCancelling'):
-    from UacStateCancelling import UacStateCancelling
+if not 'UacStateRinging' in globals():
+    from sippy.UacStateRinging import UacStateRinging
+if not 'UaStateFailed' in globals():
+    from sippy.UaStateFailed import UaStateFailed
+if not 'UaStateConnected' in globals():
+    from sippy.UaStateConnected import UaStateConnected
+if not 'UacStateCancelling' in globals():
+    from sippy.UacStateCancelling import UacStateCancelling

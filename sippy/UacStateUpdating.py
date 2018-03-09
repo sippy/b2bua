@@ -24,8 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
 
 class UacStateUpdating(UaStateGeneric):
     sname = 'Updating(UAC)'
@@ -66,7 +66,7 @@ class UacStateUpdating(UaStateGeneric):
                     cb_func = lambda x: self.ua.delayed_remote_sdp_update(event, x)
                     try:
                         self.ua.on_remote_sdp_change(body, cb_func, en_excpt = True)
-                    except Exception, e:
+                    except Exception as e:
                         event = CCEventFail((502, 'Bad Gateway'), rtime = event.rtime)
                         event.setWarning('Malformed SDP Body received from ' \
                           'downstream: "%s"' % str(e))
@@ -129,7 +129,7 @@ class UacStateUpdating(UaStateGeneric):
         #print 'wrong event %s in the Updating state' % event
         return None
 
-if not globals().has_key('UaStateConnected'):
-    from UaStateConnected import UaStateConnected
-if not globals().has_key('UaStateDisconnected'):
-    from UaStateDisconnected import UaStateDisconnected
+if not 'UaStateConnected' in globals():
+    from sippy.UaStateConnected import UaStateConnected
+if not 'UaStateDisconnected' in globals():
+    from sippy.UaStateDisconnected import UaStateDisconnected

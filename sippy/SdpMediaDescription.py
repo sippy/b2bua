@@ -24,9 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SdpConnecton import SdpConnecton
-from SdpMedia import SdpMedia
-from SdpGeneric import SdpGeneric
+from sippy.SdpConnecton import SdpConnecton
+from sippy.SdpMedia import SdpMedia
+from sippy.SdpGeneric import SdpGeneric
 
 f_types = {'m':SdpMedia, 'i':SdpGeneric, 'c':SdpConnecton, 'b':SdpGeneric, \
   'k':SdpGeneric}

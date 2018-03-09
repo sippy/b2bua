@@ -24,8 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Timeout import Timeout
-from UaStateGeneric import UaStateGeneric
+from sippy.Time.Timeout import Timeout
+from sippy.UaStateGeneric import UaStateGeneric
 
 class UaStateDisconnected(UaStateGeneric):
     sname = 'Disconnected'
@@ -48,5 +48,5 @@ class UaStateDisconnected(UaStateGeneric):
         #print 'Time in Disconnected state expired, going to the Dead state'
         self.ua.changeState((UaStateDead,))
 
-if not globals().has_key('UaStateDead'):
-    from UaStateDead import UaStateDead
+if not 'UaStateDead' in globals():
+    from sippy.UaStateDead import UaStateDead

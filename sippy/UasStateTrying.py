@@ -24,12 +24,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
-from SipContact import SipContact
-from SipAddress import SipAddress
-from Timeout import TimeoutAbs
+from sippy.SipContact import SipContact
+from sippy.SipAddress import SipAddress
+from sippy.Time.Timeout import TimeoutAbsMono
 
 class UasStateTrying(UaStateGeneric):
     sname = 'Trying(UAS)'
@@ -52,7 +52,7 @@ class UasStateTrying(UaStateGeneric):
                 self.ua.no_progress_timer.cancel()
                 self.ua.no_progress_timer = None
                 if self.ua.expire_time != None:
-                    self.ua.expire_timer = TimeoutAbs(self.ua.expires, self.ua.expire_time)
+                    self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
             if self.ua.p1xx_ts == None:
                 self.ua.p1xx_ts = event.rtime
             return (UasStateRinging, self.ua.ring_cbs, event.rtime, event.origin, code)
@@ -147,11 +147,11 @@ class UasStateTrying(UaStateGeneric):
                 pass
         self.ua.emitEvent(event)
 
-if not globals().has_key('UasStateRinging'):
-    from UasStateRinging import UasStateRinging
-if not globals().has_key('UaStateFailed'):
-    from UaStateFailed import UaStateFailed
-if not globals().has_key('UaStateConnected'):
-    from UaStateConnected import UaStateConnected
-if not globals().has_key('UaStateDisconnected'):
-    from UaStateDisconnected import UaStateDisconnected
+if not 'UasStateRinging' in globals():
+    from sippy.UasStateRinging import UasStateRinging
+if not 'UaStateFailed' in globals():
+    from sippy.UaStateFailed import UaStateFailed
+if not 'UaStateConnected' in globals():
+    from sippy.UaStateConnected import UaStateConnected
+if not 'UaStateDisconnected' in globals():
+    from sippy.UaStateDisconnected import UaStateDisconnected

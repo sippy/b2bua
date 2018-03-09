@@ -24,10 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SdpMediaDescription import SdpMediaDescription
-from SdpGeneric import SdpGeneric
-from SdpOrigin import SdpOrigin
-from SdpConnecton import SdpConnecton
+from sippy.SdpMediaDescription import SdpMediaDescription
+from sippy.SdpGeneric import SdpGeneric
+from sippy.SdpOrigin import SdpOrigin
+from sippy.SdpConnecton import SdpConnecton
 
 f_types = {'v':SdpGeneric, 'o':SdpOrigin, 's':SdpGeneric, 'i':SdpGeneric, \
   'u':SdpGeneric, 'e':SdpGeneric, 'p':SdpGeneric, 'c':SdpConnecton, \

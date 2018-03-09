@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipNumericHF import SipNumericHF
+from sippy.SipNumericHF import SipNumericHF
 
 class SipContentLength(SipNumericHF):
     hf_names = ('content-length', 'l')

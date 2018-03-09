@@ -24,10 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipAddress import SipAddress
-from SipRoute import SipRoute
-from UaStateGeneric import UaStateGeneric
-from CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 from SipHeader import SipHeader
 from SipRAck import SipRAck
@@ -93,7 +93,7 @@ class UacStateRinging(UaStateGeneric):
                 self.ua.rAddr = self.ua.rTarget.getAddr()
             tag = resp.getHFBody('to').getTag()
             if tag == None:
-                print 'tag-less 200 OK, disconnecting'
+                print('tag-less 200 OK, disconnecting')
                 scode = (502, 'Bad Gateway')
                 self.ua.equeue.append(CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin))
                 if resp.countHFs('contact') > 0:
@@ -170,9 +170,9 @@ class UacStateRinging(UaStateGeneric):
         #print 'wrong event %s in the Ringing state' % event
         return None
 
-if not globals().has_key('UaStateFailed'):
-    from UaStateFailed import UaStateFailed
-if not globals().has_key('UaStateConnected'):
-    from UaStateConnected import UaStateConnected
-if not globals().has_key('UacStateCancelling'):
-    from UacStateCancelling import UacStateCancelling
+if not 'UaStateFailed' in globals():
+    from sippy.UaStateFailed import UaStateFailed
+if not 'UaStateConnected' in globals():
+    from sippy.UaStateConnected import UaStateConnected
+if not 'UacStateCancelling' in globals():
+    from sippy.UacStateCancelling import UacStateCancelling

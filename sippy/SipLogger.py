@@ -24,12 +24,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Signal import LogSignal
+from sippy.Signal import LogSignal
 from time import time, localtime, strftime
 from fcntl import flock, LOCK_EX, LOCK_UN
 from signal import SIGUSR1
 from threading import Thread, Condition
+
 import sys, os, syslog
+from functools import reduce
 
 SIPLOG_DBUG = 0
 SIPLOG_INFO = 1
@@ -73,7 +75,7 @@ class AsyncLogger(Thread):
         my_flock = flock
         try:
             my_flock(self.log, LOCK_EX)
-        except IOError, e:
+        except IOError as e:
             # Catch ENOTSUP
             if e.args[0] != 45:
                 raise e
@@ -87,9 +89,9 @@ class AsyncLogger(Thread):
 
     def safe_open(self):
         try:
-            self.log = file(self.master.logfile, 'a')
-        except Exception, e:
-            print e
+            self.log = open(self.master.logfile, 'a')
+        except Exception as e:
+            print(e)
 
     def shutdown(self):
         self.master.wi_available.acquire()
@@ -106,14 +108,14 @@ class AsyncLoggerSyslog(AsyncLogger):
     def safe_open(self):
         try:
             syslog.openlog(self.app, syslog.LOG_PID)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
 
     def do_write(self, obuf):
         try:
             syslog.syslog(syslog.LOG_NOTICE, obuf)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             pass
 
     def closelog(self):
@@ -142,6 +144,7 @@ class SipLogger(object):
             self.offstime = True
             itime = os.environ.get('SIPLOG_TSTART', self.itime)
             self.itime = float(itime)
+        self.level = eval('SIPLOG_' + os.environ.get('SIPLOG_LVL', 'INFO'))
         if bend == 'stderr':
             self.write = self.write_stderr
         elif bend == 'none':
@@ -157,7 +160,6 @@ class SipLogger(object):
             else:
                 self.logger = AsyncLoggerSyslog(app, self)
                 self.app = ''
-        self.level = eval('SIPLOG_' + os.environ.get('SIPLOG_LVL', 'INFO'))
 
     def ftime(self, ltime):
         if self.offstime:
@@ -195,7 +197,7 @@ class SipLogger(object):
         self.wi_available.notify()
         self.wi_available.release()
         if discarded and self.discarded % 1000 == 0:
-            print 'SipLogger: discarded %d requests, I/O too slow' % self.discarded
+            print('SipLogger: discarded %d requests, I/O too slow' % self.discarded)
 
     def format(self, args, kwargs):
         ltime = kwargs.get('ltime', None)

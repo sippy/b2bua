@@ -26,8 +26,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from ConfigParser import RawConfigParser
-from SipConf import SipConf
+try:
+    from ConfigParser import RawConfigParser
+    _boolean_states = RawConfigParser._boolean_states
+except ImportError:
+    from configparser import RawConfigParser
+    _boolean_states = RawConfigParser.BOOLEAN_STATES
+from sippy.SipConf import SipConf
 
 SUPPORTED_OPTIONS = { \
  'acct_enable':       ('B', 'enable or disable Radius accounting'), \
@@ -96,30 +101,30 @@ SUPPORTED_OPTIONS = { \
  'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server')}
 
 class MyConfigParser(RawConfigParser):
-    default_section = None
+    _default_section = None
     _private_keys = None
 
     def __init__(self, default_section = 'general'):
-        self.default_section = default_section
+        self._default_section = default_section
         self._private_keys = {}
         RawConfigParser.__init__(self)
-        self.add_section(self.default_section)
+        self.add_section(self._default_section)
 
     def __getitem__(self, key):
         if key.startswith('_'):
             return self._private_keys[key]
         value_type  = SUPPORTED_OPTIONS[key][0]
         if value_type  == 'B':
-            return self.getboolean(self.default_section, key)
+            return self.getboolean(self._default_section, key)
         elif value_type == 'I':
-            return self.getint(self.default_section, key)
-        return self.get(self.default_section, key)
+            return self.getint(self._default_section, key)
+        return self.get(self._default_section, key)
 
     def __setitem__(self, key, value):
         if key.startswith('_'):
             self._private_keys[key] = value
         else:
-            self.set(self.default_section, key, str(value))
+            self.set(self._default_section, key, str(value))
         return
 
     def has_key(self, key):
@@ -127,13 +132,13 @@ class MyConfigParser(RawConfigParser):
 
     def __contains__(self, key):
         if key.startswith('_'):
-            return self._private_keys.has_key(key)
-        return self.has_option(self.default_section, key)
+            return key in self._private_keys
+        return self.has_option(self._default_section, key)
 
-    def get(self, *args):
+    def get(self, *args, **kwargs):
         if len(args) == 1:
             return self.__getitem__(args[0])
-        return RawConfigParser.get(self, *args)
+        return RawConfigParser.get(self, *args, **kwargs)
 
     def getdefault(self, key, default_value):
         if self.__contains__(key):
@@ -145,9 +150,9 @@ class MyConfigParser(RawConfigParser):
 
     def read(self, fname):
         RawConfigParser.readfp(self, open(fname))
-        for key in tuple(self.options(self.default_section)):
+        for key in tuple(self.options(self._default_section)):
             self.check_and_set(key, RawConfigParser.get(self, \
-              self.default_section, key), False)
+              self._default_section, key), False)
 
     def check_and_set(self, key, value, compat = True):
         value = value.strip()
@@ -177,16 +182,16 @@ class MyConfigParser(RawConfigParser):
 
         value_type  = SUPPORTED_OPTIONS[key][0]
         if value_type == 'B':
-            if value.lower() not in self._boolean_states:
-                raise ValueError, 'Not a boolean: %s' % value
+            if value.lower() not in _boolean_states:
+                raise ValueError('Not a boolean: %s' % value)
         elif value_type == 'I':
             _value = int(value)
         if key in ('keepalive_ans', 'keepalive_orig'):
             if _value < 0:
-                raise ValueError, 'keepalive_ans should be non-negative'
+                raise ValueError('keepalive_ans should be non-negative')
         elif key == 'max_credit_time':
             if _value <= 0:
-                raise ValueError, 'max_credit_time should be more than zero'
+                raise ValueError('max_credit_time should be more than zero')
         elif key == 'allowed_pts':
             self['_allowed_pts'] = [int(x) for x in value.split(',')]
         elif key in ('accept_ips', 'rtp_proxy_clients'):
@@ -203,13 +208,12 @@ class MyConfigParser(RawConfigParser):
                 self['_sip_address'] = value
         elif key == 'sip_port':
             if _value <= 0 or _value > 65535:
-                raise ValueError, 'sip_port should be in the range 1-65535'
+                raise ValueError('sip_port should be in the range 1-65535')
             self['_sip_port'] = _value
         self[key] = value
 
     def options_help(self):
-        supported_options = SUPPORTED_OPTIONS.items()
-        supported_options.sort()
+        supported_options = sorted(SUPPORTED_OPTIONS.items())
         for option, (value_type, helptext) in supported_options:
             if value_type == 'B':
                 value = 'on/off'
@@ -217,7 +221,7 @@ class MyConfigParser(RawConfigParser):
                 value = 'number'
             else:
                 value = '"string"'
-            print '--%s=%s\n\t%s\n' % (option, value, helptext)
+            print('--%s=%s\n\t%s\n' % (option, value, helptext))
 
 if __name__ == '__main__':
     m = MyConfigParser()

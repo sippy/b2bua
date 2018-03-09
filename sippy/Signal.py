@@ -25,10 +25,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from signal import signal, SIG_IGN, SIG_DFL
-from twisted.internet import reactor
-from datetime import datetime
-from traceback import print_exc
-from sys import stdout
+
+from sippy.Core.Exceptions import dump_exception
+from sippy.Core.EventDispatcher import ED2
 
 class Signal(object):
     callback = None
@@ -42,26 +41,18 @@ class Signal(object):
         self.previous_handler = signal(signum, self.signal_handler)
 
     def signal_handler(self, signum, *frame):
-        reactor.callFromThread(self.dispatch)
+        ED2.callFromThread(self.dispatch)
         if self.previous_handler not in (SIG_IGN, SIG_DFL):
             try:
                 self.previous_handler(signum, *frame)
             except:
-                print datetime.now(), 'Signal: unhandled exception in signal chain'
-                print '-' * 70
-                print_exc(file = stdout)
-                print '-' * 70
-                stdout.flush()
+                dump_exception('Signal: unhandled exception in signal chain')
 
     def dispatch(self):
         try:
             self.callback(*self.parameters)
         except:
-            print datetime.now(), 'Signal: unhandled exception in signal callback'
-            print '-' * 70
-            print_exc(file = stdout)
-            print '-' * 70
-            stdout.flush()
+            dump_exception('Signal: unhandled exception in signal callback')
 
     def cancel(self):
         signal(self.signum, self.previous_handler)
@@ -83,22 +74,22 @@ if __name__ == '__main__':
 
     def test(arguments):
         arguments['test'] = not arguments['test']
-        reactor.crash()
+        ED2.breakLoop()
 
     arguments = {'test':False}
     s = Signal(SIGURG, test, arguments)
     kill(getpid(), SIGURG)
-    reactor.run()
+    ED2.loop()
     assert(arguments['test'])
     s.cancel()
     Signal(SIGHUP, test, arguments)
     kill(getpid(), SIGURG)
     kill(getpid(), SIGHUP)
-    reactor.run()
+    ED2.loop()
     assert(not arguments['test'])
-    from SipLogger import SipLogger
+    from sippy.SipLogger import SipLogger
     sip_logger = SipLogger('Signal::selftest')
     LogSignal(sip_logger, SIGTERM, test, arguments)
     kill(getpid(), SIGTERM)
-    reactor.run()
+    ED2.loop()
     assert(arguments['test'])

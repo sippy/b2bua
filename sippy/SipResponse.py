@@ -24,8 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipMsg import SipMsg
-from SipHeader import SipHeader
+from sippy.SipMsg import SipMsg
+from sippy.SipHeader import SipHeader
 
 class SipResponse(SipMsg):
     scode = None

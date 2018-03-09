@@ -28,10 +28,10 @@ from random import random
 from hashlib import md5
 from time import time
 from math import floor
-from SipAddressHF import SipAddressHF
-from SipAddress import SipAddress
-from SipURL import SipURL
-from SipConf import SipConf
+from sippy.SipAddressHF import SipAddressHF
+from sippy.SipAddress import SipAddress
+from sippy.SipURL import SipURL
+from sippy.SipConf import SipConf
 
 TOKEN_CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-.!%*_+`\'~'
 _clen = len(TOKEN_CHARSET)
@@ -56,7 +56,8 @@ class SipFrom(SipAddressHF):
         return self.address.getParam('tag')
 
     def genTag(self):
-        self.address.setParam('tag', md5(str((random() * 1000000000L) + time())).hexdigest())
+        salt = str((random() * 1000000000) + time())
+        self.address.setParam('tag', md5(salt.encode()).hexdigest())
 
     def setTag(self, value):
         self.address.setParam('tag', value)

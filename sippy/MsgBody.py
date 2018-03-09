@@ -25,8 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SdpBody import SdpBody
-from types import StringType
+from sippy.SdpBody import SdpBody
 
 b_types = {'application/sdp':SdpBody}
 
@@ -41,7 +40,7 @@ class MsgBody(object):
             self.mtype = mtype
             self.content = content
         else:
-            if type(cself.content) == StringType:
+            if type(cself.content) == str:
                 self.content = cself.content
             else:
                 self.content = cself.content.getCopy()
@@ -50,7 +49,7 @@ class MsgBody(object):
 
     def parse(self):
         if not self.parsed:
-            if b_types.has_key(self.mtype):
+            if self.mtype in b_types:
                 self.content = b_types[self.mtype](self.content)
             self.parsed = True
 
@@ -58,7 +57,7 @@ class MsgBody(object):
         return str(self.content)
 
     def localStr(self, local_addr = None, local_port = None):
-        if type(self.content) == StringType:
+        if type(self.content) == str:
             return self.content
         return self.content.localStr(local_addr, local_port)
 

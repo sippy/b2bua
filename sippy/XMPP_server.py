@@ -32,7 +32,8 @@ import base64
 import datetime, time
 import traceback, sys, os
 from select import poll, POLLIN, POLLOUT
-from twisted.internet import reactor
+
+from Sippy.Core.EventDispatcher import ED2
 
 MAX_WORKERS = 5
 
@@ -59,7 +60,7 @@ class Worker(iksemel.Stream):
             raddr = (doc.get('src_addr'), int(doc.get('src_port')))
             laddr = (doc.get('dst_addr'), int(doc.get('dst_port')))
             rtime = float(doc.get('rtime'))
-            reactor.callFromThread(self.__owner.handle_read, data, raddr, laddr, rtime)
+            ED2.callFromThread(self.__owner.handle_read, data, raddr, laddr, rtime)
 
     def run_rx(self):
         prev_reconnect_count = -1

@@ -24,8 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipGenericHF import SipGenericHF
-from SipConf import SipConf
+from sippy.SipGenericHF import SipGenericHF
+from sippy.SipConf import SipConf
 
 class SipServer(SipGenericHF):
     hf_names = ('server',)

@@ -24,13 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipHeader import SipHeader
-from SipContentLength import SipContentLength
-from SipContentType import SipContentType
-from MsgBody import MsgBody
-from ESipHeaderCSV import ESipHeaderCSV
-from ESipHeaderIgnore import ESipHeaderIgnore
-from ESipParseException import ESipParseException
+from sippy.SipHeader import SipHeader
+from sippy.SipContentLength import SipContentLength
+from sippy.SipContentType import SipContentType
+from sippy.MsgBody import MsgBody
+from sippy.ESipHeaderCSV import ESipHeaderCSV
+from sippy.ESipHeaderIgnore import ESipHeaderIgnore
+from sippy.ESipParseException import ESipParseException
 
 class SipMsg(object):
     headers = None
@@ -79,7 +79,7 @@ class SipMsg(object):
                 else:
                     self.headers.append(header)
                     header_names.append(header.name)
-            except ESipHeaderCSV, einst:
+            except ESipHeaderCSV as einst:
                 for body in einst.bodys:
                     header = SipHeader(name = einst.name, bodys = body)
                     if header.name == 'content-type':
@@ -119,19 +119,19 @@ class SipMsg(object):
                     # XXX: we should not really be doing this, but it appears to be
                     # a common off-by-one/two/.../six problem with SDPs generates by
                     # the consumer-grade devices.
-                    print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
+                    print('Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen))
                     blen = mblen
                 elif blen - mblen == 2 and self.__mbody[-2:] == '\r\n':
                     # Missed last 2 \r\n is another common problem.
-                    print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
+                    print('Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen))
                     self.__mbody += '\r\n'
                 elif blen - mblen == 1 and self.__mbody[-3:] == '\r\n\n':
                     # Another possible mishap
-                    print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
+                    print('Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen))
                     self.__mbody = self.__mbody[:-3] + '\r\n\r\n'
                 elif blen - mblen == 1 and self.__mbody[-2:] == '\r\n':
                     # One more
-                    print 'Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen)
+                    print('Truncated SIP body, %d bytes expected, %d received, fixing...' % (blen, mblen))
                     self.__mbody += '\r\n'
                     blen += 1
                     mblen += 2

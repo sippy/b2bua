@@ -24,8 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Radius_client import Radius_client
+from sippy.Radius_client import Radius_client
+
 from time import time
+from functools import reduce
 
 class RadiusAuthorisation(Radius_client):
     def do_auth(self, username, caller, callee, h323_cid, sip_cid, remote_ip, res_cb, \

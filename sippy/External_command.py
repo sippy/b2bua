@@ -26,12 +26,12 @@
 
 from threading import Condition
 from subprocess import Popen, PIPE
-from twisted.internet import reactor
-from datetime import datetime
-from traceback import print_exc
-from sys import stdout, platform
+from sys import platform
 from threading import Thread, Lock
 from errno import EINTR
+
+from sippy.Core.Exceptions import dump_exception
+from sippy.Core.EventDispatcher import ED2
 
 _MAX_WORKERS = 20
 
@@ -69,15 +69,15 @@ class _Worker(Thread):
                 wi.result_callback = None
                 wi.callback_parameters = None
                 continue
-            batch = [x + '\n' for x in wi.data]
-            batch.append('\n')
+            batch = [x + b'\n' for x in wi.data]
+            batch.append(b'\n')
             pipe.stdin.writelines(batch)
             pipe.stdin.flush()
             result = []
             while True:
                 try:
                     line = pipe.stdout.readline().strip()
-                except IOError, e:
+                except IOError as e:
                     # Catch EINTR
                     if e.args[0] != EINTR:
                         raise e
@@ -85,7 +85,7 @@ class _Worker(Thread):
                 if len(line) == 0:
                     break
                 result.append(line)
-            reactor.callFromThread(self.master.process_result, wi.result_callback, tuple(result), *wi.callback_parameters)
+            ED2.callFromThread(self.master.process_result, wi.result_callback, tuple(result), *wi.callback_parameters)
             wi.data = None
             wi.result_callback = None
             wi.callback_parameters = None
@@ -142,26 +142,27 @@ class External_command(object):
     def process_result(self, result_callback, result, *callback_parameters):
         try:
             result_callback(result, *callback_parameters)
-        except:
-            print datetime.now(), 'External_command: unhandled exception in external command results callback'
-            print '-' * 70
-            print_exc(file = stdout)
-            print '-' * 70
-            stdout.flush()
+        except Exception as ex:
+            if isinstance(ex, SystemExit):
+                raise
+            dump_exception('External_command: unhandled exception in external command results callback')
 
 if __name__ == '__main__':
     from sys import exit
     from time import sleep
+
+    test_data = (b'foo', b'bar')
 
     def results_received(results):
         global external_command
         external_command.shutdown()
         # Give threads time to finish
         sleep(0.05)
-        if not results == ('foo', 'bar'):
+        if not results == test_data:
+            print(test_data, results)
             exit(1)
-        reactor.crash()
+        ED2.breakLoop()
 
     external_command = External_command('/bin/cat')
-    external_command.process_command(('foo', 'bar'), results_received)
-    reactor.run()
+    external_command.process_command(test_data, results_received)
+    ED2.loop()

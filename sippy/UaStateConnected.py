@@ -24,16 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from Timeout import Timeout
-from UaStateGeneric import UaStateGeneric
-from SipAlso import SipAlso
-from SipAddress import SipAddress
-from SipHeader import SipHeader
-from SipReferTo import SipReferTo
-from SipReferredBy import SipReferredBy
-from SipProxyAuthorization import SipProxyAuthorization
-from SipMaxForwards import SipMaxForwards
-from CCEvents import CCEventDisconnect, CCEventFail, CCEventRedirect, CCEventUpdate, CCEventInfo, CCEventConnect
+from sippy.Time.Timeout import Timeout
+from sippy.UaStateGeneric import UaStateGeneric
+from sippy.SipAlso import SipAlso
+from sippy.SipAddress import SipAddress
+from sippy.SipHeader import SipHeader
+from sippy.SipReferTo import SipReferTo
+from sippy.SipReferredBy import SipReferredBy
+from sippy.SipProxyAuthorization import SipProxyAuthorization
+from sippy.SipMaxForwards import SipMaxForwards
+from sippy.CCEvents import CCEventDisconnect, CCEventFail, CCEventRedirect, CCEventUpdate, CCEventInfo, CCEventConnect
 
 class UaStateConnected(UaStateGeneric):
     sname = 'Connected'
@@ -190,7 +190,7 @@ class UaStateConnected(UaStateGeneric):
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
                 try:
                     self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event), en_excpt = True)
-                except Exception, e:
+                except Exception as e:
                     event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
                     event.setWarning(str(e))
                     self.ua.equeue.append(event)
@@ -276,10 +276,10 @@ class UaStateConnected(UaStateGeneric):
         self.keepalives += 1
         if code in (408, 481, 486):
             if self.keepalives == 1:
-                print '%s: Remote UAS at %s:%d does not support re-INVITES, disabling keep alives' % (self.ua.cId, self.ua.rAddr[0], self.ua.rAddr[1])
+                print('%s: Remote UAS at %s:%d does not support re-INVITES, disabling keep alives' % (self.ua.cId, self.ua.rAddr[0], self.ua.rAddr[1]))
                 Timeout(self.ua.disconnect, 600)
                 return
-            print '%s: Received %d response to keep alive from %s:%d, disconnecting the call' % (self.ua.cId, code, self.ua.rAddr[0], self.ua.rAddr[1])
+            print('%s: Received %d response to keep alive from %s:%d, disconnecting the call' % (self.ua.cId, code, self.ua.rAddr[0], self.ua.rAddr[1]))
             self.ua.disconnect()
             return
         Timeout(self.keepAlive, self.ua.kaInterval)
@@ -301,9 +301,9 @@ class UaStateConnected(UaStateGeneric):
         self.ua.global_config['_sip_tm'].newTransaction(req, \
           laddress = self.ua.source_address, compact = self.ua.compact_sip)
 
-if not globals().has_key('UaStateDisconnected'):
-    from UaStateDisconnected import UaStateDisconnected
-if not globals().has_key('UasStateUpdating'):
-    from UasStateUpdating import UasStateUpdating
-if not globals().has_key('UacStateUpdating'):
-    from UacStateUpdating import UacStateUpdating
+if not 'UaStateDisconnected' in globals():
+    from sippy.UaStateDisconnected import UaStateDisconnected
+if not 'UasStateUpdating' in globals():
+    from sippy.UasStateUpdating import UasStateUpdating
+if not 'UacStateUpdating' in globals():
+    from sippy.UacStateUpdating import UacStateUpdating

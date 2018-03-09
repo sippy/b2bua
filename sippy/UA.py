@@ -24,20 +24,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipHeader import SipHeader
-from SipAuthorization import SipAuthorization
-from UasStateIdle import UasStateIdle
-from UacStateIdle import UacStateIdle
-from SipRequest import SipRequest
-from SipContentType import SipContentType
-from SipProxyAuthorization import SipProxyAuthorization
-from SipMaxForwards import SipMaxForwards
-from CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
-from MsgBody import MsgBody
+from sippy.SipHeader import SipHeader
+from sippy.SipAuthorization import SipAuthorization
+from sippy.UasStateIdle import UasStateIdle
+from sippy.UacStateIdle import UacStateIdle
+from sippy.SipRequest import SipRequest
+from sippy.SipContentType import SipContentType
+from sippy.SipProxyAuthorization import SipProxyAuthorization
+from sippy.SipMaxForwards import SipMaxForwards
+from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
+from sippy.MsgBody import MsgBody
 from hashlib import md5
 from random import random
 from time import time
-from Timeout import TimeoutAbs
+from sippy.Time.MonoTime import MonoTime
+from sippy.Time.Timeout import TimeoutAbsMono
 
 class UA(object):
     global_config = None
@@ -142,7 +143,8 @@ class UA(object):
         if ltag != None:
             self.lTag = ltag
         else:
-            self.lTag = md5(str((random() * 1000000000L) + time())).hexdigest()
+            salt = str((random() * 1000000000) + time())
+            self.lTag = md5(salt.encode()).hexdigest()
         self.reqs = {}
         self.extra_headers = extra_headers
         self.expire_time = expire_time
@@ -180,7 +182,7 @@ class UA(object):
         self.update_ua(resp)
         code, reason = resp.getSCode()
         cseq, method = resp.getHFBody('cseq').getCSeq()
-        if method == 'INVITE' and not self.pass_auth and self.reqs.has_key(cseq) and code == 401 and \
+        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 401 and \
           resp.countHFs('www-authenticate') != 0 and \
           self.username != None and self.password != None and self.reqs[cseq].countHFs('authorization') == 0:
             challenge = resp.getHFBody('www-authenticate')
@@ -190,7 +192,7 @@ class UA(object):
               laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
             del self.reqs[cseq]
             return None
-        if method == 'INVITE' and not self.pass_auth and self.reqs.has_key(cseq) and code == 407 and \
+        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 407 and \
           resp.countHFs('proxy-authenticate') != 0 and \
           self.username != None and self.password != None and self.reqs[cseq].countHFs('proxy-authorization') == 0:
             challenge = resp.getHFBody('proxy-authenticate')
@@ -200,7 +202,7 @@ class UA(object):
               laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
             del self.reqs[cseq]
             return None
-        if code >= 200 and self.reqs.has_key(cseq):
+        if code >= 200 and cseq in self.reqs:
             del self.reqs[cseq]
         newstate = self.state.recvResponse(resp, tr)
         if newstate != None:
@@ -221,7 +223,7 @@ class UA(object):
 
     def disconnect(self, rtime = None):
         if rtime == None:
-            rtime = time()
+            rtime = MonoTime()
         self.equeue.append(CCEventDisconnect(rtime = rtime))
         self.recvEvent(CCEventDisconnect(rtime = rtime))
 
@@ -389,7 +391,7 @@ class UA(object):
             disconnect_ts = self.disconnect_ts
             disconnected = True
         else:
-            disconnect_ts = time()
+            disconnect_ts = MonoTime()
             disconnected = False
         if self.connect_ts != None:
             return (disconnect_ts - self.connect_ts, self.connect_ts - self.setup_ts, True, disconnected)
@@ -415,7 +417,7 @@ class UA(object):
             credit_time = min([x for x in self.credit_times.values() if x != None])
         except ValueError:
             return
-        self.credit_timer = TimeoutAbs(self.credit_expires, credit_time, credit_time)
+        self.credit_timer = TimeoutAbsMono(self.credit_expires, credit_time, credit_time)
 
     def resetCreditTime(self, rtime, new_credit_times):
         self.credit_times.update(new_credit_times)

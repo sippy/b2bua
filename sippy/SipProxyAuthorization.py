@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipAuthorization import SipAuthorization
+from sippy.SipAuthorization import SipAuthorization
 
 class SipProxyAuthorization(SipAuthorization):
     hf_names = ('proxy-authorization',)

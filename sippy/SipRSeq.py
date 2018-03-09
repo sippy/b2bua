@@ -23,7 +23,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipNumericHF import SipNumericHF
+from sippy.SipNumericHF import SipNumericHF
 
 class SipRSeq(SipNumericHF):
     hf_names = ('rseq',)
@@ -37,6 +37,6 @@ class SipRSeq(SipNumericHF):
 if __name__ == '__main__':
     rs = SipRSeq(body = '50')
     rs.parse()
-    print rs.number
+    print(rs.number)
     rs.number = 100
-    print str(rs)
+    print(str(rs))

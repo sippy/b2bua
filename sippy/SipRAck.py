@@ -23,7 +23,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from SipCSeq import SipCSeq
+from sippy.SipCSeq import SipCSeq
 
 class SipRAck(SipCSeq):
     hf_names = ('rack',)
@@ -62,6 +62,6 @@ class SipRAck(SipCSeq):
 if __name__ == '__main__':
     ra1 = SipRAck(body = '5 10 INVITE')
     ra1.parse()
-    print ra1.rseq, ra1.cseq, ra1.method
+    print(ra1.rseq, ra1.cseq, ra1.method)
     ra1.cseq = 100
-    print str(ra1)
+    print(str(ra1))

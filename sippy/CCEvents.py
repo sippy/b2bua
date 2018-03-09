@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from time import time
+from sippy.Time.MonoTime import MonoTime
 
 class CCEventGeneric(object):
     data = None
@@ -38,7 +38,7 @@ class CCEventGeneric(object):
     def __init__(self, data = None, rtime = None, origin = None):
         self.data = data
         if rtime == None:
-            self.rtime = time()
+            self.rtime = MonoTime()
         else:
             self.rtime = rtime
         self.seq = CCEventGeneric.seq
@@ -97,8 +97,8 @@ class CCEventDisconnect(CCEventGeneric):
     name = 'CCEventDisconnect'
     pass
 
-from SipHeader import SipHeader
-from SipWarning import SipWarning
+from sippy.SipHeader import SipHeader
+from sippy.SipWarning import SipWarning
 
 class CCEventFail(CCEventGeneric):
     name = 'CCEventFail'
