@@ -595,7 +595,7 @@ class SipTransactionManager(object):
                     del self.rtid2tid[rskey]
                     resp = msg.genResponse(200, 'OK')
                 else:
-                    print 'rskey: %s, prov_inflight: %s' % (str(rskey), str(t.prov_inflight))
+                    print('rskey: %s, prov_inflight: %s' % (str(rskey), str(t.prov_inflight)))
                     resp = msg.genResponse(481, 'Huh?')
                 self.transmitMsg(t.userv, resp, resp.getHFBody('via').getTAddr(), checksum, \
                   t.compact)
@@ -612,7 +612,7 @@ class SipTransactionManager(object):
             # Some ACK that doesn't match any existing transaction.
             # Drop and forget it - upper layer is unlikely to be interested
             # to seeing this anyway.
-            print datetime.now(), 'unmatched PRACK transaction - 481\'ing'
+            print(datetime.now(), 'unmatched PRACK transaction - 481\'ing')
             print datetime.now(), 'rtid: %s, tid: %s, self.tserver: %s' % (str(rtid), str(tid), \
               str(self.tserver))
             sys.stdout.flush()
