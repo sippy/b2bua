@@ -761,7 +761,7 @@ class SipTransactionManager(object):
                     new_tid = list(t.tid[:-1])
                     new_tid.append(resp.getHFBody('to').getTag())
                     new_tid = tuple(new_tid)
-                    for ik in t.prov_inflight.iterkeys():
+                    for ik in t.prov_inflight.keys():
                         if not self.rtid2tid.has_key(ik) or self.rtid2tid[ik] != t.tid:
                             continue
                         self.rtid2tid[ik] = new_tid
