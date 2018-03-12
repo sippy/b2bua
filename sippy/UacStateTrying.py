@@ -30,8 +30,8 @@ from sippy.UaStateGeneric import UaStateGeneric
 from sippy.Time.Timeout import TimeoutAbsMono
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
-from SipHeader import SipHeader
-from SipRAck import SipRAck
+from sippy.SipHeader import SipHeader
+from sippy.SipRAck import SipRAck
 
 class UacStateTrying(UaStateGeneric):
     sname = 'Trying(UAC)'

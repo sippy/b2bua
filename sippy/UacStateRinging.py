@@ -29,8 +29,8 @@ from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
-from SipHeader import SipHeader
-from SipRAck import SipRAck
+from sippy.SipHeader import SipHeader
+from sippy.SipRAck import SipRAck
 
 class UacStateRinging(UaStateGeneric):
     sname = 'Ringing(UAC)'
