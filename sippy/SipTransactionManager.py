@@ -588,7 +588,7 @@ class SipTransactionManager(object):
                 self.l1rcache[checksum] = SipTMRetransmitO()
             elif mmethod == 'PRACK':
                 rskey = msg.getRTId()
-                if t.prov_inflight.has_key(rskey):
+                if rskey in t.prov_inflight:
                     rert_t = t.prov_inflight[rskey]
                     rert_t.cancel()
                     del t.prov_inflight[rskey]
@@ -762,7 +762,7 @@ class SipTransactionManager(object):
                     new_tid.append(resp.getHFBody('to').getTag())
                     new_tid = tuple(new_tid)
                     for ik in t.prov_inflight.keys():
-                        if not self.rtid2tid.has_key(ik) or self.rtid2tid[ik] != t.tid:
+                        if not ik in self.rtid2tid or self.rtid2tid[ik] != t.tid:
                             continue
                         self.rtid2tid[ik] = new_tid
                     t.tid = new_tid
