@@ -613,8 +613,8 @@ class SipTransactionManager(object):
             # Drop and forget it - upper layer is unlikely to be interested
             # to seeing this anyway.
             print(datetime.now(), 'unmatched PRACK transaction - 481\'ing')
-            print datetime.now(), 'rtid: %s, tid: %s, self.tserver: %s' % (str(rtid), str(tid), \
-              str(self.tserver))
+            print(datetime.now(), 'rtid: %s, tid: %s, self.tserver: %s' % (str(rtid), str(tid), \
+              str(self.tserver)))
             sys.stdout.flush()
             resp = msg.genResponse(481, 'Huh?')
             self.transmitMsg(server, resp, resp.getHFBody('via').getTAddr(), checksum)
