@@ -28,7 +28,14 @@
 from getopt import getopt, GetoptError
 import os, sys
 
-sys.path.append('../..')
+from os.path import dirname, abspath
+from inspect import getfile, currentframe
+currentdir = dirname(abspath(getfile(currentframe())))
+_parentdir = dirname(currentdir)
+parentdir = dirname(_parentdir)
+sys.path.insert(0, parentdir)
+
+#sys.path.append('../..')
 
 from sippy.misc import daemonize
 from sippy.Core.EventDispatcher import ED2
