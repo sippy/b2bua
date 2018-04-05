@@ -4,11 +4,15 @@ from threading import Thread
 from serial import Serial
 from time import time, sleep
 
+from sippy.Core.EventDispatcher import ED2
+
 class PELIO(Thread):
     default_timeout = 60.0
     sdev = '/dev/cuau0'
     brate = 9600
     lfile = None
+    sstart_cb = None
+    send_cb = None
 
     def __init__(self, lfile):
         Thread.__init__(self)
@@ -41,6 +45,8 @@ class PELIO(Thread):
                 #rfile.flush()
                 rfile.close()
                 rfile = None
+                if self.send_cb != None:
+                    ED2.callFromThread(self.send_cb)
             if len(data) == 0:
                 continue
             previous_ctime = ctime
@@ -54,6 +60,8 @@ class PELIO(Thread):
                 count = 0
                 self.lfile.write('Starting recording %s\n' % fname)
                 self.lfile.flush()
+                if self.sstart_cb != None:
+                    ED2.callFromThread(self.sstart_cb)
             if previous_ctime != None and session_timeout > (ctime - previous_ctime) * 2 and count > 2:
                 session_timeout = (ctime - previous_ctime) * 2
                 self.lfile.write(' Updating session timeout to %f sec\n' % session_timeout)

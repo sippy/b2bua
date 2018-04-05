@@ -32,18 +32,23 @@ sys.path.append('../..')
 
 from sippy.misc import daemonize
 from sippy.Core.EventDispatcher import ED2
+from sippy.SipConf import SipConf
+from sippy.SipLogger import SipLogger
 
 from PELIO import PELIO
+from PELUA import PELUA
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt(sys.argv[1:], 'fl:p:n:L:s:')
+        opts, args = getopt(sys.argv[1:], 'fl:p:n:L:s:u:P:')
     except GetoptError:
-        print('usage: pel_read.py [-l addr] [-p port] [-n addr] [-f] [-L logfile] [-s serial]')
+        print('usage: pel_read.py [-l addr] [-p port] [-n addr] [-f] [-L logfile] [-s serial] [-u authname [-P authpass]]')
         sys.exit(1)
     laddr = None
     lport = None
     sdev = None
+    authname = None
+    authpass = None
     logfile = '/var/log/pel_read.log'
     global_config = {'nh_addr':['192.168.0.102', 5060]}
     foreground = False
@@ -73,6 +78,12 @@ if __name__ == '__main__':
         if o == '-s':
             sdev = a
             continue
+        if o == '-u':
+            authname = a
+            continue
+        if o == '-P':
+            authpass = a
+            continue
 
     if not foreground:
         daemonize(logfile)
@@ -80,8 +91,23 @@ if __name__ == '__main__':
         lfile = sys.stdout
     else:
         lfile = open(logfile, 'a')
+
+    global_config['_sip_address'] = SipConf.my_address
+    global_config['_sip_port'] = SipConf.my_port
+    if laddr != None:
+        global_config['_sip_address'] = laddr
+    if lport != None:
+        global_config['_sip_port'] = lport
+    global_config['_sip_logger'] = SipLogger('pel_read')
+
+    pua = PELUA(global_config)
+    if authname != None:
+        pua.authname = authname
+        pua.authpass = authpass
     pio = PELIO(lfile)
     if sdev != None:
         pio.sdev = sdev
+    pio.sstart_cb = pua.sess_started
+    pio.send_cb = pua.sess_ended
     pio.start()
     ED2.loop()
