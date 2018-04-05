@@ -69,9 +69,8 @@ if __name__ == '__main__':
                 global_config['nh_addr'][1] = int(parts[1])
             continue
 
-    if logfile == '-':
-        lfile = sys.stdout
-    #daemonize(logfile)
+    if not foreground:
+        daemonize(logfile)
     if logfile == '-':
         lfile = sys.stdout
     else:
