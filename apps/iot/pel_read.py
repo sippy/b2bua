@@ -47,9 +47,10 @@ from PELUA import PELUA
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt(sys.argv[1:], 'fl:p:n:L:s:u:P:')
+        opts, args = getopt(sys.argv[1:], 'fl:p:n:L:s:u:P:i:')
     except GetoptError:
-        print('usage: pel_read.py [-l addr] [-p port] [-n addr] [-f] [-L logfile] [-s serial] [-u authname [-P authpass]]')
+        print('usage: pel_read.py [-l addr] [-p port] [-n addr] [-f] [-L logfile] [-s serial] [-u authname [-P authpass]]\n' \
+          '                   [-i pidfile]')
         sys.exit(1)
     laddr = None
     lport = None
@@ -57,21 +58,19 @@ if __name__ == '__main__':
     authname = None
     authpass = None
     logfile = '/var/log/pel_read.log'
+    pidfile = None
     global_config = {'nh_addr':['192.168.0.102', 5060]}
     foreground = False
     for o, a in opts:
         if o == '-f':
             foreground = True
-            continue
-        if o == '-l':
+        elif o == '-l':
             laddr = a
-            continue
-        if o == '-p':
+        elif o == '-p':
             lport = int(a)
-            continue
-        if o == '-L':
+        elif o == '-L':
             logfile = a
-        if o == '-n':
+        elif o == '-n':
             if a.startswith('['):
                 parts = a.split(']', 1)
                 global_config['nh_addr'] = [parts[0] + ']', 5060]
@@ -81,16 +80,14 @@ if __name__ == '__main__':
                 global_config['nh_addr'] = [parts[0], 5060]
             if len(parts) == 2:
                 global_config['nh_addr'][1] = int(parts[1])
-            continue
-        if o == '-s':
+        elif o == '-s':
             sdev = a
-            continue
-        if o == '-u':
+        elif o == '-u':
             authname = a
-            continue
-        if o == '-P':
+        elif o == '-P':
             authpass = a
-            continue
+        elif o == '-i':
+            pidfile = a
 
     if not foreground:
         daemonize(logfile)
@@ -98,6 +95,9 @@ if __name__ == '__main__':
         lfile = sys.stdout
     else:
         lfile = open(logfile, 'a')
+
+    if pidfile != None:
+        open(pidfile, 'w').write('%d' % os.getpid())
 
     global_config['_sip_address'] = SipConf.my_address
     global_config['_sip_port'] = SipConf.my_port
