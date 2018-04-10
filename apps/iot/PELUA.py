@@ -5,6 +5,8 @@ from sippy.SipCiscoGUID import SipCiscoGUID
 from sippy.SipCallId import SipCallId
 from sippy.MsgBody import MsgBody
 
+from RTPGen import RTPGen
+
 body_txt = 'v=0\r\n' + \
   'o=- 380960 380960 IN IP4 192.168.22.95\r\n' + \
   's=-\r\n' + \
@@ -24,6 +26,7 @@ class PELUA(object):
     authname = None
     authpass = None
     body = None
+    rgen = None
 
     def __init__(self, global_config):
         self.global_config = global_config
@@ -39,12 +42,15 @@ class PELUA(object):
         self.ua.password = self.authpass
         event = CCEventTry((SipCallId(), SipCiscoGUID(), self.cli, self.cld, self.body, \
           None, 'PEL 150-2'))
+        self.rgen = RTPGen()
+        self.rgen.start()
         self.ua.recvEvent(event)
 
     def sess_ended(self):
         print('ended')
         event = CCEventDisconnect()
         self.ua.recvEvent(event)
+        self.rgen.stop()
 
     def recvEvent(self, event, ua):
         pass
