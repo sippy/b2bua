@@ -25,10 +25,13 @@
 
 from sippy.UA import UA
 from sippy.CCEvents import CCEventDisconnect, CCEventTry
+from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventPreConnect
 from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCiscoGUID import SipCiscoGUID
 from sippy.SipCallId import SipCallId
 from sippy.MsgBody import MsgBody
+from sippy.SdpOrigin import SdpOrigin
+from sippy.Udp_server import Udp_server, Udp_server_opts
 
 from RTPGen import RTPGen
 
@@ -52,6 +55,7 @@ class PELUA(object):
     authpass = None
     body = None
     rgen = None
+    rserv = None
 
     def __init__(self, global_config):
         self.global_config = global_config
@@ -65,10 +69,16 @@ class PELUA(object):
           nh_address = tuple(self.global_config['nh_addr']))
         self.ua.username = self.authname
         self.ua.password = self.authpass
+        rserv_opts = Udp_server_opts(('192.168.23.117', 0), self.rtp_received)
+        rserv_opts.nworkers = 1
+        self.rserv = Udp_server({}, rserv_opts)
+        sect = self.body.content.sections[0]
+        sect.c_header.addr = self.rserv.uopts.laddress[0]
+        sect.m_header.port = self.rserv.uopts.laddress[1]
+        self.body.content.o_header = SdpOrigin()
         event = CCEventTry((SipCallId(), SipCiscoGUID(), self.cli, self.cld, self.body, \
           None, 'PEL 150-2'))
         self.rgen = RTPGen()
-        self.rgen.start()
         self.ua.recvEvent(event)
 
     def sess_ended(self):
@@ -76,6 +86,18 @@ class PELUA(object):
         event = CCEventDisconnect()
         self.ua.recvEvent(event)
         self.rgen.stop()
+        self.rserv.shutdown()
+
+    def rtp_received(self, data, address, udp_server, rtime):
+        pass
 
     def recvEvent(self, event, ua):
-        pass
+        if isinstance(event, CCEventRing) or isinstance(event, CCEventConnect) or \
+          isinstance(event, CCEventPreConnect):
+            code, reason, sdp_body = event.getData()
+            if sdp_body == None:
+                return
+            sdp_body.parse()
+            sect = sdp_body.content.sections[0]
+            rtp_target = (sect.c_header.addr, sect.m_header.port)
+            self.rgen.start(self.rserv, rtp_target)
