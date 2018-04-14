@@ -51,10 +51,13 @@ class RTPGen(Thread):
     state = RTPGenInit
     userv = None
     target = None
+    pl_queue = None
+    plq_lock = Lock()
 
     def __init__(self):
         Thread.__init__(self)
         self.setDaemon(True)
+        self.pl_queue = []
 
     def start(self, userv, target):
         pfreq = 1.0 / self.ptime
@@ -63,6 +66,20 @@ class RTPGen(Thread):
         self.elp = ElPeriodic(pfreq)
         self.rsth = RtpSynth(8000, 30)
         Thread.start(self)
+
+    def enqueue(self, pload):
+        self.plq_lock.acquire()
+        self.pl_queue.append(pload)
+        self.plq_lock.release()
+
+    def dequeue(self):
+        self.plq_lock.acquire()
+        if len(self.pl_queue) > 0:
+            rval = self.pl_queue.pop(0)
+        else:
+            rval = None
+        self.plq_lock.release()
+        return rval
 
     def run(self):
         stime = clock_getdtime(CLOCK_MONOTONIC)
@@ -83,7 +100,7 @@ class RTPGen(Thread):
             npkt = floor((ntime - stime) / self.ptime)
             #print((ntime - stime) / self.ptime)
             for i in range(0, npkt - last_npkt):
-                rp = self.rsth.next_pkt(160, 0)
+                rp = self.rsth.next_pkt(160, 0, pload = self.dequeue())
                 self.userv.send_to(rp, self.target)
             #print(npkt - last_npkt)
             last_npkt = npkt

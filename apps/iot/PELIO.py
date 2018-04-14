@@ -25,7 +25,7 @@
 
 from __future__ import print_function
 
-from threading import Thread
+from threading import Thread, Lock
 from serial import Serial
 from time import time, sleep
 
@@ -38,11 +38,15 @@ class PELIO(Thread):
     lfile = None
     sstart_cb = None
     send_cb = None
+    enqueue_cb = None
+    enqueue_cb_lock = Lock()
+    prequeue = None
 
     def __init__(self, lfile):
         Thread.__init__(self)
         self.setDaemon(True)
         self.lfile = lfile
+        self.prequeue = []
 
     def run(self):
         rfile = None
@@ -72,6 +76,10 @@ class PELIO(Thread):
                 rfile = None
                 if self.send_cb != None:
                     ED2.callFromThread(self.send_cb)
+                    self.enqueue_cb_lock.acquire()
+                    self.enqueue_cb = None
+                    self.enqueue_cb_lock.release()
+                    self.prequeue = []
             if len(data) == 0:
                 continue
             previous_ctime = ctime
@@ -86,7 +94,7 @@ class PELIO(Thread):
                 self.lfile.write('Starting recording %s\n' % fname)
                 self.lfile.flush()
                 if self.sstart_cb != None:
-                    ED2.callFromThread(self.sstart_cb)
+                    ED2.callFromThread(self._sstart_cb)
             if previous_ctime != None and session_timeout > (ctime - previous_ctime) * 2 and count > 2:
                 session_timeout = (ctime - previous_ctime) * 2
                 self.lfile.write(' Updating session timeout to %f sec\n' % session_timeout)
@@ -98,6 +106,23 @@ class PELIO(Thread):
             except:
                 count += 1
                 continue
-            rfile.write('%d,%f,%f\n' % (count, volts, amps))
+            pload = '%d,%f,%f' % (count, volts, amps)
+            rfile.write('%s\n' % pload)
+            pload = pload.encode()
+            self.enqueue_cb_lock.acquire()
+            if self.enqueue_cb != None:
+                self.enqueue_cb(pload)
+            else:
+                self.prequeue.append(pload)
+            self.enqueue_cb_lock.release()
             #rfile.flush()
             count += 1
+
+    def _sstart_cb(self):
+        self.enqueue_cb_lock.acquire()
+        self.enqueue_cb = self.sstart_cb()
+        self.enqueue_cb_lock.release()
+        if len(self.prequeue) > 0:
+            for pload in self.prequeue:
+                self.enqueue_cb(pload)
+            self.prequeue = []

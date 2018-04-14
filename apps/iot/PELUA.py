@@ -80,6 +80,7 @@ class PELUA(object):
           None, 'PEL 150-2'))
         self.rgen = RTPGen()
         self.ua.recvEvent(event)
+        return (self.rgen.enqueue)
 
     def sess_ended(self):
         print('ended')
