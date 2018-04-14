@@ -81,8 +81,10 @@ class RTPGen(Thread):
             self.state_lock.release()
             ntime = clock_getdtime(CLOCK_MONOTONIC)
             npkt = floor((ntime - stime) / self.ptime)
-            rp = self.rsth.next_pkt(170, 0)
-            self.userv.send_to(rp, self.target)
+            #print((ntime - stime) / self.ptime)
+            for i in range(0, npkt - last_npkt):
+                rp = self.rsth.next_pkt(160, 0)
+                self.userv.send_to(rp, self.target)
             #print(npkt - last_npkt)
             last_npkt = npkt
             self.elp.procrastinate()
