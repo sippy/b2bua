@@ -33,6 +33,8 @@ from sippy.MsgBody import MsgBody
 from sippy.SdpOrigin import SdpOrigin
 from sippy.Udp_server import Udp_server, Udp_server_opts
 
+from sippy.misc import local4remote
+
 from RTPGen import RTPGen
 
 body_txt = 'v=0\r\n' + \
@@ -69,7 +71,8 @@ class PELUA(object):
           nh_address = tuple(self.global_config['nh_addr']))
         self.ua.username = self.authname
         self.ua.password = self.authpass
-        rserv_opts = Udp_server_opts(('192.168.23.117', 0), self.rtp_received)
+        rtp_laddr = local4remote(self.global_config['nh_addr'][0])
+        rserv_opts = Udp_server_opts((rtp_laddr, 0), self.rtp_received)
         rserv_opts.nworkers = 1
         self.rserv = Udp_server({}, rserv_opts)
         sect = self.body.content.sections[0]
