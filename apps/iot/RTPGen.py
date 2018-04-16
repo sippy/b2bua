@@ -100,7 +100,7 @@ class RTPGen(Thread):
             npkt = floor((ntime - stime) / self.ptime)
             #print((ntime - stime) / self.ptime)
             for i in range(0, npkt - last_npkt):
-                rp = self.rsth.next_pkt(160, 0, pload = self.dequeue())
+                rp = self.rsth.next_pkt(240, 0, pload = self.dequeue())
                 self.userv.send_to(rp, self.target)
             #print(npkt - last_npkt)
             last_npkt = npkt
