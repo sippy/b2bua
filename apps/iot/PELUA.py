@@ -61,6 +61,7 @@ class PELUA(object):
 
     def __init__(self, global_config):
         self.global_config = global_config
+        SipTransactionManager.nworkers_udp = 1
         global_config['_sip_tm'] = SipTransactionManager(global_config)
         self.body = MsgBody(body_txt)
         self.body.parse()
