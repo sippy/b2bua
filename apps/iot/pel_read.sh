@@ -18,7 +18,7 @@ rcvar="${name}_enable"
 command="/usr/local/bin/python3.6"
 pidfile="/var/run/pel_read.pid"
 
-command_args="/home/sobomax/b2bua/apps/iot/pel_read.py -s /dev/cuau1 -n scrapegoat.sippysoft.com -u pel150 -P udv1pzs \
+command_args="/home/sobomax/b2bua/apps/iot/pel_read.py -s /dev/cuau1 -n 174.36.24.14 -u pel150_uac -P udv1pzs \
  -i ${pidfile}"
 
 run_rc_command "$cli_arg"
