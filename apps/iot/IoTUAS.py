@@ -78,32 +78,12 @@ class IoTUAS(object):
         ragent = SipRegistrationAgent(global_config, aor, contact, user = self.authname, passw = self.authpass)
         ragent.doregister()
 
-    def sess_started(self):
-        print('started')
-        self.ua = UA(self.global_config, event_cb = self.recvEvent, \
-          nh_address = tuple(self.global_config['nh_addr']))
-        self.ua.username = self.authname
-        self.ua.password = self.authpass
-        rtp_laddr = local4remote(self.global_config['nh_addr'][0])
-        rserv_opts = Udp_server_opts((rtp_laddr, 0), self.rtp_received)
-        rserv_opts.nworkers = 1
-        self.rserv = Udp_server({}, rserv_opts)
-        sect = self.body.content.sections[0]
-        sect.c_header.addr = self.rserv.uopts.laddress[0]
-        sect.m_header.port = self.rserv.uopts.laddress[1]
-        self.body.content.o_header = SdpOrigin()
-        event = CCEventTry((SipCallId(), SipCiscoGUID(), self.cli, self.cld, self.body, \
-          None, 'PEL 150-2'))
-        self.rgen = RTPGen()
-        self.ua.recvEvent(event)
-        return (self.rgen.enqueue)
-
-    def sess_ended(self):
-        print('ended')
-        event = CCEventDisconnect()
-        self.ua.recvEvent(event)
+    def sess_term(self, ua, rtime, origin, result = 0):
+        print('disconnected')
         self.rgen.stop()
         self.rserv.shutdown()
+        self.rserv = None
+        self.rgen = None
 
     def rtp_received(self, data, address, udp_server, rtime):
         pass
@@ -113,8 +93,10 @@ class IoTUAS(object):
             # Whynot?
             return (req.genResponse(200, 'OK'), None, None)
         if req.getMethod() == 'INVITE':
+            if self.rserv != None:
+                return (req.genResponse(486, 'Busy Here'), None, None)
             # New dialog
-            uaA = UA(self.global_config, self.recvEvent)
+            uaA = UA(self.global_config, self.recvEvent, disc_cbs = (self.sess_term,))
             uaA.recvRequest(req, sip_t)
             return
         return (req.genResponse(501, 'Not Implemented'), None, None)
@@ -139,3 +121,4 @@ class IoTUAS(object):
             self.body.content.o_header = SdpOrigin()
             oevent = CCEventConnect((200, 'OK', self.body))
             ua.recvEvent(oevent)
+            return
