@@ -32,9 +32,7 @@ from math import floor
 
 from elperiodic.ElPeriodic import ElPeriodic
 
-import sys
-sys.path.append('/home/sobomax/librtpsynth/python')
-from RtpSynth import RtpSynth
+from rtpsynth.RtpSynth import RtpSynth
 
 from sippy.Core.EventDispatcher import ED2
 from sippy.Time.clock_dtime import clock_getdtime, CLOCK_MONOTONIC
