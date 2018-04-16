@@ -48,7 +48,7 @@ body_txt = 'v=0\r\n' + \
   'a=sendrecv\r\n' + \
   '\r\n'
 
-class PELUA(object):
+class IoTUAC(object):
     global_config = None
     ua = None
     cli = 'pel150_uac'

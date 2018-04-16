@@ -43,7 +43,7 @@ from sippy.SipConf import SipConf
 from sippy.SipLogger import SipLogger
 
 from PELIO import PELIO
-from PELUA import PELUA
+from IoTUAC import IoTUAC
 
 if __name__ == '__main__':
     try:
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         global_config['_sip_port'] = lport
     global_config['_sip_logger'] = SipLogger('pel_read')
 
-    pua = PELUA(global_config)
+    pua = IoTUAC(global_config)
     if authname != None:
         pua.authname = authname
         pua.authpass = authpass
