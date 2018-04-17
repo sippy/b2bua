@@ -69,7 +69,7 @@ class IoTUAC(object):
     def sess_started(self):
         print('started')
         self.ua = UA(self.global_config, event_cb = self.recvEvent, \
-          nh_address = tuple(self.global_config['nh_addr']))
+          nh_address = tuple(self.global_config['nh_addr']), disc_cbs = (self.sess_term,))
         self.ua.username = self.authname
         self.ua.password = self.authpass
         rtp_laddr = local4remote(self.global_config['nh_addr'][0])
@@ -86,17 +86,33 @@ class IoTUAC(object):
         self.ua.recvEvent(event)
         return (self.rgen.enqueue)
 
+    def sess_term(self, ua, rtime, origin, result = 0):
+        print('disconnected', origin)
+        if origin == 'IoTUAC':
+            return
+        self.rgen.suspend()
+        self.ua = UA(self.global_config, event_cb = self.recvEvent, \
+          nh_address = tuple(self.global_config['nh_addr']), disc_cbs = (self.sess_term,))
+        self.ua.username = self.authname
+        self.ua.password = self.authpass
+        self.body.content.o_header = SdpOrigin()
+        event = CCEventTry((SipCallId(), SipCiscoGUID(), self.cli, self.cld, self.body, \
+          None, 'PEL 150-2'))
+        self.ua.recvEvent(event)
+
     def sess_ended(self):
         print('ended')
-        event = CCEventDisconnect()
+        event = CCEventDisconnect(origin = 'IoTUAC')
         self.ua.recvEvent(event)
         self.rgen.stop()
         self.rserv.shutdown()
+        self.rgen = None
 
     def rtp_received(self, data, address, udp_server, rtime):
         pass
 
     def recvEvent(self, event, ua):
+        print('recvEvent', event, ua)
         if isinstance(event, CCEventRing) or isinstance(event, CCEventConnect) or \
           isinstance(event, CCEventPreConnect):
             code, reason, sdp_body = event.getData()
