@@ -143,7 +143,7 @@ class EventDispatcher2(Singleton):
         self.thread_cbs = []
         self.last_ts = MonoTime()
         self.my_ident = get_ident()
-        self.elp = ElPeriodic(10.0)
+        self.elp = ElPeriodic(100.0)
 
     def signal(self, signum, frame):
         self.signals_pending.append(signum)
