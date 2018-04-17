@@ -121,9 +121,8 @@ class local4remote(object):
     fixed = False
     ploss_out_rate = 0.0
     pdelay_out_max = 0.0
-    nworkers_udp = None
 
-    def __init__(self, global_config, handleIncoming, nworkers_udp = None):
+    def __init__(self, global_config, handleIncoming):
         if not '_xmpp_mode' in global_config or not global_config['_xmpp_mode']:
             from sippy.Udp_server import Udp_server, Udp_server_opts
             self.Udp_server_opts = Udp_server_opts
@@ -132,7 +131,6 @@ class local4remote(object):
             from sippy.XMPP_server import XMPP_server, XMPP_server_opts
             self.Udp_server_opts = XMPP_server_opts
             self.udp_server_class = XMPP_server
-        self.nworkers_udp = nworkers_udp
         self.global_config = global_config
         self.cache_r2l = {}
         self.cache_r2l_old = {}
@@ -155,16 +153,11 @@ class local4remote(object):
             laddresses = ((global_config['_sip_address'], global_config['_sip_port']),)
             self.fixed = True
         for laddress in laddresses:
-            self.initServer(laddress)
-
-    def initServer(self, laddress):
-        sopts = self.Udp_server_opts(laddress, self.handleIncoming)
-        sopts.ploss_out_rate = self.ploss_out_rate
-        sopts.pdelay_out_max = self.pdelay_out_max
-        sopts.nworkers = self.nworkers_udp
-        server = self.udp_server_class(self.global_config, sopts)
-        self.cache_l2s[laddress] = server
-        return server
+            sopts = self.Udp_server_opts(laddress, self.handleIncoming)
+            sopts.ploss_out_rate = self.ploss_out_rate
+            sopts.pdelay_out_max = self.pdelay_out_max
+            server = self.udp_server_class(global_config, sopts)
+            self.cache_l2s[laddress] = server
 
     def getServer(self, address, is_local = False):
         if self.fixed:
@@ -200,7 +193,11 @@ class local4remote(object):
             laddress = address
         server = self.cache_l2s.get(laddress, None)
         if server == None:
-            server = self.initServer(laddress)
+            sopts = self.Udp_server_opts(laddress, self.handleIncoming)
+            sopts.ploss_out_rate = self.ploss_out_rate
+            sopts.pdelay_out_max = self.pdelay_out_max
+            server = self.udp_server_class(self.global_config, sopts)
+            self.cache_l2s[laddress] = server
         #print 'local4remot-2: local address for %s is %s' % (address[0], laddress[0])
         return server
 
@@ -236,11 +233,10 @@ class SipTransactionManager(object):
     provisional_retr = 0
     ploss_out_rate = 0.0
     pdelay_out_max = 0.0
-    nworkers_udp = None
 
     def __init__(self, global_config, req_cb = None):
         self.global_config = global_config
-        self.l4r = local4remote(global_config, self.handleIncoming, self.nworkers_udp)
+        self.l4r = local4remote(global_config, self.handleIncoming)
         self.l4r.ploss_out_rate = self.ploss_out_rate
         self.l4r.pdelay_out_max = self.pdelay_out_max
         self.tclient = {}

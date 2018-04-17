@@ -137,7 +137,7 @@ class Udp_server_opts(object):
     data_callback = None
     family = None
     flags = _DEFAULT_FLAGS
-    nworkers = None
+    nworkers = _DEFAULT_NWORKERS
     ploss_out_rate = 0.0
     pdelay_out_max = 0.0
     ploss_in_rate = 0.0
@@ -208,11 +208,7 @@ class Udp_server(object):
         self.wi = []
         self.asenders = []
         self.areceivers = []
-        if self.uopts.nworkers == None:
-            nworkers = _DEFAULT_NWORKERS
-        else:
-            nworkers = self.uopts.nworkers
-        for i in range(0, nworkers):
+        for i in range(0, self.uopts.nworkers):
             self.asenders.append(AsyncSender(self))
             self.areceivers.append(AsyncReceiver(self))
 
