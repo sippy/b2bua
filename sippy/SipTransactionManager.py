@@ -295,8 +295,6 @@ class SipTransactionManager(object):
             resp.setSource(address)
             self.incomingResponse(resp, t, checksum)
         else:
-            if self.req_cb == None:
-                return
             try:
                 req = SipRequest(data)
                 tids = req.getTIds()
@@ -612,6 +610,9 @@ class SipTransactionManager(object):
                     rval = cobj.recvRequest(msg, t)
                     break
             else:
+                if self.req_cb == None:
+                    self.l1rcache[checksum] = SipTMRetransmitO()
+                    return
                 rval = self.req_cb(msg, t)
             if rval == None:
                 if t.teA != None or t.teD != None or t.teE != None or t.teF != None:
