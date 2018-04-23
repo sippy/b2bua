@@ -39,7 +39,8 @@ from sippy.Time.clock_dtime import clock_getdtime, CLOCK_MONOTONIC
 
 RTPGenInit = 0
 RTPGenRun = 1
-RTPGenStop = 2
+RTPGenSuspend = 2
+RTPGenStop = 3
 
 class RTPGen(Thread):
     ptime = 0.030
@@ -58,9 +59,15 @@ class RTPGen(Thread):
         self.pl_queue = []
 
     def start(self, userv, target):
-        pfreq = 1.0 / self.ptime
-        self.userv = userv
+        self.state_lock.acquire()
         self.target = target
+        self.userv = userv
+        if self.state == RTPGenSuspend:
+            self.state = RTPGenRun
+            self.state_lock.release()
+            return
+        self.state_lock.release()
+        pfreq = 1.0 / self.ptime
         self.elp = ElPeriodic(pfreq)
         self.rsth = RtpSynth(8000, 30)
         Thread.start(self)
@@ -90,16 +97,18 @@ class RTPGen(Thread):
         last_npkt = -1
         while True:
             self.state_lock.acquire()
-            if self.state == RTPGenStop:
-                self.state_lock.release()
-                return
+            cstate = self.state
             self.state_lock.release()
+            if cstate == RTPGenStop:
+                return
             ntime = clock_getdtime(CLOCK_MONOTONIC)
             npkt = floor((ntime - stime) / self.ptime)
-            #print((ntime - stime) / self.ptime)
             for i in range(0, npkt - last_npkt):
-                rp = self.rsth.next_pkt(240, 0, pload = self.dequeue())
-                self.userv.send_to(rp, self.target)
+                if cstate == RTPGenSuspend:
+                    self.rsth.next_pkt(240, 0)
+                else:
+                    rp = self.rsth.next_pkt(240, 0, pload = self.dequeue())
+                    self.userv.send_to(rp, self.target)
             #print(npkt - last_npkt)
             last_npkt = npkt
             self.elp.procrastinate()
@@ -107,19 +116,52 @@ class RTPGen(Thread):
     def stop(self):
         self.state_lock.acquire()
         pstate = self.state
-        if self.state == RTPGenRun:
+        if self.state in (RTPGenRun, RTPGenSuspend):
             self.state = RTPGenStop
         self.state_lock.release()
-        if pstate == RTPGenRun:
+        if pstate in (RTPGenRun, RTPGenSuspend):
             self.join()
         self.userv = None
         self.state_lock.acquire()
         self.state = RTPGenInit
         self.state_lock.release()
 
+    def suspend(self):
+        self.state_lock.acquire()
+        if self.state == RTPGenRun:
+            self.state = RTPGenSuspend
+        else:
+            etext = 'suspend() is called in the wrong state: %s' % self.state
+            self.state_lock.release()
+            raise Exception(etext)
+        self.state_lock.release()
+
+class FakeUserv(object):
+    nsent = 0
+
+    def send_to(self, *args):
+        self.nsent += 1
+        pass
+
 if __name__ == '__main__':
     r = RTPGen()
-    r.start()
+    s = FakeUserv()
+    t = ('127.0.0.1', 12345)
+    r.start(s, t)
     from time import sleep
-    sleep(5)
+    sleep(2)
+    r.suspend()
+    sleep(1)
+    r.start(s, t)
+    sleep(2)
     r.stop()
+    try:
+        r.suspend()
+    except:
+        pass
+    else:
+        raise Exception('suspend() test failed')
+    nsent_base = 135
+    nsent_div = 2
+    if s.nsent < (nsent_base - nsent_div) or s.nsent > (nsent_base + nsent_div):
+        raise Exception('nsent test failed')
