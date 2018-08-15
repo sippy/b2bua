@@ -74,6 +74,8 @@ class SipTransaction(object):
     cb_ifver = None
     uack = False
     compact = False
+    req_out_cb = None
+    res_out_cb = None
 
     def cleanup(self):
         self.ack = None
@@ -88,6 +90,8 @@ class SipTransaction(object):
         self.tid = None
         self.userv = None
         self.r408 = None
+        self.req_out_cb = None
+        self.res_out_cb = None
 
 # Symbolic states names
 class SipTransactionState(object):
@@ -377,6 +381,8 @@ class SipTransactionManager(object):
         t.state = TRYING
         self.tclient[t.tid] = t
         self.transmitData(t.userv, t.data, t.address)
+        if t.req_out_cb != None:
+            t.req_out_cb(msg)
         return t
 
     def cancelTransaction(self, t, reason = None):
@@ -465,6 +471,8 @@ class SipTransactionManager(object):
                         rAddr = t.address
                     if not t.uack:
                         self.transmitMsg(t.userv, t.ack, rAddr, checksum, t.compact)
+                        if t.req_out_cb != None:
+                            t.req_out_cb(t.ack)
                     else:
                         t.state = UACK
                         t.ack_rAddr = rAddr
@@ -661,6 +669,8 @@ class SipTransactionManager(object):
         t.data = resp.localStr(*t.userv.uopts.getSIPaddr(), compact = t.compact)
         t.address = resp.getHFBody('via').getTAddr()
         self.transmitData(t.userv, t.data, t.address, t.checksum, lossemul)
+        if t.res_out_cb != None:
+            t.res_out_cb(resp)
         if scode < 200:
             t.state = RINGING
             if self.provisional_retr > 0 and scode > 100:
@@ -772,5 +782,7 @@ class SipTransactionManager(object):
             t.teG.cancel()
             t.teG = None
         self.transmitMsg(t.userv, t.ack, t.ack_rAddr, t.ack_checksum, t.compact)
+        if t.req_out_cb != None:
+            t.req_out_cb(t.ack)
         del self.tclient[t.tid]
         t.cleanup()
