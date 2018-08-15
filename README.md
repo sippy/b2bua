@@ -49,3 +49,12 @@ sort of SIP switch or termination gateway.
 ## Documentation
 
 See [documentation/documentation.md](documentation/documentation.md)
+
+## Support us on Patreon!
+
+Sippy B2BUA is available for use at the most liberal Open Source license
+there is and we promise to keep it this way. If you like our software,
+find it useful and want to support us moving it forward consider
+becoming a patron here [Sippy Labs Patreon Page](https://www.patreon.com/sippylabs).
+In turn, we would give a priority to bugs and feature requests from our
+Patrons.

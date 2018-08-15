@@ -75,6 +75,9 @@ class AsyncSender(Thread):
                     if self.userv.skt.sendto(data, address) == len(data):
                         break
                 except socket.error as why:
+                    if isinstance(why, BrokenPipeError):
+                        self.userv = None
+                        return
                     if why[0] not in (EWOULDBLOCK, ENOBUFS, EAGAIN):
                         break
                 sleep(0.01)
@@ -134,7 +137,7 @@ class Udp_server_opts(object):
     data_callback = None
     family = None
     flags = _DEFAULT_FLAGS
-    nworkers = _DEFAULT_NWORKERS
+    nworkers = None
     ploss_out_rate = 0.0
     pdelay_out_max = 0.0
     ploss_in_rate = 0.0
@@ -197,13 +200,19 @@ class Udp_server(object):
               (self.uopts.flags & socket.SO_REUSEPORT) != 0:
                 self.skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             self.skt.bind(address)
+            if self.uopts.laddress[1] == 0:
+                self.uopts.laddress = self.skt.getsockname()
         self.sendqueue = []
         self.stats = [0, 0, 0]
         self.wi_available = Condition()
         self.wi = []
         self.asenders = []
         self.areceivers = []
-        for i in range(0, self.uopts.nworkers):
+        if self.uopts.nworkers == None:
+            nworkers = _DEFAULT_NWORKERS
+        else:
+            nworkers = self.uopts.nworkers
+        for i in range(0, nworkers):
             self.asenders.append(AsyncSender(self))
             self.areceivers.append(AsyncReceiver(self))
 

@@ -27,6 +27,7 @@
 from sippy.SipGenericHF import SipGenericHF
 from hashlib import md5
 from time import time
+from binascii import hexlify
 
 class SipAuthorization(SipGenericHF):
     hf_names = ('authorization',)
@@ -135,44 +136,46 @@ class SipAuthorization(SipGenericHF):
         return False
 
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
+    delim = ':'.encode()
     m = md5()
-    m.update(pszUserName)
-    m.update(":")
-    m.update(pszRealm)
-    m.update(":")
-    m.update(pszPassword)
+    m.update(pszUserName.encode())
+    m.update(delim)
+    m.update(pszRealm.encode())
+    m.update(delim)
+    m.update(pszPassword.encode())
     HA1 = m.digest()
     if pszAlg == "md5-sess":
         m = md5()
         m.update(HA1)
-        m.update(":")
-        m.update(pszNonce)
-        m.update(":")
-        m.update(pszCNonce)
+        m.update(delim)
+        m.update(pszNonce.encode())
+        m.update(delim)
+        m.update(pszCNonce.encode())
         HA1 = m.digest()
-    return HA1.encode('hex')
+    return hexlify(HA1)
 
 def DigestCalcResponse(HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, pszMethod, pszDigestUri, pszHEntity):
+    delim = ':'.encode()
     m = md5()
-    m.update(pszMethod)
-    m.update(":")
-    m.update(pszDigestUri)
+    m.update(pszMethod.encode())
+    m.update(delim)
+    m.update(pszDigestUri.encode())
     if pszQop == "auth-int":
-        m.update(":")
-        m.update(pszHEntity)
-    HA2 = m.digest().encode('hex')
+        m.update(delim)
+        m.update(pszHEntity.encode())
+    HA2 = m.hexdigest()
     m = md5()
     m.update(HA1)
-    m.update(":")
-    m.update(pszNonce)
-    m.update(":")
+    m.update(delim)
+    m.update(pszNonce.encode())
+    m.update(delim)
     if pszNonceCount and pszCNonce and pszQop:
-        m.update(pszNonceCount)
-        m.update(":")
-        m.update(pszCNonce)
-        m.update(":")
-        m.update(pszQop)
-        m.update(":")
-    m.update(HA2)
-    response = m.digest().encode('hex')
+        m.update(pszNonceCount.encode())
+        m.update(delim)
+        m.update(pszCNonce.encode())
+        m.update(delim)
+        m.update(pszQop.encode())
+        m.update(delim)
+    m.update(HA2.encode())
+    response = m.hexdigest()
     return response
