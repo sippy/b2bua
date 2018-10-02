@@ -128,7 +128,7 @@ class SipURL(object):
             userdomain = userdomain[:ear] + userdomain_suff
             for header in headers.split('&'):
                 k, v = header.split('=')
-                self.headers[k.lower()] = unquote(v)
+                self.headers[k] = unquote(v)
         if ear > 0:
             userpass = userdomain[:ear - 1]
             hostport = userdomain[ear:]
@@ -189,7 +189,7 @@ class SipURL(object):
                 p, headers = p.split('?', 1)
                 for header in headers.split('&'):
                     k, v = header.split('=')
-                    self.headers[k.lower()] = unquote(v)
+                    self.headers[k] = unquote(v)
             nv = p.split('=', 1)
             if len(nv) == 1:
                 if p == 'lr':
@@ -251,7 +251,7 @@ class SipURL(object):
             w(';lr')
         if self.headers:
             w('?')
-            w('&'.join([('%s=%s' % (h.capitalize(), quote(v))) for (h, v) in self.headers.items()]))
+            w('&'.join([('%s=%s' % (h, quote(v))) for (h, v) in self.headers.items()]))
         return ''.join(l)
 
     def getCopy(self):
