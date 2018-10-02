@@ -182,14 +182,28 @@ class SipURL(object):
                         raise e
                 else:
                     raise e
-
-        for p in params:
-            if p == params[-1] and '?' in p:
+        if len(params) > 0:
+            last_param = params[-1]
+            arr = last_param.split('?', 1)
+            params[-1] = arr[0]
+            self.setParams(params)
+            if len(arr) == 2:
                 self.headers = {}
-                p, headers = p.split('?', 1)
-                for header in headers.split('&'):
+                for header in arr[1].split('&'):
                     k, v = header.split('=')
                     self.headers[k] = unquote(v)
+
+    def setParams(self, params):
+        self.usertype = None
+        self.transport = None
+        self.ttl = None
+        self.maddr = None
+        self.method = None
+        self.tag = None
+        self.other = []
+        self.lr = False
+
+        for p in params:
             nv = p.split('=', 1)
             if len(nv) == 1:
                 if p == 'lr':
@@ -239,20 +253,26 @@ class SipURL(object):
                 w(':%d' % local_port)
             else:
                 w(':%d' % self.port)
-        if self.usertype != None:
-            w(';user=%s' % self.usertype)
-        for n in ('transport', 'ttl', 'maddr', 'method', 'tag'):
-            v = getattr(self, n)
-            if v != None:
-                w(';%s=%s' % (n, v))
-        for v in self.other:
-            w(';%s' % v)
-        if self.lr:
-            w(';lr')
+        for p in self.getParams():
+            w(';%s' % p)
         if self.headers:
             w('?')
             w('&'.join([('%s=%s' % (h, quote(v))) for (h, v) in self.headers.items()]))
         return ''.join(l)
+
+    def getParams(self):
+        res = []; w = res.append
+        if self.usertype != None:
+            w('user=%s' % self.usertype)
+        for n in ('transport', 'ttl', 'maddr', 'method', 'tag'):
+            v = getattr(self, n)
+            if v != None:
+                w('%s=%s' % (n, v))
+        for v in self.other:
+            w(v)
+        if self.lr:
+            w('lr')
+        return res
 
     def getCopy(self):
         return SipURL(username = self.username, password = self.password, host = self.host, port = self.port, \
@@ -277,3 +297,28 @@ class SipURL(object):
 
     def setAddr(self, addr):
         self.host, self.port = addr
+
+if __name__ == '__main__':
+    import sys
+
+    test_set = (('sip:user;par=u%40example.net@example.com', ()), \
+      ('sip:user@example.com?Route=%3Csip:example.com%3E', ()), \
+      ('sip:[2001:db8::10]', ()), \
+      ('sip:[2001:db8::10]:5070', ()), \
+      ('sip:user@example.net;tag=9817--94', ('tag=9817--94',)), \
+      ('sip:alice@atlanta.com;ttl=15;maddr=239.255.255.1', ('ttl=15', 'maddr=239.255.255.1')), \
+      ('sip:alice:secretword@atlanta.com;transport=tcp', ('transport=tcp',)), \
+      ('sip:alice@atlanta.com?subject=project%20x&priority=urgent', ()), \
+      ('sip:+1-212-555-1212:1234@gateway.com;user=phone', ('user=phone',)), \
+      ('sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com', ('method=REGISTER',)), \
+      ('sip:alice;day=tuesday@atlanta.com', ()), \
+      ('sip:+611234567890@ims.mnc000.mcc000.3gppnetwork.org;user=phone;npdi', ('user=phone', 'npdi')), \
+      ('sip:1234#567890@example.com', ()), \
+      ('sip:foo@1.2.3.4:', ()), \
+      ('sip:foo@1.2.3.4:5060:5060', ()))
+    for u, mp in test_set:
+        su = SipURL(u)
+        sp = su.getParams()
+        print(tuple(sp), mp, su.getHost(), su.getPort())
+        if str(su) != u:
+            sys.stderr.write('URI cannot be reconstructed precisely: expected \'%s\' got \'%s\'\n' % (u, str(su)))
