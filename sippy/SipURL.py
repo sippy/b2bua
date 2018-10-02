@@ -169,14 +169,14 @@ class SipURL(object):
                 port = parseport.strip()
                 if len(port) == 0:
                     # Bug on the other side, work around it
-                    print 'WARNING: non-compliant URI detected, empty port number, ' \
-                      'assuming default: "%s"' % str(self.original_uri)
+                    print('WARNING: non-compliant URI detected, empty port number, ' \
+                      'assuming default: "%s"' % str(self.original_uri))
                 elif port.find(':') > 0:
                     pparts = port.split(':', 1)
                     if pparts[0] == pparts[1]:
                         # Bug on the other side, work around it
-                        print 'WARNING: non-compliant URI detected, duplicate port number, ' \
-                          'taking "%s": %s' % (pparts[0], str(self.original_uri))
+                        print('WARNING: non-compliant URI detected, duplicate port number, ' \
+                          'taking "%s": %s' % (pparts[0], str(self.original_uri)))
                         self.port = int(pparts[0])
                     else:
                         raise e
