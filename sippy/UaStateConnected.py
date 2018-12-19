@@ -73,7 +73,7 @@ class UaStateConnected(UaStateGeneric):
                 for sect in body.content.sections:
                     sect.c_header.addr = '0.0.0.0'
             elif str(self.ua.rSDP) == str(body):
-                self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', self.ua.lSDP, server = self.ua.local_ua))
+                self.ua.sendUasResponse(200, 'OK', self.ua.lSDP, (self.ua.lContact,))
                 return None
             event = CCEventUpdate(body, rtime = req.rtime, origin = self.ua.origin)
             try:
