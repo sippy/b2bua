@@ -27,8 +27,6 @@
 
 import sys, getopt
 
-from twisted.internet import reactor
-
 DEFAULT_RTPP_SPATH = 'unix:/var/run/rtpproxy.sock'
 
 class command_runner(object):
@@ -37,6 +35,7 @@ class command_runner(object):
     rc = None
     fin = None
     fout = None
+    rval = 0
 
     def __init__(self, rc, commands = None, fin = None, fout = None):
         self.responses = []
@@ -52,19 +51,25 @@ class command_runner(object):
     def issue_next_cmd(self):
         if self.commands != None:
             if len(self.commands) == 0:
-                reactor.crash()
+                ED2.breakLoop()
                 return
             command = self.commands.pop(0)
         else:
             command = self.fin.readline()
             if command == None or len(command) == 0:
-                reactor.crash()
+                ED2.breakLoop()
                 return
         self.rc.send_command(command, self.got_result)
 
     def got_result(self, result):
         if self.fout != None:
-            self.fout.write('%s\n' % result)
+            try:
+                self.fout.write('%s\n' % result)
+                self.fout.flush()
+            except:
+                self.rval = 1
+                ED2.breakLoop()
+                return
         self.responses.append(result)
         self.issue_next_cmd()
 
@@ -99,13 +104,13 @@ if __name__ == '__main__':
             if fname == '-':
                 file_in = sys.stdin
             else:
-                file_in = open(fname, 'r')
+                file_in = file(fname, 'r')
         if o == '-o':
            fname = a.strip()
            if fname == '-':
                file_out = sys.stdout
            else:
-               file_out = open(fname, 'w')
+               file_out = file(fname, 'w')
         if o == '-b':
            no_rtpp_version_check = True
 
@@ -116,10 +121,12 @@ if __name__ == '__main__':
         sys.path.insert(0, sippy_path)
 
     from sippy.Rtp_proxy_client import Rtp_proxy_client
+    from sippy.Core.EventDispatcher import ED2
 
     rc = Rtp_proxy_client(global_config, spath = spath, nworkers = 4, \
       no_version_check = no_rtpp_version_check)
     #commands = ('VF 123456', 'G nsess_created', 'G ncmds_rcvd')
     crun = command_runner(rc, commands, file_in, file_out)
-    reactor.run(installSignalHandlers = 1)
+    ED2.loop()
     rc.shutdown()
+    sys.exit(crun.rval)
