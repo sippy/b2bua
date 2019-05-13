@@ -26,6 +26,11 @@
 
 from __future__ import print_function
 
+try: BrokenPipeError()
+except NameError:
+    class BrokenPipeError(Exception):
+        pass
+
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, EWOULDBLOCK, ENOBUFS, EAGAIN, \
   EINTR
 from datetime import datetime
