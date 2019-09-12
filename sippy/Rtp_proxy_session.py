@@ -54,12 +54,7 @@ class _rtpps_side(object):
     codecs = None
     raddress = None
     laddress = None
-    origin = None
-    oh_remote = None
     repacketize = None
-
-    def __init__(self):
-        self.origin = SdpOrigin()
 
     def update(self, rtpps, remote_ip, remote_port, result_callback, options = '', index = 0, \
       atype = 'IP4', *callback_parameters):
@@ -219,15 +214,20 @@ class _rtpps_side(object):
                         fidx = sect.a_headers.index(a_header) + 1
                 sect.a_headers.insert(fidx, 'ptime:%d' % self.repacketize)
         if len([x for x in sects if x.needs_update]) == 0:
-            if self.oh_remote != None:
-                if self.oh_remote.session_id != sdp_body.content.o_header.session_id:
-                    self.origin = SdpOrigin()
-                elif self.oh_remote.version != sdp_body.content.o_header.version:
-                    self.origin.version += 1
-            self.oh_remote = sdp_body.content.o_header.getCopy()
-            sdp_body.content.o_header = self.origin.getCopy()
             if rtpps.insert_nortpp:
                 sdp_body.content += 'a=nortpproxy:yes\r\n'
+                sdp_body.content += 'a=nortpproxy:yes\r\n'
+            # RFC4566
+            # *******
+            # For privacy reasons, it is sometimes desirable to obfuscate the
+            # username and IP address of the session originator.  If this is a
+            # concern, an arbitrary <username> and private <unicast-address> MAY be
+            # chosen to populate the "o=" field, provided that these are selected
+            # in a manner that does not affect the global uniqueness of the field.
+            # *******
+            sdp_body.content.o_header.address = '192.0.2.1' # 192.0.2.0/24 (TEST-NET-1)
+            sdp_body.content.o_header.network_type = 'IN'
+            sdp_body.content.o_header.address_type = 'IP4'
             sdp_body.needs_update = False
             result_callback(sdp_body)
 

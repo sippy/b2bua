@@ -57,6 +57,8 @@ from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
 from sippy.misc import daemonize
 from sippy.B2BRoute import B2BRoute
+from sippy.SdpOrigin import SdpOrigin
+from sippy.SdpSession import SdpSession
 
 import gc, getopt, os
 from re import sub
@@ -102,6 +104,17 @@ class CCStateDead(object):
 class CCStateDisconnecting(object):
     sname = 'Disconnecting'
 
+class RFC3264UA(UA):
+    def __init__(self, *args, **kwargs):
+        origin = SdpOrigin()
+        origin.address = '192.0.2.1' # 192.0.2.0/24 (TEST-NET-1)
+        self.sdp_session = SdpSession(origin)
+        UA.__init__(self, *args, **kwargs)
+
+    def recvEvent(self, event):
+        self.sdp_session.fixup_version(event)
+        return UA.recvEvent(self, event)
+
 class CallController(object):
     id = 1
     uaA = None
@@ -127,7 +140,7 @@ class CallController(object):
         self.id = CallController.id
         CallController.id += 1
         self.global_config = global_config
-        self.uaA = UA(self.global_config, event_cb = self.recvEvent, conn_cbs = (self.aConn,), disc_cbs = (self.aDisc,), \
+        self.uaA = RFC3264UA(self.global_config, event_cb = self.recvEvent, conn_cbs = (self.aConn,), disc_cbs = (self.aDisc,), \
           fail_cbs = (self.aDisc,), dead_cbs = (self.aDead,))
         self.uaA.kaInterval = self.global_config['keepalive_ans']
         self.uaA.local_ua = self.global_config['_uaname']
