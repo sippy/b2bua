@@ -218,6 +218,6 @@ if __name__ == '__main__':
       'UL10.10.0.21 bca22c94cda32ed233ccfc7485f0a01c@10.10.0.19-1-0 10.10.0.19 19492 496c1f695ec7bbe26cd334b0454f56e9 tcp:%%CC_SELF%%:22223 .sock%20r%20m18482_1%201',
       'UL10.10.0.21 call-id 10.10.0.19 19492 496c1f695ec7bbe26cd334b0454f56e9 tcp:%%CC_SELF%%:22223 .sock%20r%20m18482_1%201 && M0:0'):
         rc = Rtp_proxy_cmd(cmd)
-        print rc
-        print rc.args
-        print rc.command_opts
+        print(rc)
+        print(rc.args)
+        print(rc.command_opts)
