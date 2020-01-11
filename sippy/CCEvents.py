@@ -91,7 +91,11 @@ class CCEventRing(CCEventGeneric):
 
 class CCEventPreConnect(CCEventGeneric):
     name = 'CCEventPreConnect'
-    pass
+
+    def getBody(self):
+        if self.data != None:
+            return self.data[2]
+        return None
 
 class CCEventConnect(CCEventGeneric):
     name = 'CCEventConnect'
