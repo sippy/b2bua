@@ -38,6 +38,11 @@ import sys
 from sippy.Core.Exceptions import dump_exception
 from sippy.Core.EventDispatcher import ED2
 
+try:
+    strtypes = (str, unicode)
+except NameError:
+    strtypes = (str,)
+
 class Rtp_proxy_cmd_sequencer(object):
     rtp_proxy_client = None
     comqueue = None
@@ -204,6 +209,10 @@ class _rtpps_side(object):
                 raise exception
             else:
                 return
+        if isinstance(sdp_body.content, strtypes):
+            sdp_body.needs_update = False
+            result_callback(sdp_body)
+            return
         for i in range(0, len(sdp_body.content.sections)):
             sect = sdp_body.content.sections[i]
             if sect.m_header.transport.lower() not in ('udp', 'udptl', 'rtp/avp', \
