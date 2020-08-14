@@ -141,12 +141,12 @@ class SipAuthorization(SipGenericHF):
             pass
         return False
 
-_CALC_FUNC = {None:md5, 'MD5':md5, 'MD5-SESS':md5, 'SHA-256':sha256, 'SHA-512':sha512}
+_HASH_FUNC = {None:md5, 'MD5':md5, 'MD5-SESS':md5, 'SHA-256':sha256, 'SHA-512':sha512}
 
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
     delim = ':'.encode()
-    mfunc = _CALC_FUNC[pszAlg]
-    m = mfunc()
+    hashfunc = _HASH_FUNC[pszAlg]
+    m = hashfunc()
     m.update(pszUserName.encode())
     m.update(delim)
     m.update(pszRealm.encode())
@@ -154,7 +154,7 @@ def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonc
     m.update(pszPassword.encode())
     HA1 = m.digest()
     if pszAlg == 'MD5-SESS':
-        m = mfunc()
+        m = hashfunc()
         m.update(HA1)
         m.update(delim)
         m.update(pszNonce.encode())
@@ -165,8 +165,8 @@ def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonc
 
 def DigestCalcResponse(pszAlg, HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, pszMethod, pszDigestUri, pszHEntity):
     delim = ':'.encode()
-    mfunc = _CALC_FUNC[pszAlg]
-    m = mfunc()
+    hashfunc = _HASH_FUNC[pszAlg]
+    m = hashfunc()
     m.update(pszMethod.encode())
     m.update(delim)
     m.update(pszDigestUri.encode())
@@ -174,7 +174,7 @@ def DigestCalcResponse(pszAlg, HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, 
         m.update(delim)
         m.update(pszHEntity.encode())
     HA2 = m.hexdigest()
-    m = mfunc()
+    m = hashfunc()
     m.update(HA1)
     m.update(delim)
     m.update(pszNonce.encode())
