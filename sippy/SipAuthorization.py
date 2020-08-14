@@ -25,7 +25,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.SipGenericHF import SipGenericHF
-from hashlib import md5
+from hashlib import md5, sha256, sha512
 from time import time
 from binascii import hexlify
 
@@ -39,10 +39,11 @@ class SipAuthorization(SipGenericHF):
     qop = None
     cnonce = None
     nc = None
+    algorithm = None
     otherparams = None
 
     def __init__(self, body = None, username = None, uri = None, realm = None, nonce = None, response = None, \
-                 password = None, method = None, cself = None):
+                 cself = None):
         SipGenericHF.__init__(self, body)
         if body != None:
             return
@@ -56,17 +57,14 @@ class SipAuthorization(SipGenericHF):
             self.qop = cself.qop
             self.cnonce = cself.cnonce
             self.nc = cself.nc
+            self.algorithm = cself.algorithm
             self.otherparams = cself.otherparams[:]
             return
         self.username = username
         self.uri = uri
         self.realm = realm
         self.nonce = nonce
-        if response == None:
-            HA1 = DigestCalcHA1('md5', username, realm, password, nonce, '')
-            self.response = DigestCalcResponse(HA1, nonce, 0, '', '', method, uri, '')
-        else:
-            self.response = response
+        self.response = response
         self.otherparams = []
 
     def parse(self):
@@ -89,15 +87,23 @@ class SipAuthorization(SipGenericHF):
                 self.cnonce = value.strip('"')
             elif ci_name == 'nc':
                 self.nc = value.strip('"')
+            elif ci_name == 'algorithm':
+                self.algorithm = value.strip('"').upper()
             else:
                 self.otherparams.append((name, value))
         self.parsed = True
+
+    def genResponse(self, password, method):
+        HA1 = DigestCalcHA1(self.algorithm, self.username, self.realm, password, self.nonce, '')
+        self.response = DigestCalcResponse(self.algorithm, HA1, self.nonce, 0, '', '', method, self.uri, '')
 
     def __str__(self):
         if not self.parsed:
             return self.body
         rval = 'Digest username="%s",realm="%s",nonce="%s",uri="%s",response="%s"' % \
                (self.username, self.realm, self.nonce, self.uri, self.response)
+        if self.algorithm != None:
+            rval += ',algorithm=%s' % (self.algorithm,)
         if self.qop != None:
             rval += ',nc="%s",cnonce="%s",qop=%s' % (self.nc, self.cnonce, \
               self.qop)
@@ -113,12 +119,12 @@ class SipAuthorization(SipGenericHF):
     def verify(self, password, method):
         if not self.parsed:
             self.parse()
-        return self.verifyHA1(DigestCalcHA1('md5', self.username, self.realm, password, self.nonce, ''), method)
+        return self.verifyHA1(DigestCalcHA1(self.algorithm, self.username, self.realm, password, self.nonce, ''), method)
 
     def verifyHA1(self, HA1, method):
         if not self.parsed:
             self.parse()
-        response = DigestCalcResponse(HA1, self.nonce, self.nc, \
+        response = DigestCalcResponse(self.algorithm, HA1, self.nonce, self.nc, \
           self.cnonce, self.qop, method, self.uri, '')
         return response == self.response
 
@@ -135,17 +141,20 @@ class SipAuthorization(SipGenericHF):
             pass
         return False
 
+_CALC_FUNC = {None:md5, 'MD5':md5, 'MD5-SESS':md5, 'SHA-256':sha256, 'SHA-512':sha512}
+
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
     delim = ':'.encode()
-    m = md5()
+    mfunc = _CALC_FUNC[pszAlg]
+    m = mfunc()
     m.update(pszUserName.encode())
     m.update(delim)
     m.update(pszRealm.encode())
     m.update(delim)
     m.update(pszPassword.encode())
     HA1 = m.digest()
-    if pszAlg == "md5-sess":
-        m = md5()
+    if pszAlg == 'MD5-SESS':
+        m = mfunc()
         m.update(HA1)
         m.update(delim)
         m.update(pszNonce.encode())
@@ -154,9 +163,10 @@ def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonc
         HA1 = m.digest()
     return hexlify(HA1)
 
-def DigestCalcResponse(HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, pszMethod, pszDigestUri, pszHEntity):
+def DigestCalcResponse(pszAlg, HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, pszMethod, pszDigestUri, pszHEntity):
     delim = ':'.encode()
-    m = md5()
+    mfunc = _CALC_FUNC[pszAlg]
+    m = mfunc()
     m.update(pszMethod.encode())
     m.update(delim)
     m.update(pszDigestUri.encode())
@@ -164,7 +174,7 @@ def DigestCalcResponse(HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, pszMetho
         m.update(delim)
         m.update(pszHEntity.encode())
     HA2 = m.hexdigest()
-    m = md5()
+    m = mfunc()
     m.update(HA1)
     m.update(delim)
     m.update(pszNonce.encode())

@@ -31,9 +31,7 @@ from sippy.SipFrom import SipFrom
 from sippy.SipAddress import SipAddress
 from sippy.SipContact import SipContact
 from sippy.SipRequest import SipRequest
-from sippy.SipAuthorization import SipAuthorization
 from sippy.SipHeader import SipHeader
-from sippy.SipProxyAuthorization import SipProxyAuthorization
 
 class SipRegistrationAgent(object):
     global_config = None
@@ -97,8 +95,7 @@ class SipRegistrationAgent(object):
         if resp.scode == 401 and resp.countHFs('www-authenticate') != 0 and \
           self.user != None and self.passw != None and self.atries < 3:
             challenge = resp.getHFBody('www-authenticate')
-            auth = SipAuthorization(realm = challenge.getRealm(), nonce = challenge.getNonce(), method = 'REGISTER',
-              uri = str(self.rmsg.ruri), username = self.user, password = self.passw)
+            auth = challenge.genAuthHF(self.user, self.passw, 'REGISTER', str(self.rmsg.ruri))
             for authorization in self.rmsg.getHFs('authorization'):
                 self.rmsg.removeHeader(authorization)
             self.rmsg.appendHeader(SipHeader(name = 'authorization', body = auth))
@@ -108,8 +105,7 @@ class SipRegistrationAgent(object):
         if resp.scode == 407 and resp.countHFs('proxy-authenticate') != 0 and \
           self.user != None and self.passw != None and self.atries < 3:
             challenge = resp.getHFBody('proxy-authenticate')
-            auth = SipProxyAuthorization(realm = challenge.getRealm(), nonce = challenge.getNonce(), method = 'REGISTER',
-              uri = str(self.rmsg.ruri), username = self.user, password = self.passw)
+            auth = challenge.genAuthHF(self.user, self.passw, 'REGISTER', str(self.rmsg.ruri))
             for authorization in self.rmsg.getHFs('proxy-authorization'):
                 self.rmsg.removeHeader(authorization)
             self.rmsg.appendHeader(SipHeader(name = 'proxy-authorization', body = auth))

@@ -31,7 +31,6 @@ from sippy.SipAddress import SipAddress
 from sippy.SipHeader import SipHeader
 from sippy.SipReferTo import SipReferTo
 from sippy.SipReferredBy import SipReferredBy
-from sippy.SipProxyAuthorization import SipProxyAuthorization
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventDisconnect, CCEventFail, CCEventRedirect, CCEventUpdate, CCEventInfo, CCEventConnect
 
@@ -255,7 +254,7 @@ class UaStateConnected(UaStateGeneric):
         if code == 401 and resp.countHFs('www-authenticate') != 0 and \
           self.ua.username != None and self.ua.password != None and not self.triedauth:
             challenge = resp.getHFBody('www-authenticate')
-            req = self.ua.genRequest('INVITE', self.ua.lSDP, challenge.getNonce(), challenge.getRealm())
+            req = self.ua.genRequest('INVITE', self.ua.lSDP, challenge)
             self.ua.lCSeq += 1
             self.ka_tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.keepAliveResp, \
               laddress = self.ua.source_address, compact = self.ua.compact_sip)
@@ -264,7 +263,7 @@ class UaStateConnected(UaStateGeneric):
         if code == 407 and resp.countHFs('proxy-authenticate') != 0 and \
           self.ua.username != None and self.ua.password != None and not self.triedauth:
             challenge = resp.getHFBody('proxy-authenticate')
-            req = self.ua.genRequest('INVITE', self.ua.lSDP, challenge.getNonce(), challenge.getRealm(), SipProxyAuthorization)
+            req = self.ua.genRequest('INVITE', self.ua.lSDP, challenge)
             self.ua.lCSeq += 1
             self.ka_tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.keepAliveResp, \
               laddress = self.ua.source_address, compact = self.ua.compact_sip)

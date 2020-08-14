@@ -25,12 +25,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.SipHeader import SipHeader
-from sippy.SipAuthorization import SipAuthorization
 from sippy.UasStateIdle import UasStateIdle
 from sippy.UacStateIdle import UacStateIdle
 from sippy.SipRequest import SipRequest
 from sippy.SipContentType import SipContentType
-from sippy.SipProxyAuthorization import SipProxyAuthorization
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
 from sippy.MsgBody import MsgBody
@@ -181,7 +179,7 @@ class UA(object):
           resp.countHFs('www-authenticate') != 0 and \
           self.username != None and self.password != None and self.reqs[cseq].countHFs('authorization') == 0:
             challenge = resp.getHFBody('www-authenticate')
-            req = self.genRequest('INVITE', self.lSDP, challenge.getNonce(), challenge.getRealm())
+            req = self.genRequest('INVITE', self.lSDP, challenge)
             self.lCSeq += 1
             self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
               laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
@@ -191,7 +189,7 @@ class UA(object):
           resp.countHFs('proxy-authenticate') != 0 and \
           self.username != None and self.password != None and self.reqs[cseq].countHFs('proxy-authorization') == 0:
             challenge = resp.getHFBody('proxy-authenticate')
-            req = self.genRequest('INVITE', self.lSDP, challenge.getNonce(), challenge.getRealm(), SipProxyAuthorization)
+            req = self.genRequest('INVITE', self.lSDP, challenge)
             self.lCSeq += 1
             self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
               laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
@@ -263,7 +261,7 @@ class UA(object):
             self.elast_seq = event.seq
             self.event_cb(event, self)
 
-    def genRequest(self, method, body = None, nonce = None, realm = None, SipXXXAuthorization = SipAuthorization, \
+    def genRequest(self, method, body = None, challenge = None, \
       reason = None, max_forwards = None):
         if self.outbound_proxy != None:
             target = self.outbound_proxy
@@ -277,9 +275,8 @@ class UA(object):
                          cseq = self.lCSeq, callid = self.cId, contact = self.lContact,
                          routes = self.routes, target = target, cguid = self.cGUID,
                          user_agent = self.local_ua, maxforwards = max_forwards_hf)
-        if nonce != None and realm != None and self.username != None and self.password != None:
-            auth = SipXXXAuthorization(realm = realm, nonce = nonce, method = method, uri = str(self.rTarget),
-              username = self.username, password = self.password)
+        if challenge != None and self.username != None and self.password != None:
+            auth = challenge.genAuthHF(self.username, self.password, method, str(self.rTarget))
             req.appendHeader(SipHeader(body = auth))
         if body != None:
             req.setBody(body)
