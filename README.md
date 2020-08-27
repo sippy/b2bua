@@ -1,7 +1,9 @@
-[![Build Status](https://drone.io/github.com/sippy/b2bua/status.png)](https://drone.io/github.com/sippy/b2bua/latest)
+#[![Build Status](https://drone.io/github.com/sippy/b2bua/status.png)](https://drone.io/github.com/sippy/b2bua/latest)
 
-# Sippy B2BUA Sippy B2BUA is a
-[RFC3261](https://www.ietf.org/rfc/rfc3261.txt)-compliant Session Initiation Protocol (SIP) [Back-to-back user agent](http://en.wikipedia.org/wiki/Back-to-back_user_agent) (B2BUA). 
+# Sippy B2BUA
+
+Sippy B2BUA is a [RFC3261](https://www.ietf.org/rfc/rfc3261.txt)-compliant
+Session Initiation Protocol (SIP) [Back-to-back user agent](http://en.wikipedia.org/wiki/Back-to-back_user_agent) (B2BUA).
 
 The Sippy B2BUA is a SIP call controlling component. Unlike a SIP proxy server,
 which only maintains transaction state, the Sippy B2BUA maintains complete call
@@ -32,6 +34,15 @@ path.
   SIP Express Router / OpenSIPS to build complete softswitch solution
 
 ## Installation
+
+### Install libelperiodic (if not installed)
+
+```
+$ git clone https://github.com/sobomax/libelperiodic.git
+$ cd libelperiodic; ./configure; make all install; cd ..
+```
+
+### Install B2BUA
 
 `pip install git+https://github.com/sippy/b2bua`
 
