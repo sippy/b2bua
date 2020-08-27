@@ -97,9 +97,6 @@ class UA(object):
     elast_seq = None
     origin = None
     source_address = None
-    to_username = None
-    from_domain = None
-    ruri_userparams = None
     outbound_proxy = None
     pass_auth = False
     pending_tr = None

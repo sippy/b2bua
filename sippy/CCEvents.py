@@ -68,6 +68,11 @@ class CCEventTry(CCEventGeneric):
         cself.max_forwards = self.max_forwards
         return cself
 
+    # Speacial method allowing tweaking internal parameters of the UAC
+    # after everything has been setup but before INVITE goes out.
+    def onUacSetupComplete(self, uac):
+        pass
+
 class CCEventRing(CCEventGeneric):
     name = 'CCEventRing'
     pass

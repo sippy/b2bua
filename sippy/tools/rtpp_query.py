@@ -27,8 +27,6 @@
 
 import sys, getopt
 
-from twisted.internet import reactor
-
 DEFAULT_RTPP_SPATH = 'unix:/var/run/rtpproxy.sock'
 
 class command_runner(object):
@@ -37,6 +35,8 @@ class command_runner(object):
     rc = None
     fin = None
     fout = None
+    rval = 0
+    maxfails = 5
 
     def __init__(self, rc, commands = None, fin = None, fout = None):
         self.responses = []
@@ -52,24 +52,41 @@ class command_runner(object):
     def issue_next_cmd(self):
         if self.commands != None:
             if len(self.commands) == 0:
-                reactor.crash()
+                ED2.breakLoop()
                 return
             command = self.commands.pop(0)
         else:
             command = self.fin.readline()
             if command == None or len(command) == 0:
-                reactor.crash()
+                ED2.breakLoop()
                 return
         self.rc.send_command(command, self.got_result)
 
     def got_result(self, result):
+        if result == None:
+            if self.maxfails == 0:
+                self.rval = 2
+                ED2.breakLoop()
+                return
+            self.maxfails -= 1
         if self.fout != None:
-            self.fout.write('%s\n' % result)
+            try:
+                self.fout.write('%s\n' % result)
+                self.fout.flush()
+            except:
+                self.rval = 1
+                ED2.breakLoop()
+                return
         self.responses.append(result)
         self.issue_next_cmd()
 
+    def timeout(self):
+        self.rval = 3
+        ED2.breakLoop()
+
 def usage():
-    print('usage: rtpp_query.py [-s rtpp_socket_path] [-S sippy_root_path] [-i infile] [-o outfile] [cmd1 [cmd2]..[cmdN]]')
+    print('usage: rtpp_query.py [-s rtpp_socket_path] [-S sippy_root_path] [-i infile] ' \
+      '[-o outfile] [-n nworkers] [cmd1 [cmd2]..[cmdN]]')
     sys.exit(1)
 
 if __name__ == '__main__':
@@ -81,33 +98,37 @@ if __name__ == '__main__':
     file_out = sys.stdout
     commands = None
     no_rtpp_version_check = False
+    timeout = None
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 's:S:i:o:b')
+        opts, args = getopt.getopt(sys.argv[1:], 's:S:i:o:bn:t:')
     except getopt.GetoptError:
         usage()
 
+    nwrks = 4
     for o, a in opts:
         if o == '-s':
             spath = a.strip()
-            continue
-        if o == '-S':
+        elif o == '-S':
             sippy_path = a.strip()
-            continue
-        if o == '-i':
+        elif o == '-i':
             fname = a.strip()
             if fname == '-':
                 file_in = sys.stdin
             else:
                 file_in = open(fname, 'r')
-        if o == '-o':
+        elif o == '-o':
            fname = a.strip()
            if fname == '-':
                file_out = sys.stdout
            else:
                file_out = open(fname, 'w')
-        if o == '-b':
+        elif o == '-b':
            no_rtpp_version_check = True
+        elif o == '-n':
+           nwrks = int(a)
+        elif o == '-t':
+           timeout = float(a.strip())
 
     if len(args) > 0:
         commands = args
@@ -116,10 +137,15 @@ if __name__ == '__main__':
         sys.path.insert(0, sippy_path)
 
     from sippy.Rtp_proxy_client import Rtp_proxy_client
+    from sippy.Time.Timeout import Timeout
+    from sippy.Core.EventDispatcher import ED2
 
-    rc = Rtp_proxy_client(global_config, spath = spath, nworkers = 4, \
+    rc = Rtp_proxy_client(global_config, spath = spath, nworkers = nwrks, \
       no_version_check = no_rtpp_version_check)
     #commands = ('VF 123456', 'G nsess_created', 'G ncmds_rcvd')
     crun = command_runner(rc, commands, file_in, file_out)
-    reactor.run(installSignalHandlers = 1)
+    if timeout != None:
+        Timeout(crun.timeout, timeout)
+    ED2.loop()
     rc.shutdown()
+    sys.exit(crun.rval)

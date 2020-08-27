@@ -62,3 +62,6 @@ class SipConf(object):
 
     try: allow_formats
     except: allow_formats = None
+
+    try: autoconvert_tel_url
+    except: autoconvert_tel_url = False

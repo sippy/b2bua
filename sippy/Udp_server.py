@@ -26,6 +26,11 @@
 
 from __future__ import print_function
 
+try: BrokenPipeError()
+except NameError:
+    class BrokenPipeError(Exception):
+        pass
+
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, EWOULDBLOCK, ENOBUFS, EAGAIN, \
   EINTR
 from datetime import datetime
@@ -97,7 +102,7 @@ class AsyncReceiver(Thread):
         while True:
             try:
                 data, address = self.userv.skt.recvfrom(8192)
-                if not data:
+                if not data and address == None:
                     # Ugly hack to detect socket being closed under us on Linux.
                     # The problem is that even call on non-closed socket can
                     # sometimes return empty data buffer, making AsyncReceiver

@@ -30,7 +30,16 @@ try:
 except ImportError:
     from urllib.parse import quote, unquote
 
+RFC3261_USER_UNRESERVED = '&=+$,;?/#'
+# Quote from RFC-3261:
+# Several rules are incorporated from RFC 2396 [5] but are updated to
+# make them compliant with RFC 2234
+RFC3261_MARK = '-_.!~*\'()'
+
+USERNAME_SAFE = RFC3261_USER_UNRESERVED + RFC3261_MARK
+
 class SipURL(object):
+    scheme = None
     username = None
     userparams = None
     password = None
@@ -48,10 +57,12 @@ class SipURL(object):
 
     def __init__(self, url = None, username = None, password = None, host = None, port = None, headers = None, \
       usertype = None, transport = None, ttl = None, maddr = None, method = None, tag = None, other = None, \
-      userparams = None, lr = False, relaxedparser = False):
+      userparams = None, lr = False, relaxedparser = False, scheme = "sip"):
+        self.original_uri = url
         self.other = []
         self.userparams = []
         if url == None:
+            self.scheme = scheme
             self.username = username
             if userparams != None:
                 self.userparams = userparams
@@ -73,25 +84,54 @@ class SipURL(object):
                 self.other = other
             self.lr = lr
             return
-        sidx = url.find(':')
-        if sidx == 3 or (sidx != -1 and sidx < url.find('.')):
-            if not url.lower().startswith('sip:'):
-                raise ValueError('unsupported scheme: ' + url[:4])
-            url = url[4:]
-        # else:
-        #     scheme is missing, assume sip:
+        parts = url.split(':', 1)
+        if len(parts) < 2:
+            # scheme is missing, assume sip:
+            parts.insert(0, 'sip')
+        parts[0] = parts[0].lower()
+        if parts[0] not in ('sip', 'sips', 'tel'):
+            raise ValueError('unsupported scheme: %s:' % parts[0])
+        self.scheme, url = parts
+        if self.scheme == 'tel':
+            if SipConf.autoconvert_tel_url:
+                self.convertTelURL(url, relaxedparser)
+            else:
+                raise ValueError('tel: scheme is not supported')
+        else:
+            self.parseSipURL(url, relaxedparser)
+
+    def convertTelURL(self, url, relaxedparser):
+        self.scheme = 'sip'
+        if relaxedparser:
+            self.host = ''
+        else:
+            self.host = SipConf.my_address
+            self.port = SipConf.my_port
+        parts = url.split(';')
+        self.username = unquote(parts[0])
+        if len(parts) > 1:
+            # parse userparams
+            self.userparams = []
+            for part in parts[1:]:
+                # The RFC-3261 suggests the user parameter keys should
+                # be converted to lower case.
+                k, v = part.split('=')
+                self.userparams.append(k.lower() + '=' + v)
+
+    def parseSipURL(self, url, relaxedparser):
         ear = url.find('@') + 1
         parts = url[ear:].split(';')
         userdomain, params = url[0:ear] + parts[0], parts[1:]
-        if len(params) == 0 and '?' in userdomain:
+        if len(params) == 0 and '?' in userdomain[ear:]:
             self.headers = {}
-            userdomain, headers = userdomain.split('?', 1)
+            userdomain_suff, headers = userdomain[ear:].split('?', 1)
+            userdomain = userdomain[:ear] + userdomain_suff
             for header in headers.split('&'):
                 k, v = header.split('=')
-                self.headers[k.lower()] = unquote(v)
-        udparts = userdomain.split('@', 1)
-        if len(udparts) == 2:
-            userpass, hostport = udparts
+                self.headers[k] = unquote(v)
+        if ear > 0:
+            userpass = userdomain[:ear - 1]
+            hostport = userdomain[ear:]
             upparts = userpass.split(':', 1)
             if len(upparts) > 1:
                 self.password = upparts[1]
@@ -100,7 +140,8 @@ class SipURL(object):
                 self.userparams = uparts[1:]
             self.username = unquote(uparts[0])
         else:
-            hostport = udparts[0]
+            hostport = userdomain
+        parseport = None
         if relaxedparser and len(hostport) == 0:
             self.host = ''
         elif hostport[0] == '[':
@@ -110,7 +151,7 @@ class SipURL(object):
             if len(hpparts[1]) > 0:
                 hpparts = hpparts[1].split(':', 1)
                 if len(hpparts) > 1:
-                    self.port = int(hpparts[1])
+                    parseport = hpparts[1]
         else:
             # IPv4 host
             hpparts = hostport.split(':', 1)
@@ -118,22 +159,51 @@ class SipURL(object):
                 self.host = hpparts[0]
             else:
                 self.host = hpparts[0]
-                try:
-                    self.port = int(hpparts[1])
-                except Exception as e:
-                    # XXX: some bad-ass devices send us port number twice
-                    # While not allowed by the RFC, deal with it
-                    portparts = hpparts[1].split(':', 1)
-                    if len(portparts) != 2 or portparts[0] != portparts[1]:
+                parseport = hpparts[1]
+
+        if parseport != None:
+            try:
+                self.port = int(parseport)
+            except Exception as e:
+                # Can't parse port number, check why
+                port = parseport.strip()
+                if len(port) == 0:
+                    # Bug on the other side, work around it
+                    print('WARNING: non-compliant URI detected, empty port number, ' \
+                      'assuming default: "%s"' % str(self.original_uri))
+                elif port.find(':') > 0:
+                    pparts = port.split(':', 1)
+                    if pparts[0] == pparts[1]:
+                        # Bug on the other side, work around it
+                        print('WARNING: non-compliant URI detected, duplicate port number, ' \
+                          'taking "%s": %s' % (pparts[0], str(self.original_uri)))
+                        self.port = int(pparts[0])
+                    else:
                         raise e
-                    self.port = int(portparts[0])
-        for p in params:
-            if p == params[-1] and '?' in p:
+                else:
+                    raise e
+        if len(params) > 0:
+            last_param = params[-1]
+            arr = last_param.split('?', 1)
+            params[-1] = arr[0]
+            self.setParams(params)
+            if len(arr) == 2:
                 self.headers = {}
-                p, headers = p.split('?', 1)
-                for header in headers.split('&'):
+                for header in arr[1].split('&'):
                     k, v = header.split('=')
-                    self.headers[k.lower()] = unquote(v)
+                    self.headers[k] = unquote(v)
+
+    def setParams(self, params):
+        self.usertype = None
+        self.transport = None
+        self.ttl = None
+        self.maddr = None
+        self.method = None
+        self.tag = None
+        self.other = []
+        self.lr = False
+
+        for p in params:
             nv = p.split('=', 1)
             if len(nv) == 1:
                 if p == 'lr':
@@ -166,9 +236,9 @@ class SipURL(object):
 
     def localStr(self, local_addr = None, local_port = None):
         l = []; w = l.append
-        w('sip:')
+        w(self.scheme + ':')
         if self.username != None:
-            w(self.username)
+            w(quote(self.username, USERNAME_SAFE))
             for v in self.userparams:
                 w(';%s' % v)
             if self.password != None:
@@ -183,20 +253,26 @@ class SipURL(object):
                 w(':%d' % local_port)
             else:
                 w(':%d' % self.port)
+        for p in self.getParams():
+            w(';%s' % p)
+        if self.headers:
+            w('?')
+            w('&'.join([('%s=%s' % (h, quote(v))) for (h, v) in self.headers.items()]))
+        return ''.join(l)
+
+    def getParams(self):
+        res = []; w = res.append
         if self.usertype != None:
-            w(';user=%s' % self.usertype)
+            w('user=%s' % self.usertype)
         for n in ('transport', 'ttl', 'maddr', 'method', 'tag'):
             v = getattr(self, n)
             if v != None:
-                w(';%s=%s' % (n, v))
-        if self.lr:
-            w(';lr')
+                w('%s=%s' % (n, v))
         for v in self.other:
-            w(';%s' % v)
-        if self.headers:
-            w('?')
-            w('&'.join([('%s=%s' % (h.capitalize(), quote(v))) for (h, v) in self.headers.items()]))
-        return ''.join(l)
+            w(v)
+        if self.lr:
+            w('lr')
+        return res
 
     def getCopy(self):
         return SipURL(username = self.username, password = self.password, host = self.host, port = self.port, \
@@ -221,3 +297,28 @@ class SipURL(object):
 
     def setAddr(self, addr):
         self.host, self.port = addr
+
+if __name__ == '__main__':
+    import sys
+
+    test_set = (('sip:user;par=u%40example.net@example.com', ()), \
+      ('sip:user@example.com?Route=%3Csip:example.com%3E', ()), \
+      ('sip:[2001:db8::10]', ()), \
+      ('sip:[2001:db8::10]:5070', ()), \
+      ('sip:user@example.net;tag=9817--94', ('tag=9817--94',)), \
+      ('sip:alice@atlanta.com;ttl=15;maddr=239.255.255.1', ('ttl=15', 'maddr=239.255.255.1')), \
+      ('sip:alice:secretword@atlanta.com;transport=tcp', ('transport=tcp',)), \
+      ('sip:alice@atlanta.com?subject=project%20x&priority=urgent', ()), \
+      ('sip:+1-212-555-1212:1234@gateway.com;user=phone', ('user=phone',)), \
+      ('sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com', ('method=REGISTER',)), \
+      ('sip:alice;day=tuesday@atlanta.com', ()), \
+      ('sip:+611234567890@ims.mnc000.mcc000.3gppnetwork.org;user=phone;npdi', ('user=phone', 'npdi')), \
+      ('sip:1234#567890@example.com', ()), \
+      ('sip:foo@1.2.3.4:', ()), \
+      ('sip:foo@1.2.3.4:5060:5060', ()))
+    for u, mp in test_set:
+        su = SipURL(u)
+        sp = su.getParams()
+        print(tuple(sp), mp, su.getHost(), su.getPort())
+        if str(su) != u:
+            sys.stderr.write('URI cannot be reconstructed precisely: expected \'%s\' got \'%s\'\n' % (u, str(su)))

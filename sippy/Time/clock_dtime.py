@@ -39,7 +39,13 @@ elif platform.system() == 'Linux':
     # Linux-specific
     CLOCK_BOOTTIME = 7
 
-class timespec(ctypes.Structure):
+class timespec32(ctypes.Structure):
+    _fields_ = [
+        ('tv_sec', ctypes.c_long),
+        ('tv_nsec', ctypes.c_long)
+    ]
+
+class timespec64(ctypes.Structure):
     _fields_ = [
         ('tv_sec', ctypes.c_longlong),
         ('tv_nsec', ctypes.c_long)
@@ -73,6 +79,20 @@ def find_symbol(symname, lnames, paths):
     raise Exception('Bah, %s cannot be found in libs %s in the paths %s' % (symname, lnames, paths))
 
 clock_gettime = find_symbol('clock_gettime', ('c', 'rt'), ('/usr/lib', '/lib'))
+for tstype in timespec64, timespec32:
+    clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(tstype)]
+    t = tstype()
+    if clock_gettime(CLOCK_MONOTONIC, ctypes.pointer(t)) != 0 or t.tv_nsec == 0:
+        continue
+    ns1 = t.tv_nsec
+    if clock_gettime(CLOCK_MONOTONIC, ctypes.pointer(t)) != 0 or t.tv_nsec == 0:
+        continue
+    if ns1 != t.tv_nsec:
+        timespec = tstype
+        break
+else:
+    raise Exception('Cannot deduce format of the struct timespec')
+
 clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(timespec)]
 
 def clock_getdtime(type):

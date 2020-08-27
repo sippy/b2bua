@@ -50,6 +50,7 @@ class UpdateLookupOpts(object):
     to_tag = None
     notify_socket = None
     notify_tag = None
+    subargs = None
 
     def __init__(self, s = None, *params):
         if s == None:
@@ -109,6 +110,8 @@ class UpdateLookupOpts(object):
             s = '%s %s' % (s, self.notify_socket)
         if self.notify_tag != None:
             s = '%s %s' % (s, self.notify_tag)
+        if self.subargs != None:
+            s = '%s && %s' % (s, self.subargs)
         return s
 
 class Rtp_proxy_cmd(object):
@@ -125,6 +128,8 @@ class Rtp_proxy_cmd(object):
             command_opts, self.call_id, args = cmd.split(None, 2)
             if self.type in ('U', 'L'):
                 self.ul_opts = UpdateLookupOpts(command_opts[1:])
+                if ' && ' in args:
+                    args, self.ul_opts.subargs = args.split(' && ', 1)
                 self.ul_opts.remote_ip, self.ul_opts.remote_port, args = args.split(None, 2)
                 args = args.split(None, 1)
                 self.ul_opts.from_tag = args[0]
@@ -209,11 +214,10 @@ class Rtpp_stats(object):
         return rval
 
 if __name__ == '__main__':
-    rc = Rtp_proxy_cmd('G nsess_created total_duration')
-    print(rc)
-    print(rc.args)
-    print(rc.command_opts)
-    rc = Rtp_proxy_cmd('Gv nsess_created total_duration')
-    print(rc)
-    print(rc.args)
-    print(rc.command_opts)
+    for cmd in ('G nsess_created total_duration', 'Gv nsess_created total_duration', \
+      'UL10.10.0.21 bca22c94cda32ed233ccfc7485f0a01c@10.10.0.19-1-0 10.10.0.19 19492 496c1f695ec7bbe26cd334b0454f56e9 tcp:%%CC_SELF%%:22223 .sock%20r%20m18482_1%201',
+      'UL10.10.0.21 call-id 10.10.0.19 19492 496c1f695ec7bbe26cd334b0454f56e9 tcp:%%CC_SELF%%:22223 .sock%20r%20m18482_1%201 && M0:0'):
+        rc = Rtp_proxy_cmd(cmd)
+        print(rc)
+        print(rc.args)
+        print(rc.command_opts)
