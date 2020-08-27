@@ -33,6 +33,15 @@ path.
 
 ## Installation
 
+### Install libelperiodic (if not installed)
+
+```
+$ git clone https://github.com/sobomax/libelperiodic.git
+$ cd libelperiodic; ./configure; make all install; cd ..
+```
+
+### Install B2BUA
+
 `pip install git+https://github.com/sippy/b2bua`
 
 ## Running
