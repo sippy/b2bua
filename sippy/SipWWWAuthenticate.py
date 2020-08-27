@@ -24,20 +24,24 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from random import random
-from hashlib import md5
-from time import time
 from sippy.SipGenericHF import SipGenericHF
 from sippy.SipConf import SipConf
 from sippy.SipAuthorization import SipAuthorization
+from sippy.Security.SipNonce import HashOracle, DGST_PRIOS
+
+from Crypto import Random
 
 class SipWWWAuthenticate(SipGenericHF):
     hf_names = ('www-authenticate',)
     aclass = SipAuthorization
     realm = None
     nonce = None
+    qop = None
     algorithm = None
+    opaque = None
     otherparams = None
+    ho = HashOracle()
+    rng = Random.new()
 
     def __init__(self, body = None, realm = None, nonce = None):
         self.otherparams = []
@@ -46,9 +50,7 @@ class SipWWWAuthenticate(SipGenericHF):
             return
         self.parsed = True
         if nonce == None:
-            ctime = time()
-            salt = str((random() * 1000000000) + ctime)
-            nonce = md5(salt.encode()).hexdigest() + hex(int(ctime))[2:]
+            nonce = self.ho.emit_challenge(DGST_PRIOS)
         if realm == None:
             realm = SipConf.my_address
         self.realm = realm
@@ -68,7 +70,11 @@ class SipWWWAuthenticate(SipGenericHF):
                 elif name == 'nonce':
                     self.nonce = value
                 elif name == 'algorithm':
-                    self.algorithm = value.upper()
+                    self.algorithm = value
+                elif name == 'qop':
+                    self.qop = [x.strip() for x in value.split(',')]
+                elif name == 'opaque':
+                    self.opaque = value
                 else:
                     self.otherparams.append((name, value))
         self.parsed = True
@@ -82,8 +88,18 @@ class SipWWWAuthenticate(SipGenericHF):
         if local_addr == None or 'my' not in dir(self.realm):
             local_addr = self.realm
         rval = 'Digest realm="%s",nonce="%s"' % (local_addr, self.nonce)
+        if self.qop != None:
+            sqop = self.qop[0]
+            for qop in self.qop[1:]:
+                sqop += ',%s' % qop
+            if len(self.qop) > 1:
+                rval += ',qop="%s"' % (sqop,)
+            else:
+                rval += ',qop=%s' % (sqop,)
         if self.algorithm != None:
             rval += ',algorithm=%s' % (self.algorithm,)
+        if self.opaque != None:
+            rval += ',opaque="%s"' % (self.opaque,)
         for param in self.otherparams:
             rval += ',%s="%s"' % param
         return rval
@@ -93,9 +109,10 @@ class SipWWWAuthenticate(SipGenericHF):
             return self.__class__(self.body)
         cself = self.__class__(realm = self.realm, nonce = self.nonce)
         cself.algorithm = self.algorithm
+        cself.qop = self.qop
+        cself.opaque = self.opaque
         if len(self.otherparams) > 0:
             cself.otherparams = self.otherparams[:]
-        cself.algorithm = self.algorithm
         return cself
 
     def getCanName(self, name, compact = False):
@@ -110,5 +127,11 @@ class SipWWWAuthenticate(SipGenericHF):
     def genAuthHF(self, username, password, method, uri):
         auth = self.aclass(realm = self.realm, nonce = self.nonce, uri = uri, username = username)
         auth.algorithm = self.algorithm
+        if self.qop != None:
+            auth.qop = self.qop[0]
+            auth.nc = '00000001'
+            auth.cnonce = self.rng.read(4).hex()
+        if self.opaque != None:
+            auth.opaque = self.opaque
         auth.genResponse(password, method)
         return auth
