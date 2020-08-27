@@ -88,14 +88,15 @@ class SipAuthorization(SipGenericHF):
             elif ci_name == 'nc':
                 self.nc = value.strip('"')
             elif ci_name == 'algorithm':
-                self.algorithm = value.strip('"').upper()
+                self.algorithm = value.strip('"')
             else:
                 self.otherparams.append((name, value))
         self.parsed = True
 
     def genResponse(self, password, method):
         HA1 = DigestCalcHA1(self.algorithm, self.username, self.realm, password, self.nonce, '')
-        self.response = DigestCalcResponse(self.algorithm, HA1, self.nonce, 0, '', '', method, self.uri, '')
+        self.response = DigestCalcResponse(self.algorithm, HA1, self.nonce, \
+          self.nc, self.cnonce, self.qop, method, self.uri, '')
 
     def __str__(self):
         if not self.parsed:
@@ -105,8 +106,7 @@ class SipAuthorization(SipGenericHF):
         if self.algorithm != None:
             rval += ',algorithm=%s' % (self.algorithm,)
         if self.qop != None:
-            rval += ',nc="%s",cnonce="%s",qop=%s' % (self.nc, self.cnonce, \
-              self.qop)
+            rval += ',qop=%s,nc=%s,cnonce="%s"' % (self.qop, self.nc, self.cnonce)
         for param in self.otherparams:
             rval += ',%s=%s' % param
         return rval
@@ -141,7 +141,25 @@ class SipAuthorization(SipGenericHF):
             pass
         return False
 
-_HASH_FUNC = {None:md5, 'MD5':md5, 'MD5-SESS':md5, 'SHA-256':sha256, 'SHA-512':sha512}
+class sha512_256(object):
+    d = None
+
+    def __init__(self):
+        self.d = sha512()
+
+    def update(self, arg):
+        self.d.update(arg)
+
+    def digest(self):
+        dgst = self.d.digest()
+        return dgst[:32]
+
+    def hexdigest(self):
+        hdgst = self.d.hexdigest()
+        return hdgst[:64]
+
+_HASH_FUNC = {None:md5, 'MD5':md5, 'MD5-sess':md5, 'SHA-256':sha256, \
+  'SHA-256-sess':sha256, 'SHA-512-256':sha512_256, 'SHA-512-256-sess':sha512_256}
 
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
     delim = ':'.encode()
@@ -153,7 +171,7 @@ def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonc
     m.update(delim)
     m.update(pszPassword.encode())
     HA1 = m.digest()
-    if pszAlg == 'MD5-SESS':
+    if pszAlg and pszAlg.endswith('-sess'):
         m = hashfunc()
         m.update(HA1)
         m.update(delim)
