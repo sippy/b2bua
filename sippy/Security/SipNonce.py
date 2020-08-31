@@ -56,7 +56,7 @@ class AESCipher(object):
     bpad = '='.encode()
     cipher = None
 
-    def __init__(self, key): 
+    def __init__(self, key):
         self.cipher = AES.new(key, AES.MODE_ECB)
 
     def encrypt(self, raw):
@@ -105,7 +105,7 @@ class HashOracle(object):
         if tsdiff < 0 or tsdiff > self.vtime:
             return False
         return True
-    
+
 if __name__ == '__main__':
     from threading import Thread
 
