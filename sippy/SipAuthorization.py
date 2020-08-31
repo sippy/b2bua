@@ -25,11 +25,33 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.SipGenericHF import SipGenericHF
-from sippy.Security.SipNonce import HashOracle, DGST_PRIOS
+from sippy.Security.SipNonce import HashOracle, DGST_MD5, \
+  DGST_SHA256, DGST_SHA512
 
 from hashlib import md5, sha256, sha512
 from time import time
 from binascii import hexlify
+
+class sha512_256(object):
+    d = None
+
+    def __init__(self):
+        self.d = sha512()
+
+    def update(self, arg):
+        self.d.update(arg)
+
+    def digest(self):
+        dgst = self.d.digest()
+        return dgst[:32]
+
+    def hexdigest(self):
+        hdgst = self.d.hexdigest()
+        return hdgst[:64]
+
+_HASH_FUNC = {None:(md5, DGST_MD5), 'MD5':(md5, DGST_MD5), 'MD5-sess':(md5, DGST_MD5), \
+  'SHA-256':(sha256, DGST_SHA256), 'SHA-256-sess':(sha256, DGST_SHA256), \
+  'SHA-512-256':(sha512_256, DGST_SHA512), 'SHA-512-256-sess':(sha512_256, DGST_SHA512)}
 
 class SipAuthorization(SipGenericHF):
     hf_names = ('authorization',)
@@ -127,7 +149,8 @@ class SipAuthorization(SipGenericHF):
     def verifyHA1(self, HA1, method):
         if not self.parsed:
             self.parse()
-        if not self.ho.validate_challenge(self.nonce, DGST_PRIOS):
+        algmask = _HASH_FUNC[self.algorithm][1]
+        if not self.ho.validate_challenge(self.nonce, (algmask,)):
             return False
         response = DigestCalcResponse(self.algorithm, HA1, self.nonce, self.nc, \
           self.cnonce, self.qop, method, self.uri, '')
@@ -146,29 +169,9 @@ class SipAuthorization(SipGenericHF):
             pass
         return False
 
-class sha512_256(object):
-    d = None
-
-    def __init__(self):
-        self.d = sha512()
-
-    def update(self, arg):
-        self.d.update(arg)
-
-    def digest(self):
-        dgst = self.d.digest()
-        return dgst[:32]
-
-    def hexdigest(self):
-        hdgst = self.d.hexdigest()
-        return hdgst[:64]
-
-_HASH_FUNC = {None:md5, 'MD5':md5, 'MD5-sess':md5, 'SHA-256':sha256, \
-  'SHA-256-sess':sha256, 'SHA-512-256':sha512_256, 'SHA-512-256-sess':sha512_256}
-
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
     delim = ':'.encode()
-    hashfunc = _HASH_FUNC[pszAlg]
+    hashfunc = _HASH_FUNC[pszAlg][0]
     m = hashfunc()
     m.update(pszUserName.encode())
     m.update(delim)
@@ -188,7 +191,7 @@ def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonc
 
 def DigestCalcResponse(pszAlg, HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, pszMethod, pszDigestUri, pszHEntity):
     delim = ':'.encode()
-    hashfunc = _HASH_FUNC[pszAlg]
+    hashfunc = _HASH_FUNC[pszAlg][0]
     m = hashfunc()
     m.update(pszMethod.encode())
     m.update(delim)
