@@ -49,14 +49,15 @@ class SipWWWAuthenticate(SipGenericHF):
         # Python 2.7 shim
         readhex = lambda self, x: self.rng.read(x).encode('hex')
 
-    def __init__(self, body = None, realm = None, nonce = None):
+    def __init__(self, body = None, realm = None, nonce = None, \
+      enabled_algos = DGST_PRIOS):
         self.otherparams = []
         SipGenericHF.__init__(self, body)
         if body != None:
             return
         self.parsed = True
         if nonce == None:
-            nonce = self.ho.emit_challenge(DGST_PRIOS)
+            nonce = self.ho.emit_challenge(enabled_algos)
         if realm == None:
             realm = SipConf.my_address
         self.realm = realm
