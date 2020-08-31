@@ -25,6 +25,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.SipGenericHF import SipGenericHF
+from sippy.Security.SipNonce import HashOracle, DGST_PRIOS
+
 from hashlib import md5, sha256, sha512
 from time import time
 from binascii import hexlify
@@ -41,6 +43,7 @@ class SipAuthorization(SipGenericHF):
     nc = None
     algorithm = None
     otherparams = None
+    ho = HashOracle()
 
     def __init__(self, body = None, username = None, uri = None, realm = None, nonce = None, response = None, \
                  cself = None):
@@ -124,6 +127,8 @@ class SipAuthorization(SipGenericHF):
     def verifyHA1(self, HA1, method):
         if not self.parsed:
             self.parse()
+        if not self.ho.validate_challenge(self.nonce, DGST_PRIOS):
+            return False
         response = DigestCalcResponse(self.algorithm, HA1, self.nonce, self.nc, \
           self.cnonce, self.qop, method, self.uri, '')
         return response == self.response
