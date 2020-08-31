@@ -42,6 +42,12 @@ class SipWWWAuthenticate(SipGenericHF):
     otherparams = None
     ho = HashOracle()
     rng = Random.new()
+    try:
+        rng.read(1).hex()
+        readhex = lambda self, x: self.rng.read(x).hex()
+    except AttributeError:
+        # Python 2.7 shim
+        readhex = lambda self, x: self.rng.read(x).encode('hex')
 
     def __init__(self, body = None, realm = None, nonce = None):
         self.otherparams = []
@@ -130,7 +136,7 @@ class SipWWWAuthenticate(SipGenericHF):
         if self.qop != None:
             auth.qop = self.qop[0]
             auth.nc = '00000001'
-            auth.cnonce = self.rng.read(4).hex()
+            auth.cnonce = self.readhex(4)
         if self.opaque != None:
             auth.opaque = self.opaque
         auth.genResponse(password, method)
