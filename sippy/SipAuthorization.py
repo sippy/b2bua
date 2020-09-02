@@ -149,6 +149,8 @@ class SipAuthorization(SipGenericHF):
     def verifyHA1(self, HA1, method):
         if not self.parsed:
             self.parse()
+        if self.algorithm not in _HASH_FUNC:
+            return False
         algmask = _HASH_FUNC[self.algorithm][1]
         if not self.ho.validate_challenge(self.nonce, (algmask,)):
             return False
@@ -158,9 +160,6 @@ class SipAuthorization(SipGenericHF):
 
     def getCanName(self, name, compact = False):
         return 'Authorization'
-
-    def supportedAlgorithm(self):
-        return (self.algorithm in _HASH_FUNC)
 
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
     delim = ':'.encode()
