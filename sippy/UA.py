@@ -278,7 +278,7 @@ class UA(object):
                          cseq = self.lCSeq, callid = self.cId, contact = self.lContact,
                          routes = self.routes, target = target, cguid = self.cGUID,
                          user_agent = self.local_ua, maxforwards = max_forwards_hf)
-        if challenge != None and self.username != None and self.password != None:
+        if challenge != None:
             auth = challenge.genAuthHF(self.username, self.password, method, str(self.rTarget))
             req.appendHeader(SipHeader(body = auth))
         if body != None:
