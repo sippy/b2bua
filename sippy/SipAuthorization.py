@@ -161,6 +161,9 @@ class SipAuthorization(SipGenericHF):
     def getCanName(self, name, compact = False):
         return 'Authorization'
 
+def IsDigestAlgSupported(algorithm):
+    return (algorithm in _HASH_FUNC)
+
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
     delim = ':'.encode()
     hashfunc = _HASH_FUNC[pszAlg][0]
