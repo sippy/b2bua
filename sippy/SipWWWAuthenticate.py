@@ -26,7 +26,7 @@
 
 from sippy.SipGenericHF import SipGenericHF
 from sippy.SipConf import SipConf
-from sippy.SipAuthorization import SipAuthorization
+from sippy.SipAuthorization import SipAuthorization, IsDigestAlgSupported
 from sippy.Security.SipNonce import HashOracle, DGST_PRIOS
 
 from Crypto import Random
@@ -142,3 +142,6 @@ class SipWWWAuthenticate(SipGenericHF):
             auth.opaque = self.opaque
         auth.genResponse(password, method)
         return auth
+
+    def supportedAlgorithm(self):
+        return IsDigestAlgSupported(self.algorithm)
