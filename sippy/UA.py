@@ -169,32 +169,35 @@ class UA(object):
         else:
             return None
 
+    def processChallenge(self, resp, cseq, ch_hfname, auth_hfname):
+        if self.username == None or self.password == None or \
+          self.reqs[cseq].countHFs(auth_hfname) != 0:
+            return False
+        for challenge in resp.getHFBodys(ch_hfname):
+            if challenge.supportedAlgorithm():
+                break
+        else:
+            return False
+        req = self.genRequest('INVITE', self.lSDP, challenge)
+        self.lCSeq += 1
+        self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
+          laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
+        del self.reqs[cseq]
+        return True
+
     def recvResponse(self, resp, tr):
         if self.state == None:
             return
         self.update_ua(resp)
         code, reason = resp.getSCode()
         cseq, method = resp.getHFBody('cseq').getCSeq()
-        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 401 and \
-          resp.countHFs('www-authenticate') != 0 and \
-          self.username != None and self.password != None and self.reqs[cseq].countHFs('authorization') == 0:
-            challenge = resp.getHFBody('www-authenticate')
-            req = self.genRequest('INVITE', self.lSDP, challenge)
-            self.lCSeq += 1
-            self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
-              laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
-            del self.reqs[cseq]
-            return None
-        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 407 and \
-          resp.countHFs('proxy-authenticate') != 0 and \
-          self.username != None and self.password != None and self.reqs[cseq].countHFs('proxy-authorization') == 0:
-            challenge = resp.getHFBody('proxy-authenticate')
-            req = self.genRequest('INVITE', self.lSDP, challenge)
-            self.lCSeq += 1
-            self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
-              laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
-            del self.reqs[cseq]
-            return None
+        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs:
+            if code == 401 and self.processChallenge(resp, cseq, \
+              'www-authenticate', 'authorization'):
+                return None
+            if code == 407 and self.processChallenge(resp, cseq, \
+              'proxy-authenticate', 'proxy-authorization'):
+                return None
         if code >= 200 and cseq in self.reqs:
             del self.reqs[cseq]
         newstate = self.state.recvResponse(resp, tr)
