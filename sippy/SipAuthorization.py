@@ -159,15 +159,8 @@ class SipAuthorization(SipGenericHF):
     def getCanName(self, name, compact = False):
         return 'Authorization'
 
-    def hasValidNonce(self, timeout = 300):
-        if self.nonce == None:
-            return False
-        try:
-            if time() - timeout < int(self.nonce[32:], 16):
-                return True
-        except:
-            pass
-        return False
+    def supportedAlgorithm(self):
+        return (self.algorithm in _HASH_FUNC)
 
 def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonce):
     delim = ':'.encode()
