@@ -46,6 +46,7 @@ class UA(object):
     uacResp = None
     username = None
     password = None
+    auth_enalgs = None
     equeue = None
     dId = None
     credit_time = None
@@ -174,6 +175,8 @@ class UA(object):
           self.reqs[cseq].countHFs(auth_hfname) != 0:
             return False
         for challenge in resp.getHFBodys(ch_hfname):
+            if self.auth_enalgs != None and challenge.algorithm not in self.auth_enalgs:
+                continue
             if challenge.supportedAlgorithm():
                 break
         else:
