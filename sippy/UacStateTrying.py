@@ -158,9 +158,9 @@ class UacStateTrying(UaStateGeneric):
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
             if self.ua.pass_auth:
                 if code == 401 and resp.countHFs('www-authenticate') != 0:
-                    event.challenge = resp.getHF('www-authenticate').getCopy()
+                    event.challenges = [x.getCopy() for x in resp.getHFs('www-authenticate')]
                 elif code == 407 and resp.countHFs('proxy-authenticate') != 0:
-                    event.challenge = resp.getHF('proxy-authenticate').getCopy()
+                    event.challenges = [x.getCopy() for x in resp.getHF('proxy-authenticate')]
             if resp.countHFs('reason') != 0:
                 event.reason = resp.getHFBody('reason').getCopy()
             self.ua.equeue.append(event)

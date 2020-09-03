@@ -105,8 +105,8 @@ class UasStateTrying(UaStateGeneric):
             extra_headers = []
             if event.extra_headers != None:
                 extra_headers.extend(event.extra_headers)
-            if event.challenge != None:
-                extra_headers.append(event.challenge)
+            if event.challenges != None:
+                extra_headers.extend(event.challenges)
             if len(extra_headers) == 0:
                 extra_headers = None
             else:
