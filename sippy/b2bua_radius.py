@@ -130,7 +130,6 @@ class CallController(object):
         self.global_config = global_config
         self.uaA = UA(self.global_config, event_cb = self.recvEvent, conn_cbs = (self.aConn,), disc_cbs = (self.aDisc,), \
           fail_cbs = (self.aDisc,), dead_cbs = (self.aDead,))
-        self.uaA.pass_auth = self.pass_auth
         self.uaA.kaInterval = self.global_config['keepalive_ans']
         self.uaA.local_ua = self.global_config['_uaname']
         self.state = CCStateIdle
