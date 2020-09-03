@@ -71,7 +71,7 @@ class UacStateIdle(UaStateGeneric):
             event.onUacSetupComplete(self.ua)
             req = self.ua.genRequest('INVITE', body, reason = event.reason, \
               max_forwards = event.max_forwards)
-            if self.ua.pass_auth:
+            if auth != None and self.ua.pass_auth:
                 req.appendHeader(SipHeader(body = auth))
             self.ua.lCSeq += 1
             self.ua.tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.ua.recvResponse, \
