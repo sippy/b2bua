@@ -135,7 +135,7 @@ class SipWWWAuthenticate(SipGenericHF):
         auth = self.aclass(realm = self.realm, nonce = self.nonce, uri = uri, username = username)
         auth.algorithm = self.algorithm
         if self.qop != None:
-            auth.qop = self.qop[0]
+            auth.qop = 'auth'
             auth.nc = '00000001'
             auth.cnonce = self.readhex(4)
         if self.opaque != None:
@@ -144,4 +144,6 @@ class SipWWWAuthenticate(SipGenericHF):
         return auth
 
     def supportedAlgorithm(self):
+        if self.qop != None and 'auth' not in self.qop:
+            return False
         return IsDigestAlgSupported(self.algorithm)

@@ -151,6 +151,8 @@ class SipAuthorization(SipGenericHF):
             self.parse()
         if self.algorithm not in _HASH_FUNC:
             return False
+        if self.qop != None and self.qop != 'auth':
+            return False
         algmask = _HASH_FUNC[self.algorithm][1]
         if not self.ho.validate_challenge(self.nonce, (algmask,)):
             return False
