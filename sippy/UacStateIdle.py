@@ -33,6 +33,7 @@ from sippy.SipURL import SipURL
 from sippy.SipTo import SipTo
 from sippy.SipFrom import SipFrom
 from sippy.SipCallId import SipCallId
+from sippy.SipHeader import SipHeader
 
 class UacStateIdle(UaStateGeneric):
     sname = 'Idle(UAC)'
@@ -70,6 +71,8 @@ class UacStateIdle(UaStateGeneric):
             event.onUacSetupComplete(self.ua)
             req = self.ua.genRequest('INVITE', body, reason = event.reason, \
               max_forwards = event.max_forwards)
+            if self.ua.pass_auth:
+                req.appendHeader(SipHeader(body = auth))
             self.ua.lCSeq += 1
             self.ua.tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.ua.recvResponse, \
               laddress = self.ua.source_address, cb_ifver = 2, compact = self.ua.compact_sip)
