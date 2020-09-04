@@ -28,26 +28,26 @@ from sippy.SipGenericHF import SipGenericHF
 from sippy.Security.SipNonce import HashOracle, DGST_MD5, \
   DGST_SHA256, DGST_SHA512
 
-from hashlib import md5, sha256, sha512
+from hashlib import md5, sha256
 from time import time
 from binascii import hexlify
+
+from Crypto.Hash import SHA512
 
 class sha512_256(object):
     d = None
 
     def __init__(self):
-        self.d = sha512()
+        self.d = SHA512.new(truncate = '256')
 
     def update(self, arg):
         self.d.update(arg)
 
     def digest(self):
-        dgst = self.d.digest()
-        return dgst[:32]
+        return self.d.digest()
 
     def hexdigest(self):
-        hdgst = self.d.hexdigest()
-        return hdgst[:64]
+        return self.d.hexdigest()
 
 _HASH_FUNC = {None:(md5, DGST_MD5), 'MD5':(md5, DGST_MD5), 'MD5-sess':(md5, DGST_MD5), \
   'SHA-256':(sha256, DGST_SHA256), 'SHA-256-sess':(sha256, DGST_SHA256), \
