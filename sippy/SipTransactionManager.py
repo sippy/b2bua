@@ -461,11 +461,6 @@ class SipTransactionManager(object):
                         t.resp_cb(msg, t)
             else:
                 # Final response - notify upper layer and remove transaction
-                if t.resp_cb != None:
-                    if t.cb_ifver == 1:
-                        t.resp_cb(msg)
-                    else:
-                        t.resp_cb(msg, t)
                 if t.needack:
                     # Prepare and send ACK if necessary
                     tag = msg.getHFBody('to').getTag()
@@ -510,9 +505,15 @@ class SipTransactionManager(object):
                         t.ack_checksum = checksum
                         self.l1rcache[checksum] = SipTMRetransmitO()
                         t.teG = Timeout(self.timerG, 64, 1, t)
-                        return
                 else:
                     self.l1rcache[checksum] = SipTMRetransmitO()
+                if t.resp_cb != None:
+                    if t.cb_ifver == 1:
+                        t.resp_cb(msg)
+                    else:
+                        t.resp_cb(msg, t)
+                if t.state == UACK:
+                    return
                 del self.tclient[t.tid]
                 t.cleanup()
 
