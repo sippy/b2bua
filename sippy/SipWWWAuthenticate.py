@@ -26,7 +26,8 @@
 
 from sippy.SipGenericHF import SipGenericHF
 from sippy.SipConf import SipConf
-from sippy.SipAuthorization import SipAuthorization, IsDigestAlgSupported
+from sippy.SipAuthorization import SipAuthorization, IsDigestAlgSupported, \
+  NameList2AlgMask
 from sippy.Security.SipNonce import HashOracle, DGST_PRIOS
 
 from Crypto import Random
@@ -50,14 +51,17 @@ class SipWWWAuthenticate(SipGenericHF):
         readhex = lambda self, x: self.rng.read(x).encode('hex')
 
     def __init__(self, body = None, realm = None, nonce = None, \
-      enabled_algos = DGST_PRIOS):
+      algorithm = None):
         self.otherparams = []
         SipGenericHF.__init__(self, body)
         if body != None:
             return
         self.parsed = True
+        if algorithm != None:
+            self.algorithm = algorithm
+            self.qop = ('auth',)
         if nonce == None:
-            nonce = self.ho.emit_challenge(enabled_algos)
+            nonce = self.ho.emit_challenge(NameList2AlgMask((self.algorithm,)))
         if realm == None:
             realm = SipConf.my_address
         self.realm = realm
