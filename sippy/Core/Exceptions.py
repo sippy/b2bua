@@ -25,7 +25,7 @@
 
 from datetime import datetime
 from traceback import print_exception, extract_stack, print_list, format_exception_only
-import sys
+import sys, os
 
 SEPT = '-' * 70 + '\n'
 
@@ -44,7 +44,7 @@ def dump_exception(msg, f = sys.stdout, extra = None):
         if hasattr(exc_value, 'traceback'):
             exc_traceback = exc_value.traceback
         cus_traceback = None
-    f.write('%s %s:\n' % (datetime.now(), msg))
+    f.write('%s @%s[%d] %s:\n' % (datetime.now(), sys.argv[0], os.getpid(), msg))
     f.write(SEPT)
     if cus_traceback != None:
         f.write('Traceback (most recent call last):\n')
