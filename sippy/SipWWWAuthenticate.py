@@ -28,7 +28,7 @@ from sippy.SipGenericHF import SipGenericHF
 from sippy.SipConf import SipConf
 from sippy.SipAuthorization import SipAuthorization, IsDigestAlgSupported, \
   NameList2AlgMask
-from sippy.Security.SipNonce import HashOracle, DGST_PRIOS
+from sippy.Security.SipNonce import HashOracle
 
 from Crypto import Random
 

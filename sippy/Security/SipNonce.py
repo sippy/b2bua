@@ -71,11 +71,14 @@ class AESCipher(object):
         raw = self.cipher.decrypt(enc[AES.block_size:])
         return bxor(raw, iv)
 
-DGST_MD5    = (1 << 0)
-DGST_SHA256 = (1 << 1)
-DGST_SHA512 = (1 << 2)
+DGST_MD5        = (1 << 0)
+DGST_MD5SESS    = (1 << 1)
+DGST_SHA256     = (1 << 2)
+DGST_SHA256SESS = (1 << 3)
+DGST_SHA512     = (1 << 4)
+DGST_SHA512SESS = (1 << 5)
 
-DGST_PRIOS = (DGST_SHA512, DGST_SHA256, DGST_MD5)
+DGST_PRIOS = (DGST_SHA512, DGST_SHA512SESS, DGST_SHA256, DGST_SHA256SESS, DGST_MD5, DGST_MD5SESS)
 
 class HashOracle(object):
     try: key
