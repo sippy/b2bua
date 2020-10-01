@@ -30,7 +30,6 @@ from sippy.Security.SipNonce import HashOracle, DGST_MD5, DGST_MD5SESS, \
 
 from hashlib import md5, sha256
 from time import time
-from binascii import hexlify
 
 from Crypto.Hash import SHA512
 
@@ -178,7 +177,7 @@ def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonc
     m.update(pszRealm.encode())
     m.update(delim)
     m.update(pszPassword.encode())
-    HA1 = m.digest()
+    HA1 = m.hexdigest().encode()
     if pszAlg and pszAlg.endswith('-sess'):
         m = hashfunc()
         m.update(HA1)
@@ -186,8 +185,8 @@ def DigestCalcHA1(pszAlg, pszUserName, pszRealm, pszPassword, pszNonce, pszCNonc
         m.update(pszNonce.encode())
         m.update(delim)
         m.update(pszCNonce.encode())
-        HA1 = m.digest()
-    return hexlify(HA1)
+        HA1 = m.hexdigest().encode()
+    return HA1
 
 def DigestCalcResponse(pszAlg, HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, pszMethod, pszDigestUri, pszHEntity):
     delim = ':'.encode()
