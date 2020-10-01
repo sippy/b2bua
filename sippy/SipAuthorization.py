@@ -118,7 +118,8 @@ class SipAuthorization(SipGenericHF):
         self.parsed = True
 
     def genResponse(self, password, method):
-        HA1 = DigestCalcHA1(self.algorithm, self.username, self.realm, password, self.nonce, '')
+        HA1 = DigestCalcHA1(self.algorithm, self.username, self.realm, password, \
+          self.nonce, self.cnonce)
         self.response = DigestCalcResponse(self.algorithm, HA1, self.nonce, \
           self.nc, self.cnonce, self.qop, method, self.uri, '')
 
@@ -143,7 +144,8 @@ class SipAuthorization(SipGenericHF):
     def verify(self, password, method):
         if not self.parsed:
             self.parse()
-        return self.verifyHA1(DigestCalcHA1(self.algorithm, self.username, self.realm, password, self.nonce, ''), method)
+        HA1 = DigestCalcHA1(self.algorithm, self.username, self.realm, password, self.nonce, self.cnonce)
+        return self.verifyHA1(HA1, method)
 
     def verifyHA1(self, HA1, method):
         if not self.parsed:
