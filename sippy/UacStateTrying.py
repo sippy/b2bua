@@ -45,9 +45,9 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_reply_timer.cancel()
             self.ua.no_reply_timer = None
             if code == 100 and self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_mtime)
             elif code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if code == 100:
             if self.ua.p100_ts == None:
                 self.ua.p100_ts = resp.rtime
@@ -57,7 +57,7 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_progress_timer.cancel()
             self.ua.no_progress_timer = None
             if code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if code < 200:
             event = CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin)
             if body != None:

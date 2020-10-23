@@ -75,14 +75,14 @@ class UacStateIdle(UaStateGeneric):
               laddress = self.ua.source_address, cb_ifver = 2, compact = self.ua.compact_sip)
             self.ua.auth = None
             if self.ua.expire_time != None:
-                self.ua.expire_time += event.rtime
+                self.ua.expire_mtime = event.rtime.getOffsetCopy(self.ua.expire_time)
             if self.ua.no_progress_time != None:
-                self.ua.no_progress_time += event.rtime
+                self.ua.no_progress_mtime = event.rtime.getOffsetCopy(self.ua.no_progress_time)
                 if self.ua.expire_time != None and self.ua.no_progress_time >= self.ua.expire_time:
                     self.ua.no_progress_time = None
             if self.ua.no_reply_time != None:
                 if self.ua.no_reply_time < 32:
-                    self.ua.no_reply_time += event.rtime
+                    no_reply_mtime = event.rtime.getOffsetCopy(self.ua.no_reply_time)
                     if self.ua.expire_time != None and self.ua.no_reply_time >= self.ua.expire_time:
                         self.ua.no_reply_time = None
                     elif self.ua.no_progress_time != None and self.ua.no_reply_time >= self.ua.no_progress_time:
@@ -90,11 +90,11 @@ class UacStateIdle(UaStateGeneric):
                 else:
                         self.ua.no_reply_time = None
             if self.ua.no_reply_time != None:
-                self.ua.no_reply_timer = TimeoutAbsMono(self.ua.no_reply_expires, self.ua.no_reply_time)
+                self.ua.no_reply_timer = TimeoutAbsMono(self.ua.no_reply_expires, no_reply_mtime)
             elif self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_mtime)
             elif self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
             return (UacStateTrying,)
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
             return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)

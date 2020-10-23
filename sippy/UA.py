@@ -405,7 +405,7 @@ class UA(object):
 
     def startCreditTimer(self, rtime):
         if self.credit_time != None:
-            self.credit_times[0] = rtime + self.credit_time
+            self.credit_times[0] = rtime.getOffsetCopy(self.credit_time)
             self.credit_time = None
         try:
             credit_time = min([x for x in self.credit_times.values() if x != None])
