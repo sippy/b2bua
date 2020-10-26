@@ -29,6 +29,12 @@ from sippy.SdpBody import SdpBody
 
 b_types = {'application/sdp':SdpBody}
 
+try:
+    # Python < 3
+    str_types = (str, unicode)
+except NameError:
+    str_types = (str,)
+
 class MsgBody(object):
     content = None
     mtype = None
@@ -40,7 +46,7 @@ class MsgBody(object):
             self.mtype = mtype
             self.content = content
         else:
-            if type(cself.content) == str:
+            if type(cself.content) in str_types:
                 self.content = cself.content
             else:
                 self.content = cself.content.getCopy()
@@ -57,7 +63,7 @@ class MsgBody(object):
         return str(self.content)
 
     def localStr(self, local_addr = None, local_port = None):
-        if type(self.content) == str:
+        if type(self.content) in str_types:
             return self.content
         return self.content.localStr(local_addr, local_port)
 
