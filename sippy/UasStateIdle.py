@@ -100,15 +100,15 @@ class UasStateIdle(UaStateGeneric):
         except:
             pass
         if self.ua.expire_time != None:
-            self.ua.expire_time += event.rtime
+            self.ua.expire_mtime = event.rtime.getOffsetCopy(self.ua.expire_time)
         if self.ua.no_progress_time != None:
-            self.ua.no_progress_time += event.rtime
+            self.ua.no_progress_mtime = event.rtime.getOffsetCopy(self.ua.no_progress_time)
             if self.ua.expire_time != None and self.ua.no_progress_time >= self.ua.expire_time:
                 self.ua.no_progress_time = None
         if self.ua.no_progress_time != None:
-            self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
+            self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_mtime)
         elif self.ua.expire_time != None:
-            self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+            self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if body != None:
             if self.ua.on_remote_sdp_change != None:
                 self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))

@@ -143,7 +143,7 @@ class RadiusAccounting(object):
                 dc = '10'
             else:
                 dc = '0'
-            attributes.extend((('h323-disconnect-time', self.ftime(self.iTime + delay + duration)), \
+            attributes.extend((('h323-disconnect-time', self.ftime(self.iTime.realt + delay + duration)), \
               ('Acct-Session-Time', '%d' % round(duration)), ('h323-disconnect-cause', dc)))
         if type == 'Stop':
             if origin == 'caller':
@@ -153,14 +153,14 @@ class RadiusAccounting(object):
             else:
                 release_source = '8'
             attributes.append(('release-source', release_source))
-        attributes.extend((('h323-connect-time', self.ftime(self.iTime + delay)), ('h323-setup-time', self.ftime(self.iTime)), \
-          ('Acct-Status-Type', type)))
+        attributes.extend((('h323-connect-time', self.ftime(self.iTime.realt + delay)), \
+          ('h323-setup-time', self.ftime(self.iTime.realt)), ('Acct-Status-Type', type)))
         if self.user_agent != None:
             attributes.append(('h323-ivr-out', 'sip_ua:' + self.user_agent))
         if self.p1xx_ts != None:
             attributes.append(('Acct-Delay-Time', round(self.p1xx_ts)))
         if self.p100_ts != None:
-            attributes.append(('provisional-timepoint', self.ftime(self.p100_ts)))
+            attributes.append(('provisional-timepoint', self.ftime(self.p100_ts.realt)))
         pattributes = ['%-32s = \'%s\'\n' % (x[0], str(x[1])) for x in attributes]
         pattributes.insert(0, 'sending Acct %s (%s):\n' % (type, self.origin.capitalize()))
         self.global_config['_sip_logger'].write(call_id = self.sip_cid, *pattributes)

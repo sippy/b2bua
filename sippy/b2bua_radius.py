@@ -309,6 +309,7 @@ class CallController(object):
           no_progress_time = oroute.no_progress_expires, extra_headers = oroute.extra_headers)
         self.uaO.pass_auth = self.pass_auth
         self.uaO.local_ua = self.global_config['_uaname']
+        self.uaO.no_reply_time = oroute.no_reply_expires
         if self.source != oroute.params.get('outbound_proxy', None):
             self.uaO.outbound_proxy = oroute.params.get('outbound_proxy', None)
         if self.rtp_proxy_session != None and oroute.params.get('rtpp', True):

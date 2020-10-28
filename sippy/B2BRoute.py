@@ -44,6 +44,7 @@ class B2BRoute(object):
     crt_set = False
     expires = None
     no_progress_expires = None
+    no_reply_expires = None
     forward_on_fail = False
     user = None
     passw = None
@@ -65,6 +66,7 @@ class B2BRoute(object):
             self.crt_set = cself.crt_set
             self.expires = cself.expires
             self.no_progress_expires = cself.no_progress_expires
+            self.no_reply_expires = cself.no_reply_expires
             self.forward_on_fail = cself.forward_on_fail
             self.user = cself.user
             self.passw = cself.passw
@@ -122,6 +124,10 @@ class B2BRoute(object):
                 self.no_progress_expires = int(v)
                 if self.no_progress_expires < 0:
                     self.no_progress_expires = None
+            elif a == 'nr_expires':
+                self.no_reply_expires = int(v)
+                if self.no_reply_expires < 0:
+                    self.no_reply_expires = None
             elif a == 'forward_on_fail':
                 self.forward_on_fail = True
             elif a == 'auth':
