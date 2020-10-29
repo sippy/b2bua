@@ -153,6 +153,16 @@ class B2BRoute(object):
                     self.params['outbound_proxy'] = (v, 5060)
                 else:
                     self.params['outbound_proxy'] = (host_port[0], int(host_port[1]))
+            elif a == 'parameters':
+                self.params['radius_parameters'] = []
+
+                pairs = v.split(';')
+
+                for pair in pairs:
+                    [key, _, value] = pair.partition("=")
+
+                    if value != '':
+                        self.params['radius_parameters'].append((key, value))
             else:
                 self.params[a] = v
         if len(extra_headers) > 0:

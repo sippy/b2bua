@@ -69,7 +69,7 @@ class RadiusAccounting(object):
         self.send_start = send_start
 
     def setParams(self, username, caller, callee, h323_cid, sip_cid, remote_ip, \
-      h323_in_cid = None):
+      h323_in_cid = None, radius_parameters = None):
         if caller == None:
             caller = ''
         self._attributes.extend((('User-Name', username), ('Calling-Station-Id', caller), \
@@ -77,8 +77,14 @@ class RadiusAccounting(object):
           ('Acct-Session-Id', sip_cid), ('h323-remote-address', remote_ip)))
         if h323_in_cid != None and h323_in_cid != h323_cid:
             self._attributes.append(('h323-incoming-conf-id', h323_in_cid))
+        if radius_parameters is not None:
+            for attribute, value in radius_parameters:
+                self._attributes.append((attribute, value))
         self.sip_cid = str(sip_cid)
         self.complete = True
+
+    def addAttribute(self, key, value):
+        self._attributes.append((key, value))
 
     def conn(self, ua, rtime, origin):
         if self.crec:
