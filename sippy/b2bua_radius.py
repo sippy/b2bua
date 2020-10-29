@@ -119,11 +119,12 @@ class CallController(object):
     rtp_proxy_session = None
     huntstop_scodes = None
     pass_headers = None
+    extra_attributes = None
     auth_proc = None
     proxied = False
     challenge = None
 
-    def __init__(self, remote_ip, source, global_config, pass_headers):
+    def __init__(self, remote_ip, source, global_config, pass_headers, extra_attributes):
         self.id = CallController.id
         CallController.id += 1
         self.global_config = global_config
@@ -137,6 +138,7 @@ class CallController(object):
         self.remote_ip = remote_ip
         self.source = source
         self.pass_headers = pass_headers
+        self.extra_attributes = extra_attributes
 
     def recvEvent(self, event, ua):
         if ua == self.uaA:
@@ -191,11 +193,12 @@ class CallController(object):
                 elif auth == None or auth.username == None or len(auth.username) == 0:
                     self.username = self.remote_ip
                     self.auth_proc = self.global_config['_radius_client'].do_auth(self.remote_ip, self.cli, self.cld, self.cGUID, \
-                      self.cId, self.remote_ip, self.rDone)
+                      self.cId, self.remote_ip, self.rDone, extra_attributes=self.extra_attributes)
                 else:
                     self.username = auth.username
                     self.auth_proc = self.global_config['_radius_client'].do_auth(auth.username, self.cli, self.cld, self.cGUID, 
-                      self.cId, self.remote_ip, self.rDone, auth.realm, auth.nonce, auth.uri, auth.response)
+                      self.cId, self.remote_ip, self.rDone, auth.realm, auth.nonce, auth.uri, auth.response,
+                      extra_attributes=self.extra_attributes)
                 return
             if self.state not in (CCStateARComplete, CCStateConnected, CCStateDisconnecting) or self.uaO == None:
                 return
@@ -465,7 +468,27 @@ class CallMap(object):
                 hfs = req.getHFs(header)
                 if len(hfs) > 0:
                     pass_headers.extend(hfs)
-            cc = CallController(remote_ip, source, self.global_config, pass_headers)
+
+            extra_attributes = None
+
+            if 'auth_extra_header' in self.global_config:
+                header = self.global_config['auth_extra_header']
+
+                hfs = req.getHFs(header)
+
+                if len(hfs) > 0:
+                    extra_attributes = []
+
+                    for header in hfs:
+                        kvPairs = header.body.body.split(';')
+
+                        for pair in kvPairs:
+                            [key, _, value] = pair.partition("=")
+
+                            if value != '':
+                                extra_attributes.append((key, value))
+
+            cc = CallController(remote_ip, source, self.global_config, pass_headers, extra_attributes)
             cc.challenge = challenge
             rval = cc.uaA.recvRequest(req, sip_t)
             self.ccmap.append(cc)
@@ -668,7 +691,7 @@ def main_func():
     global_config['_orig_argv'] = sys.argv[:]
     global_config['_orig_cwd'] = os.getcwd()
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'fDl:p:d:P:L:s:a:t:T:k:m:A:ur:F:R:h:c:M:HC:W:',
+        opts, args = getopt.getopt(sys.argv[1:], 'fDl:p:d:P:L:s:a:t:T:k:m:A:ur:F:R:h:c:M:HC:W:x:',
           global_config.get_longopts())
     except getopt.GetoptError:
         usage(global_config)
@@ -759,6 +782,9 @@ def main_func():
         if o == '-h':
             for a in a.split(','):
                 global_config.check_and_set('pass_header', a)
+            continue
+        if o == '-x':
+            global_config.check_and_set('auth_extra_header', a)
             continue
         if o == '-c':
             global_config.check_and_set('b2bua_socket', a)
