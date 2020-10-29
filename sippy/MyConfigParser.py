@@ -33,6 +33,7 @@ except ImportError:
     from configparser import RawConfigParser
     _boolean_states = RawConfigParser.BOOLEAN_STATES
 from sippy.SipConf import SipConf
+import sippy.B2BTransforms as bts
 
 SUPPORTED_OPTIONS = { \
  'acct_enable':       ('B', 'enable or disable Radius accounting'), \
@@ -103,6 +104,8 @@ SUPPORTED_OPTIONS = { \
                              '"host:port:cert_file:key_file", where "cert_file" ' \
                              '/ "key_file" are paths to the TLS certificate ' \
                              'and key file respectively in the X.509 PEM format'),
+ 'pre_auth_proc': ('S', 'internal routine to be executed before authentication '\
+                        'is being processed. E.g. "HDR2Xattrs[X-foo-hdr]."'), \
  'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server')}
 
 class MyConfigParser(RawConfigParser):
@@ -216,6 +219,14 @@ class MyConfigParser(RawConfigParser):
             if _value <= 0 or _value > 65535:
                 raise ValueError('sip_port should be in the range 1-65535')
             self['_sip_port'] = _value
+        elif key == 'pre_auth_proc':
+            rparts = value.split('[', 1)
+            if not len(rparts) == 2 or not value.endswith(']'):
+                raise ValueError('pre_auth_proc should be in the format `function(argument)`')
+            fname = rparts[0]
+            fclass = getattr(bts, fname)
+            farg = rparts[1][:-1]
+            self['_pre_auth_proc'] = fclass(farg)
         self[key] = value
 
     def options_help(self):

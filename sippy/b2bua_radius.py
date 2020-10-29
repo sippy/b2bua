@@ -132,6 +132,7 @@ class CallController(object):
     challenge = None
     req_source: str
     req_target: SipURL
+    extra_attributes = None
 
     def __init__(self, remote_ip, source, req_source, req_target, global_config, pass_headers):
         self.id = CallController.id
@@ -213,11 +214,12 @@ class CallController(object):
                 elif auth == None or auth.username == None or len(auth.username) == 0:
                     self.username = self.remote_ip
                     self.auth_proc = self.global_config['_radius_client'].do_auth(self.remote_ip, self.cli, self.cld, \
-                      self.cId, self.remote_ip, self.rDone)
+                      self.cId, self.remote_ip, self.rDone, extra_attributes=self.extra_attributes)
                 else:
                     self.username = auth.username
                     self.auth_proc = self.global_config['_radius_client'].do_auth(auth.username, self.cli, self.cld, \
-                      self.cId, self.remote_ip, self.rDone, auth.realm, auth.nonce, auth.uri, auth.response)
+                      self.cId, self.remote_ip, self.rDone, auth.realm, auth.nonce, auth.uri, auth.response, \
+                      extra_attributes=self.extra_attributes)
                 return
             if self.state not in (CCStateARComplete, CCStateConnected, CCStateDisconnecting) or self.uaO == None:
                 return
@@ -511,6 +513,10 @@ class CallMap(object):
                     pass_headers.extend(hfs)
             req_target = req.getRURI()
             cc = CallController(remote_ip, source, req_source, req_target, self.global_config, pass_headers)
+
+            if '_pre_auth_proc' in self.global_config:
+                self.global_config['_pre_auth_proc'](req, cc)
+
             cc.challenge = challenge
             rval = cc.uaA.recvRequest(req, sip_t)
             self.ccmap.append(cc)
@@ -715,7 +721,7 @@ def main_func():
     global_config['_orig_argv'] = sys.argv[:]
     global_config['_orig_cwd'] = os.getcwd()
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'fDl:p:d:P:L:s:a:t:T:k:m:A:ur:F:R:h:c:M:HC:W:',
+        opts, args = getopt.getopt(sys.argv[1:], 'fDl:p:d:P:L:s:a:t:T:k:m:A:ur:F:R:h:c:M:HC:W:x:',
           global_config.get_longopts())
     except getopt.GetoptError:
         usage(global_config)
@@ -806,6 +812,9 @@ def main_func():
         if o == '-h':
             for a in a.split(','):
                 global_config.check_and_set('pass_header', a)
+            continue
+        if o == '-x':
+            global_config.check_and_set('pre_auth_proc', a)
             continue
         if o == '-c':
             global_config.check_and_set('b2bua_socket', a)
