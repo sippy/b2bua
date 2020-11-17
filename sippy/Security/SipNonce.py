@@ -62,14 +62,14 @@ class AESCipher(object):
     def encrypt(self, raw):
         iv = Random.new().read(AES.block_size)
         raw = bxor(raw, iv)
-        raw = self.cipher.encrypt(raw)
-        return b64encode(iv + raw)[:-1]
+        eraw = self.cipher.encrypt(iv + raw)
+        return b64encode(eraw)[:-1]
 
     def decrypt(self, enc):
         enc = b64decode(enc + self.bpad)
-        iv = enc[:AES.block_size]
-        raw = self.cipher.decrypt(enc[AES.block_size:])
-        return bxor(raw, iv)
+        raw = self.cipher.decrypt(enc)
+        iv = raw[:AES.block_size]
+        return bxor(raw[AES.block_size:], iv)
 
 DGST_MD5        = (1 << 0)
 DGST_MD5SESS    = (1 << 1)
@@ -82,7 +82,7 @@ DGST_PRIOS = (DGST_SHA512, DGST_SHA512SESS, DGST_SHA256, DGST_SHA256SESS, DGST_M
 
 class HashOracle(object):
     try: key
-    except: key = Random.new().read(AES.block_size)
+    except: key = Random.new().read(AES.block_size * 2)
     ac = None
     vtime = 32 * 10**9
 
