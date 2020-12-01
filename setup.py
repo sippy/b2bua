@@ -7,7 +7,7 @@ setup(
     packages = find_packages(),
 
     install_requires = [
-        'twisted>=14.0'
+        'ElPeriodic>=1.1',
         ],
 
     package_data = {
