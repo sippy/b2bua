@@ -1,0 +1,52 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Check Python Wheels
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHON_CMD: "python${{ matrix.python-version }}"
+
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04]
+        python-version: ['2.7', '3.6', '3.7', '3.8', '3.9']
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: before_install
+        run: sh -x scripts/do-install.sh
+
+      - name: Install dependencies
+        run: |
+          ${PYTHON_CMD} -m pip install --upgrade pip
+          ${PYTHON_CMD} -m install setuptools wheel
+
+      - name: script
+        run: |
+          ${PYTHON_CMD} setup.py build
+          ${PYTHON_CMD} setup.py sdist
+          sudo "`which ${PYTHON_CMD}`" setup.py install
