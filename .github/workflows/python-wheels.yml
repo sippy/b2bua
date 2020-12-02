@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           ${PYTHON_CMD} -m pip install --upgrade pip
-          ${PYTHON_CMD} -m install setuptools wheel
+          ${PYTHON_CMD} -m pip install setuptools wheel
 
       - name: script
         run: |
