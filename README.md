@@ -1,4 +1,4 @@
-#[![Build Status](https://drone.io/github.com/sippy/b2bua/status.png)](https://drone.io/github.com/sippy/b2bua/latest)
+[![Build Status@GitHub](https://github.com/sippy/b2bua/workflows/Check%20Python%20Wheels/badge.svg?branch=master)](https://github.com/sippy/b2bua/actions?query=branch%3Amaster++)
 
 # Sippy B2BUA
 
