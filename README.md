@@ -37,10 +37,7 @@ path.
 
 ### Install libelperiodic (if not installed)
 
-```
-$ git clone https://github.com/sobomax/libelperiodic.git
-$ cd libelperiodic; ./configure; make all install; cd ..
-```
+`pip install ElPeriodic`
 
 ### Install B2BUA
 
