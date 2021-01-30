@@ -280,6 +280,8 @@ class CallController(object):
     def placeOriginate(self, oroute):
         cId, cGUID, cli, cld, body, auth, caller_name = self.eTry.getData()
         cld = oroute.cld
+        radius_parameters = oroute.params.get('radius_parameters', None)
+
         self.huntstop_scodes = oroute.params.get('huntstop_scodes', ())
         if 'static_tr_out' in self.global_config:
             cld = re_replace(self.global_config['static_tr_out'], cld)
@@ -295,10 +297,15 @@ class CallController(object):
               self.global_config.getdefault('alive_acct_int', None))
             self.acctO.ms_precision = self.global_config.getdefault('precise_acct', False)
             self.acctO.setParams(oroute.params.get('bill-to', self.username), oroute.params.get('bill-cli', oroute.cli), \
-              oroute.params.get('bill-cld', cld), self.cGUID, self.cId, host)
+              oroute.params.get('bill-cld', cld), self.cGUID, self.cId, host, radius_parameters=radius_parameters)
         else:
             self.acctO = None
         self.acctA.credit_time = oroute.credit_time
+
+        if radius_parameters:
+            for attribute, value in radius_parameters:
+                self.acctA.addAttribute(attribute, value)
+
         conn_handlers = [self.oConn]
         disc_handlers = []
         if not oroute.forward_on_fail and self.global_config['acct_enable']:
