@@ -98,6 +98,8 @@ SUPPORTED_OPTIONS = { \
                              'and "SUBSCRIBE" messages. Address in the format ' \
                              '"host[:port]"'),
  'nat_traversal':     ('B', 'enable NAT traversal for signalling'), \
+ 'auth_extra_header': ('S', 'sip header containing radius parameters to pass ' \
+                            'to authentication request'), \
  'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server')}
 
 class MyConfigParser(RawConfigParser):
