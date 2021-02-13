@@ -83,7 +83,7 @@ class AsyncSender(Thread):
                     if isinstance(why, BrokenPipeError):
                         self.userv = None
                         return
-                    if why[0] not in (EWOULDBLOCK, ENOBUFS, EAGAIN):
+                    if why.errno not in (EWOULDBLOCK, ENOBUFS, EAGAIN):
                         break
                 sleep(0.01)
         self.userv = None
@@ -115,9 +115,9 @@ class AsyncReceiver(Thread):
                     maxemptydata = 100
                 rtime = MonoTime()
             except Exception as why:
-                if isinstance(why, socket.error) and why[0] in (ECONNRESET, ENOTCONN, ESHUTDOWN):
+                if isinstance(why, socket.error) and why.errno in (ECONNRESET, ENOTCONN, ESHUTDOWN):
                     break
-                if isinstance(why, socket.error) and why[0] in (EINTR,):
+                if isinstance(why, socket.error) and why.errno in (EINTR,):
                     continue
                 else:
                     dump_exception('Udp_server: unhandled exception when receiving incoming data')
@@ -259,7 +259,9 @@ class Udp_server(object):
     def shutdown(self):
         try:
             self.skt.shutdown(socket.SHUT_RDWR)
-        except:
+        except Exception as e:
+            if not isinstance(e, socket.error) or e.errno != ENOTCONN:
+                dump_exception('exception in the self.skt.shutdown()')
             pass
         self.wi_available.acquire()
         self.wi.append(None)

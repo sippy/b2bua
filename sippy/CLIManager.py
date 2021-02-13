@@ -67,14 +67,14 @@ class _Acceptor(Thread):
                 continue
             try:
                 clientsock, addr = self.clicm.serversock.accept()
-            except Exception as why:
-                if isinstance(why, socket.error):
-                    if why.errno == ECONNABORTED:
-                        continue
-                    elif why.errno == EBADF:
-                        break
-                    else:
-                        raise
+            except socket.error as why:
+                if why.errno == ECONNABORTED:
+                    continue
+                elif why.errno == EBADF:
+                    break
+                else:
+                    raise
+            except Exception as e:
                 dump_exception('CLIConnectionManager: unhandled exception when accepting incoming connection')
                 break
             #print(self.run, 'handle_accept')
@@ -208,7 +208,12 @@ class _CLIManager_r(Thread):
     def run(self):
         rbuffer = ''
         while True:
-            data = self.clientsock.recv(1024)
+            try:
+                data = self.clientsock.recv(1024)
+            except socket.error as msg:
+                if msg.errno in (EBADF,):
+                    break
+                raise
             if len(data) == 0:
                 ED2.callFromThread(self.clim.shutdown)
                 break
