@@ -40,7 +40,7 @@ class SipAddressHF(SipGenericHF):
             while 1:
                 idx = body.find(',', pidx)
                 if idx == -1:
-                    break;
+                    break
                 onum = body[:idx].count('<')
                 cnum = body[:idx].count('>')
                 qnum = body[:idx].count('"')

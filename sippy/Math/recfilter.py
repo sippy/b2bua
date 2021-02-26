@@ -38,7 +38,7 @@ class recfilter(object):
     b = None
 
     def __init__(self, fcoef, initval):
-        #print 'recfilter::init()'
+        #print('recfilter::init()')
         self.lastval = float(initval)
         self.a = 1.0 - float(fcoef)
         self.b = float(fcoef)
@@ -49,5 +49,5 @@ class recfilter(object):
 
 class recfilter_ts(local, recfilter):
     def __init__(self, *args):
-        #print 'recfilter_ts::init()'
+        #print('recfilter_ts::init()')
         recfilter.__init__(self, *args)

@@ -42,7 +42,7 @@ class UacStateCancelling(UaStateGeneric):
         self.te = Timeout(self.goIdle, 300.0)
 
     def goIdle(self):
-        #print 'Time in Cancelling state expired, going to the Dead state'
+        #print('Time in Cancelling state expired, going to the Dead state')
         self.te = None
         self.ua.changeState((UaStateDead,))
 
@@ -97,10 +97,10 @@ class UacStateCancelling(UaStateGeneric):
         return (UaStateDead,)
 
     def recvEvent(self, event):
-        #print 'wrong event %s in the Cancelling state' % event
+        #print('wrong event %s in the Cancelling state' % event)
         return None
 
-if not 'UaStateDead' in globals():
+if 'UaStateDead' not in globals():
     from sippy.UaStateDead import UaStateDead
-if not 'UaStateDisconnected' in globals():
+if 'UaStateDisconnected' not in globals():
     from sippy.UaStateDisconnected import UaStateDisconnected

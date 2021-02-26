@@ -113,4 +113,4 @@ class SipHeader(object):
 
     def getCopy(self):
         cself = self.__class__(name = self.name, body = self.body.getCopy())
-        return cself 
+        return cself

@@ -134,7 +134,7 @@ class UasStateTrying(UaStateGeneric):
                 self.ua.no_progress_timer = None
             self.ua.disconnect_ts = event.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
-        #print 'wrong event %s in the Trying state' % event
+        #print('wrong event %s in the Trying state' % event)
         return None
 
     def cancel(self, rtime, req):
@@ -148,11 +148,11 @@ class UasStateTrying(UaStateGeneric):
                 pass
         self.ua.emitEvent(event)
 
-if not 'UasStateRinging' in globals():
+if 'UasStateRinging' not in globals():
     from sippy.UasStateRinging import UasStateRinging
-if not 'UaStateFailed' in globals():
+if 'UaStateFailed' not in globals():
     from sippy.UaStateFailed import UaStateFailed
-if not 'UaStateConnected' in globals():
+if 'UaStateConnected' not in globals():
     from sippy.UaStateConnected import UaStateConnected
-if not 'UaStateDisconnected' in globals():
+if 'UaStateDisconnected' not in globals():
     from sippy.UaStateDisconnected import UaStateDisconnected

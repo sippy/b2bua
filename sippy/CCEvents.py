@@ -37,7 +37,7 @@ class CCEventGeneric(object):
 
     def __init__(self, data = None, rtime = None, origin = None):
         self.data = data
-        if rtime == None:
+        if rtime is None:
             self.rtime = MonoTime()
         else:
             self.rtime = rtime

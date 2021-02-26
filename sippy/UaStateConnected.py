@@ -97,7 +97,7 @@ class UaStateConnected(UaStateGeneric):
             return (UasStateUpdating,)
         if req.getMethod() == 'BYE':
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', server = self.ua.local_ua))
-            #print 'BYE received in the Connected state, going to the Disconnected state'
+            #print('BYE received in the Connected state, going to the Disconnected state')
             if req.countHFs('also') > 0:
                 also = req.getHFBody('also').getCopy()
             else:
@@ -123,7 +123,7 @@ class UaStateConnected(UaStateGeneric):
         if req.getMethod() == 'OPTIONS':
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', server = self.ua.local_ua))
             return None
-        #print 'wrong request %s in the state Connected' % req.getMethod()
+        #print('wrong request %s in the state Connected' % req.getMethod())
         return None
 
     def recvACK(self, req):
@@ -150,7 +150,7 @@ class UaStateConnected(UaStateGeneric):
 
     def recvEvent(self, event):
         if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
-            #print 'event', event, 'received in the Connected state sending BYE'
+            #print('event', event, 'received in the Connected state sending BYE')
             redirect = None
             if isinstance(event, CCEventDisconnect):
                 redirect = event.getData()
@@ -236,7 +236,7 @@ class UaStateConnected(UaStateGeneric):
             for callback in self.ua.conn_cbs:
                 callback(self.ua, event.rtime, self.ua.origin)
             return None
-        #print 'wrong event %s in the Connected state' % event
+        #print('wrong event %s in the Connected state' % event)
         return None
 
     def keepAlive(self):
@@ -304,9 +304,9 @@ class UaStateConnected(UaStateGeneric):
         self.ua.global_config['_sip_tm'].newTransaction(req, \
           laddress = self.ua.source_address, compact = self.ua.compact_sip)
 
-if not 'UaStateDisconnected' in globals():
+if 'UaStateDisconnected' not in globals():
     from sippy.UaStateDisconnected import UaStateDisconnected
-if not 'UasStateUpdating' in globals():
+if 'UasStateUpdating' not in globals():
     from sippy.UasStateUpdating import UasStateUpdating
-if not 'UacStateUpdating' in globals():
+if 'UacStateUpdating' not in globals():
     from sippy.UacStateUpdating import UacStateUpdating

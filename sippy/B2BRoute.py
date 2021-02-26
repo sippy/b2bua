@@ -82,7 +82,7 @@ class B2BRoute(object):
             self.cli_set = cself.cli_set
             self.params = dict(cself.params)
             self.ainfo = cself.ainfo
-            if cself.extra_headers != None:
+            if cself.extra_headers is not None:
                 self.extra_headers = tuple([x.getCopy() for x in cself.extra_headers])
             return
         route = sroute.split(';')
@@ -183,7 +183,7 @@ class B2BRoute(object):
         if 'gt' in self.params:
             timeout, skip = self.params['gt'].split(',', 1)
             self.params['group_timeout'] = (int(timeout), rnum + int(skip))
-        if self.extra_headers != None:
+        if self.extra_headers is not None:
             self.extra_headers = self.extra_headers + tuple(pass_headers)
         else:
             self.extra_headers = tuple(pass_headers)

@@ -117,12 +117,12 @@ class UacStateRinging(UacStateTrying):
                 self.ua.expire_timer = None
             self.ua.disconnect_ts = event.rtime
             return (UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
-        #print 'wrong event %s in the Ringing state' % event
+        #print('wrong event %s in the Ringing state' % event)
         return None
 
-if not 'UaStateFailed' in globals():
+if 'UaStateFailed' not in globals():
     from sippy.UaStateFailed import UaStateFailed
-if not 'UaStateConnected' in globals():
+if 'UaStateConnected' not in globals():
     from sippy.UaStateConnected import UaStateConnected
-if not 'UacStateCancelling' in globals():
+if 'UacStateCancelling' not in globals():
     from sippy.UacStateCancelling import UacStateCancelling

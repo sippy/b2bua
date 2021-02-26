@@ -145,7 +145,7 @@ class UacStateTrying(UaStateGeneric):
                 self.ua.no_reply_timer = None
             self.ua.disconnect_ts = event.rtime
             return (UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
-        #print 'wrong event %s in the Trying state' % event
+        #print('wrong event %s in the Trying state' % event)
         return None
 
     def updateRoutes(self, resp):
@@ -192,11 +192,11 @@ class UacStateTrying(UaStateGeneric):
             self.ua.disconnect_ts = resp.rtime
             return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, ex.code)
 
-if not 'UacStateRinging' in globals():
+if 'UacStateRinging' not in globals():
     from sippy.UacStateRinging import UacStateRinging
-if not 'UaStateFailed' in globals():
+if 'UaStateFailed' not in globals():
     from sippy.UaStateFailed import UaStateFailed
-if not 'UaStateConnected' in globals():
+if 'UaStateConnected' not in globals():
     from sippy.UaStateConnected import UaStateConnected
-if not 'UacStateCancelling' in globals():
+if 'UacStateCancelling' not in globals():
     from sippy.UacStateCancelling import UacStateCancelling

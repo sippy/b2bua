@@ -195,7 +195,7 @@ class selftest(object):
             if x == 0:
                 print(m1, m2)
                 print(m1.ftime(), m2.ftime())
-            #print (m1.getdiff() - m2.getdiff())
+            #print(m1.getdiff() - m2.getdiff())
         print(m1, m2)
         print(m1 < m2, m1 > m2, m1 == m2, m1 <= m2, m1 >= m2, m1 != m2)
         print(m1.ftime(), m2.ftime())

@@ -148,19 +148,20 @@ class UA(object):
         self.extra_headers = extra_headers
         self.expire_time = expire_time
         self.no_progress_time = no_progress_time
-        #print self.username, self.password
+        #print(self.username, self.password)
 
     def recvRequest(self, req, sip_t):
-        #print 'Received request %s in state %s instance %s' % (req.getMethod(), self.state, self)
-        #print self.rCSeq, req.getHFBody('cseq').getCSeqNum()
+        #print('Received request %s in state %s instance %s' % (req.getMethod(), self.state, self))
+        #print(self.rCSeq, req.getHFBody('cseq').getCSeqNum())
         sip_t.compact = self.compact_sip
         if self.remote_ua == None:
             self.update_ua(req)
+        rmethod = req.getMethod()
         if self.rCSeq != None and self.rCSeq >= req.getHFBody('cseq').getCSeqNum():
             return (req.genResponse(500, 'Server Internal Error', server = self.local_ua), None, None)
         self.rCSeq = req.getHFBody('cseq').getCSeqNum()
         if self.state == None:
-            if req.getMethod() == 'INVITE':
+            if rmethod == 'INVITE':
                 self.changeState((UasStateIdle,))
             else:
                 return None
@@ -168,7 +169,7 @@ class UA(object):
         if newstate != None:
             self.changeState(newstate)
         self.emitPendingEvents()
-        if newstate != None and req.getMethod() == 'INVITE':
+        if newstate != None and rmethod == 'INVITE':
             return (None, self.state.cancel, self.disconnect)
         else:
             return None
@@ -179,7 +180,7 @@ class UA(object):
             return False
         for challenge in resp.getHFBodys(ch_hfname):
             #print(self.processChallenge, cseq, challenge, challenge.algorithm)
-            if self.auth_enalgs != None and challenge.algorithm not in self.auth_enalgs:
+            if self.auth_enalgs is not None and challenge.algorithm not in self.auth_enalgs:
                 continue
             supported, qop = challenge.supportedAlgorithm()
             if supported:
@@ -214,7 +215,7 @@ class UA(object):
         self.emitPendingEvents()
 
     def recvEvent(self, event):
-        #print self, event
+        #print(self, event)
         if self.state == None:
             if isinstance(event, CCEventTry) or isinstance(event, CCEventFail) or isinstance(event, CCEventDisconnect):
                 self.changeState((UacStateIdle,))
@@ -258,7 +259,7 @@ class UA(object):
     def emitEvent(self, event):
         if self.event_cb != None:
             if self.elast_seq != None and self.elast_seq >= event.seq:
-                #print 'ignoring out-of-order event', event, event.seq, self.elast_seq, self.cId
+                #print('ignoring out-of-order event', event, event.seq, self.elast_seq, self.cId)
                 return
             self.elast_seq = event.seq
             self.event_cb(event, self)
@@ -267,7 +268,7 @@ class UA(object):
         while len(self.equeue) != 0 and self.event_cb != None:
             event = self.equeue.pop(0)
             if self.elast_seq != None and self.elast_seq >= event.seq:
-                #print 'ignoring out-of-order event', event, event.seq, self.elast_seq, self.cId
+                #print('ignoring out-of-order event', event, event.seq, self.elast_seq, self.cId)
                 continue
             self.elast_seq = event.seq
             self.event_cb(event, self)
@@ -284,8 +285,8 @@ class UA(object):
             max_forwards_hf = None
         req = SipRequest(method = method, ruri = self.rTarget, to = self.rUri, fr0m = self.lUri,
                          cseq = self.lCSeq, callid = self.cId, contact = self.lContact,
-                         routes = self.routes, target = target,
-                         user_agent = self.local_ua, maxforwards = max_forwards_hf)
+                         routes = self.routes, target = target, user_agent = self.local_ua,
+                         maxforwards = max_forwards_hf)
         if cqop != None:
             challenge, qop = cqop
             if body is not None and qop == 'auth-int':
@@ -327,14 +328,14 @@ class UA(object):
     def recvACK(self, req):
         if not self.isConnected():
             return
-        #print 'UA::recvACK', req
+        #print('UA::recvACK', req)
         newstate = self.state.recvACK(req)
         if newstate != None:
             self.changeState(newstate)
         self.emitPendingEvents()
 
     def isYours(self, req = None, call_id = None, from_tag = None, to_tag = None):
-        #print self.branch, req.getHFBody('via').getBranch()
+        #print(self.branch, req.getHFBody('via').getBranch())
         if req != None:
             if req.getMethod() != 'BYE' and self.branch != None and \
               self.branch != req.getHFBody('via').getBranch():
@@ -342,13 +343,13 @@ class UA(object):
             call_id = str(req.getHFBody('call-id'))
             from_tag = req.getHFBody('from').getTag()
             to_tag = req.getHFBody('to').getTag()
-        #print str(self.cId), call_id
+        #print(str(self.cId), call_id)
         if call_id != str(self.cId):
             return None
-        #print self.rUri.getTag(), from_tag
+        #print(self.rUri.getTag(), from_tag)
         if self.rUri != None and self.rUri.getTag() != from_tag:
             return None
-        #print self.lUri.getTag(), to_tag
+        #print(self.lUri.getTag(), to_tag)
         if self.lUri != None and self.lUri.getTag() != to_tag:
             return None
         return self

@@ -107,7 +107,7 @@ class UacStateIdle(UaStateGeneric):
             return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)
         return None
 
-if not 'UacStateTrying' in globals():
+if 'UacStateTrying' not in globals():
     from sippy.UacStateTrying import UacStateTrying
-if not 'UaStateDead' in globals():
+if 'UaStateDead' not in globals():
     from sippy.UaStateDead import UaStateDead

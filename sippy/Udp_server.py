@@ -111,15 +111,17 @@ class AsyncReceiver(Thread):
                 else:
                     maxemptydata = 100
                 rtime = MonoTime()
-            except Exception as why:
-                if isinstance(why, socket.error) and why.errno in (ECONNRESET, ENOTCONN, ESHUTDOWN, EBADF):
+            except socket.error as why:
+                if why.errno in (ECONNRESET, ENOTCONN, ESHUTDOWN, EBADF):
                     break
-                if isinstance(why, socket.error) and why.errno in (EINTR,):
+                if why.errno in (EINTR,):
                     continue
-                else:
-                    dump_exception('Udp_server: unhandled exception when receiving incoming data')
-                    sleep(1)
-                    continue
+                dump_exception('Udp_server[%d]: unhandled exception when receiving incoming data' % self.my_pid)
+                continue
+            except Exception:
+                dump_exception('Udp_server[%d]: unhandled exception when receiving incoming data' % self.my_pid)
+                sleep(1)
+                continue
             if self.userv.uopts.family == socket.AF_INET6:
                 address = ('[%s]' % address[0], address[1])
             if not self.userv.uopts.direct_dispatch:
@@ -231,9 +233,11 @@ class Udp_server(Network_server):
     def shutdown(self):
         try:
             self.skt.shutdown(socket.SHUT_RDWR)
-        except Exception as e:
-            if not isinstance(e, socket.error) or e.errno != ENOTCONN:
+        except socket.error as e:
+            if e.errno != ENOTCONN:
                 dump_exception('exception in the self.skt.shutdown()')
+        except Exception:
+            dump_exception('exception in the self.skt.shutdown()')
             pass
         super().shutdown()
 

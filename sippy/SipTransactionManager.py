@@ -184,7 +184,7 @@ class local4remote(object):
                 if laddress != None:
                     self.cache_r2l[address[0]] = laddress
             if laddress != None:
-                #print 'local4remot-1: local address for %s is %s' % (address[0], laddress[0])
+                #print('local4remot-1: local address for %s is %s' % (address[0], laddress[0]))
                 return self.cache_l2s[laddress]
             if address[0].startswith('['):
                 family = socket.AF_INET6
@@ -209,7 +209,7 @@ class local4remote(object):
         server = self.cache_l2s.get(laddress, None)
         if server == None:
             server = self.initServer(laddress)
-        #print 'local4remot-2: local address for %s is %s' % (address[0], laddress[0])
+        #print('local4remot-2: local address for %s is %s' % (address[0], laddress[0]))
         return server
 
     def rotateCache(self):
@@ -299,7 +299,7 @@ class SipTransactionManager(object):
                 return
             resp.rtime = rtime
             if not tid in self.tclient:
-                #print 'no transaction with tid of %s in progress' % str(tid)
+                #print('no transaction with tid of %s in progress' % str(tid))
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             t = self.tclient[tid]
@@ -443,7 +443,7 @@ class SipTransactionManager(object):
         if t.state != RINGING:
             t.cancelPending = True
         else:
-            if extra_headers != None:
+            if extra_headers is not None:
                 t.cancel.appendHeaders(extra_headers)
             self.newTransaction(t.cancel, userv = t.userv)
 
@@ -539,19 +539,19 @@ class SipTransactionManager(object):
                 t.cleanup()
 
     def timerA(self, t):
-        #print 'timerA', t
+        #print('timerA', t)
         self.transmitData(t.userv, t.data, t.address)
         t.tout *= 2
         t.teA = Timeout(self.timerA, t.tout, 1, t)
 
     def timerB(self, t):
-        #print 'timerB', t
+        #print('timerB', t)
         t.teB = None
         if t.teA != None:
             t.teA.cancel()
             t.teA = None
         t.state = TERMINATED
-        #print '2: Timeout(self.timerC, 32.0, 1, t)', t
+        #print('2: Timeout(self.timerC, 32.0, 1, t)', t)
         t.teC = Timeout(self.timerC, 32.0, 1, t)
         if t.resp_cb == None:
             return
@@ -563,11 +563,11 @@ class SipTransactionManager(object):
         #try:
         #    t.resp_cb(SipRequest(t.data).genResponse(408, 'Request Timeout'))
         #except:
-        #    print 'SipTransactionManager: unhandled exception when processing response!'
+        #    print('SipTransactionManager: unhandled exception when processing response!')
 
     def timerC(self, t):
-        #print 'timerC', t
-        #print self.tclient
+        #print('timerC', t)
+        #print(self.tclient)
         t.teC = None
         del self.tclient[t.tid]
         t.cleanup()
@@ -587,7 +587,7 @@ class SipTransactionManager(object):
             tid = msg.getTId(wTTG = True)
         t = self.tserver.get(tid, None)
         if t != None:
-            #print 'existing transaction'
+            #print('existing transaction')
             if msg.getMethod() == t.method:
                 # Duplicate received, check that we have sent any response on this
                 # request already
@@ -625,7 +625,7 @@ class SipTransactionManager(object):
             resp = msg.genResponse(481, 'Call Leg/Transaction Does Not Exist')
             self.transmitMsg(server, resp, resp.getHFBody('via').getTAddr(), checksum)
         else:
-            #print 'new transaction', msg.getMethod()
+            #print('new transaction', msg.getMethod())
             t = SipTransaction()
             t.tid = tid
             t.state = TRYING
@@ -709,7 +709,7 @@ class SipTransactionManager(object):
 
     def sendResponse(self, resp, t = None, retrans = False, ack_cb = None,
       lossemul = 0):
-        #print self.tserver
+        #print(self.tserver)
         if t == None:
             tid = resp.getTId(wBRN = True)
             t = self.tserver[tid]
@@ -769,7 +769,7 @@ class SipTransactionManager(object):
             t.cancel_cb(rtime, req)
 
     def timerD(self, t):
-        #print 'timerD'
+        #print('timerD')
         t.teD = None
         if t.teA != None:
             t.teA.cancel()
@@ -780,7 +780,7 @@ class SipTransactionManager(object):
         t.cleanup()
 
     def timerE(self, t):
-        #print 'timerE'
+        #print('timerE')
         t.teE = None
         if t.teF != None:
             t.teF.cancel()
@@ -793,14 +793,14 @@ class SipTransactionManager(object):
     # Timer to retransmit the last provisional reply every
     # 2 seconds
     def timerF(self, t):
-        #print 'timerF', t.state
+        #print('timerF', t.state)
         t.teF = None
         if t.state == RINGING and self.provisional_retr > 0:
             self.transmitData(t.userv, t.data, t.address)
             t.teF = Timeout(self.timerF, self.provisional_retr, 1, t)
 
     def timerG(self, t):
-        #print 'timerG', t.state
+        #print('timerG', t.state)
         t.teG = None
         if t.state == UACK:
             print(datetime.now(), 'INVITE transaction stuck in the UACK state, possible UAC bug')
@@ -831,7 +831,7 @@ class SipTransactionManager(object):
               None, lossemul)
 
     def sendACK(self, t):
-        #print 'sendACK', t.state
+        #print('sendACK', t.state)
         if t.teG != None:
             t.teG.cancel()
             t.teG = None

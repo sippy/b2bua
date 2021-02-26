@@ -126,7 +126,7 @@ class Worker(iksemel.Stream):
                         data, addr, laddress = self.__owner._wi.pop(0)
                     self.__owner._wi_available.release()
                 if self.__reconnect:
-                    #print self, self.__reconnect_count
+                    #print(self, self.__reconnect_count)
                     if not first_time:
                         time.sleep(0.1)
                         try:
@@ -225,7 +225,7 @@ class XMPP_server(object):
             try:
                 self.uopts.data_callback(data, address, lserver, rtime)
             except:
-                print(datetime.datetime.now(), 'XMPP_server: unhandled exception when receiving incoming data')
+                print(datetime.datetime.now(), 'XMPP_server: unhandled exception when processing incoming data')
                 print('-' * 70)
                 traceback.print_exc(file = sys.stdout)
                 print('-' * 70)

@@ -41,7 +41,7 @@ class UacStateUpdating(UaStateGeneric):
         elif req.getMethod() == 'BYE':
             self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr)
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', server = self.ua.local_ua))
-            #print 'BYE received in the Updating state, going to the Disconnected state'
+            #print('BYE received in the Updating state, going to the Disconnected state')
             event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
             try:
                 event.reason = req.getHFBody('reason')
@@ -51,7 +51,7 @@ class UacStateUpdating(UaStateGeneric):
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
-        #print 'wrong request %s in the state Updating' % req.getMethod()
+        #print('wrong request %s in the state Updating' % req.getMethod())
         return None
 
     def recvResponse(self, resp, tr):
@@ -70,7 +70,7 @@ class UacStateUpdating(UaStateGeneric):
                     try:
                         body = self.ua.on_remote_sdp_change(body, cb_func)
                     except Exception as e:
-                        event = CCEventFail((502, 'Bad Gateway'), rtime = event.rtime)
+                        event = CCEventFail((502, 'Bad Gateway'), rtime = resp.rtime)
                         event.setWarning('Malformed SDP Body received from ' \
                           'downstream: "%s"' % str(e))
                         return self.updateFailed(event)
@@ -117,8 +117,7 @@ class UacStateUpdating(UaStateGeneric):
         self.ua.disconnect_ts = event.rtime
         self.ua.equeue.append(CCEventDisconnect(rtime = event.rtime, \
           origin = self.ua.origin))
-        return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, \
-          event.origin)
+        return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
 
     def recvEvent(self, event):
         if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
@@ -130,10 +129,10 @@ class UacStateUpdating(UaStateGeneric):
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = event.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
-        #print 'wrong event %s in the Updating state' % event
+        #print('wrong event %s in the Updating state' % event)
         return None
 
-if not 'UaStateConnected' in globals():
+if 'UaStateConnected' not in globals():
     from sippy.UaStateConnected import UaStateConnected
-if not 'UaStateDisconnected' in globals():
+if 'UaStateDisconnected' not in globals():
     from sippy.UaStateDisconnected import UaStateDisconnected

@@ -43,7 +43,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.sendUasResponse(487, 'Request Terminated')
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', \
               server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
-            #print 'BYE received in the Updating state, going to the Disconnected state'
+            #print('BYE received in the Updating state, going to the Disconnected state')
             event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
             try:
                 event.reason = req.getHFBody('reason')
@@ -66,7 +66,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
-        #print 'wrong request %s in the state Updating' % req.getMethod()
+        #print('wrong request %s in the state Updating' % req.getMethod())
         return None
 
     def recvEvent(self, event):
@@ -119,7 +119,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = event.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
-        #print 'wrong event %s in the Updating state' % event
+        #print('wrong event %s in the Updating state' % event)
         return None
 
     def cancel(self, rtime, req):
@@ -138,7 +138,7 @@ class UasStateUpdating(UaStateGeneric):
                 pass
         self.ua.emitEvent(event)
 
-if not 'UaStateConnected' in globals():
+if 'UaStateConnected' not in globals():
     from sippy.UaStateConnected import UaStateConnected
-if not 'UaStateDisconnected' in globals():
+if 'UaStateDisconnected' not in globals():
     from sippy.UaStateDisconnected import UaStateDisconnected

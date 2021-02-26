@@ -75,7 +75,7 @@ class CallMap(object):
         #gc.disable()
         #gc.set_debug(gc.DEBUG_STATS)
         #gc.set_threshold(0)
-        #print gc.collect()
+        #print(gc.collect())
 
     def recvRequest(self, req, sip_t):
         if req.getHFBody('to').getTag() != None:

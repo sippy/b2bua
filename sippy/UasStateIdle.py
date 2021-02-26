@@ -40,7 +40,7 @@ class UasStateIdle(UaStateGeneric):
 
     def recvRequest(self, req):
         if req.getMethod() != 'INVITE':
-            #print 'wrong request %s in the Trying state' % req.getMethod()
+            #print('wrong request %s in the Trying state' % req.getMethod())
             return None
         self.ua.origin = 'caller'
         #print('INVITE received in the Idle state, going to the Trying state')
@@ -111,5 +111,5 @@ class UasStateIdle(UaStateGeneric):
         self.ua.setup_ts = req.rtime
         return (UasStateTrying,)
 
-if not 'UasStateTrying' in globals():
+if 'UasStateTrying' not in globals():
     from sippy.UasStateTrying import UasStateTrying

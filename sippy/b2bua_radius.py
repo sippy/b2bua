@@ -295,7 +295,7 @@ class CallController(object):
             if oroute.credit_time == 0 or oroute.expires == 0:
                 continue
             self.routes.append(oroute)
-            #print 'Got route:', oroute.hostport, oroute.cld
+            #print('Got route:', oroute.hostport, oroute.cld)
         if len(self.routes) == 0:
             self.uaA.recvEvent(CCEventFail((500, 'Internal Server Error (3)')))
             self.state = CCStateDead
@@ -454,7 +454,7 @@ class CallMap(object):
         #gc.disable()
         #gc.set_debug(gc.DEBUG_STATS)
         #gc.set_threshold(0)
-        #print gc.collect()
+        #print(gc.collect())
 
     def remoteIPAuth(self, stran):
         aips = self.global_config.getdefault('_accept_ips', None)
@@ -598,7 +598,7 @@ class CallMap(object):
                 os.execv(sys.executable, argv)
                 # Should not reach this point!
             self.el.ival = 1
-        #print gc.collect()
+        #print(gc.collect())
         if len(gc.garbage) > 0:
             print(gc.garbage)
 

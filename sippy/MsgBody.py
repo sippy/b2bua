@@ -81,5 +81,5 @@ class MsgBody(object):
             return MsgBody(self.content)
         return MsgBody(cself = self)
 
-if not 'MultipartMixBody' in globals():
+if 'MultipartMixBody' not in globals():
     from sippy.MultipartMixBody import MultipartMixBody

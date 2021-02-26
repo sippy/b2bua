@@ -67,5 +67,5 @@ class MultipartMixBody():
         cself.boundary = self.boundary
         return cself
 
-if not 'MsgBody' in globals():
+if 'MsgBody' not in globals():
     from sippy.MsgBody import MsgBody

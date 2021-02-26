@@ -114,7 +114,7 @@ class UasStateRinging(UaStateGeneric):
                 self.ua.expire_timer = None
             self.ua.disconnect_ts = event.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
-        #print 'wrong event %s in the Ringing state' % event
+        #print('wrong event %s in the Ringing state' % event)
         return None
 
     def recvRequest(self, req):
@@ -122,7 +122,7 @@ class UasStateRinging(UaStateGeneric):
             self.ua.sendUasResponse(487, 'Request Terminated')
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK',
               server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
-            #print 'BYE received in the Ringing state, going to the Disconnected state'
+            #print('BYE received in the Ringing state, going to the Disconnected state')
             if req.countHFs('also') > 0:
                 also = req.getHFBody('also').getCopy()
             else:
@@ -151,11 +151,9 @@ class UasStateRinging(UaStateGeneric):
                 pass
         self.ua.emitEvent(event)
 
-if not 'UaStateFailed' in globals():
+if 'UaStateFailed' not in globals():
     from sippy.UaStateFailed import UaStateFailed
-if not 'UaStateConnected' in globals():
+if 'UaStateConnected' not in globals():
     from sippy.UaStateConnected import UaStateConnected
-if not 'UaStateDisconnected' in globals():
+if 'UaStateDisconnected' not in globals():
     from sippy.UaStateDisconnected import UaStateDisconnected
-if not 'UasStateTrying' in globals():
-    from sippy.UasStateTrying import UasStateTrying

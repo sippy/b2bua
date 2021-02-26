@@ -140,13 +140,13 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
         pass
 
     def process_reply(self, data, address, worker, rtime):
+        data = data.decode('ascii')
         try:
             cookie, result = data.split(None, 1)
         except:
             print('Rtp_proxy_client_udp.process_reply(): invalid response from %s: "%s"' % \
               (str(address), data))
             return
-        cookie = cookie.decode()
         preq = self.pending_requests.pop(cookie, None)
         if preq == None:
             return
@@ -160,7 +160,6 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
               ' backwards (%f <= %f, now=%f)' % (cookie, rtime.monot, \
               preq.stime.monot, rtime_fix.monot))
         if preq.result_callback != None:
-            result = result.decode()
             preq.result_callback(result.strip(), *preq.callback_parameters)
 
         # When we had to do retransmit it is not possible to figure out whether

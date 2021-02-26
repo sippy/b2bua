@@ -80,7 +80,7 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
     rtpp_class = None
 
     def __init__(self, global_config, *address, **kwargs):
-        #print 'Rtp_proxy_client', address
+        #print('Rtp_proxy_client', address)
         no_version_check = False
         if 'no_version_check' in kwargs:
             no_version_check = kwargs['no_version_check']
@@ -189,13 +189,13 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
             to.go()
 
     def heartbeat(self):
-        #print 'heartbeat', self, self.address
+        #print('heartbeat', self, self.address)
         if self.shut_down:
             return
         self.send_command('Ib', self.heartbeat_reply)
 
     def heartbeat_reply(self, stats):
-        #print 'heartbeat_reply', self.address, stats, self.online
+        #print('heartbeat_reply', self.address, stats, self.online)
         if self.shut_down:
             return
         if not self.online:
@@ -235,7 +235,7 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
     def go_offline(self):
         if self.shut_down:
             return
-        #print 'go_offline', self.address, self.online
+        #print('go_offline', self.address, self.online)
         if self.online:
             self.online = False
             to = TimeoutInact(self.version_check, self.hrtb_retr_ival)
