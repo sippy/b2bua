@@ -633,7 +633,7 @@ class SipTransactionManager(object):
                 return
             resp, t.cancel_cb, t.noack_cb = rval
             if resp != None:
-                self.sendResponse(resp, t)
+                self.sendResponse(resp, t, lossemul = resp.lossemul)
 
     def regConsumer(self, consumer, call_id, compact = False):
         cons = SipTransactionConsumer(consumer, compact)

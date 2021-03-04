@@ -31,6 +31,7 @@ class SipResponse(SipMsg):
     scode = None
     reason = None
     sipver = None
+    lossemul = 0
 
     def __init__(self, buf = None, scode = None, reason = None, sipver = None, to = None, fr0m = None, callid = None, vias = None,
                  cseq = None, body = None, rrs = (), server = None):
