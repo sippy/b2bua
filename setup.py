@@ -1,15 +1,14 @@
 #!/usr/bin/env python2
 from setuptools import setup, find_packages
 
+requirements = [x.strip() for x in open("requirements.txt", "r").readlines()]
+
 setup(
     name = "sippy",
-    version = "1.1-dev",
+    version = "2.0.dev0",
     packages = find_packages(),
 
-    install_requires = [
-        'twisted>=14.0'
-        ],
-
+    install_requires = requirements,
     package_data = {
         '': ['dictionary', '*.md']
         },

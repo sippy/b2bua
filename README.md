@@ -1,4 +1,4 @@
-#[![Build Status](https://drone.io/github.com/sippy/b2bua/status.png)](https://drone.io/github.com/sippy/b2bua/latest)
+[![Build Status@GitHub](https://github.com/sippy/b2bua/workflows/Check%20Python%20Wheels/badge.svg?branch=master)](https://github.com/sippy/b2bua/actions?query=branch%3Amaster++)
 
 # Sippy B2BUA
 
@@ -37,10 +37,7 @@ path.
 
 ### Install libelperiodic (if not installed)
 
-```
-$ git clone https://github.com/sobomax/libelperiodic.git
-$ cd libelperiodic; ./configure; make all install; cd ..
-```
+`pip install ElPeriodic`
 
 ### Install B2BUA
 
