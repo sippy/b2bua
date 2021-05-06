@@ -193,32 +193,31 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
     def get_rtpc_delay(self):
         return self.delay_flt.lastval
 
-from sippy.Core.EventDispatcher import ED2
-
 class selftest(object):
 
     def gotreply(self, *args):
         print(args)
         ED2.breakLoop()
 
-    def run(self):
+    def run(self, ED2):
         import os
         global_config = {}
         global_config['my_pid'] = os.getpid()
         rtpc = Rtp_proxy_client_udp(global_config, ('127.0.0.1', 22226), None)
         rtpc.rtpp_class = Rtp_proxy_client_udp
         os.system('sockstat | grep -w %d' % global_config['my_pid'])
-        rtpc.send_command('Ib', self.gotreply)
+        rtpc.send_command('Ib', self.gotreply, ED2)
         ED2.loop()
         rtpc.reconnect(('localhost', 22226), ('0.0.0.0', 34222))
         os.system('sockstat | grep -w %d' % global_config['my_pid'])
-        rtpc.send_command('V', self.gotreply)
+        rtpc.send_command('V', self.gotreply, ED2)
         ED2.loop()
         rtpc.reconnect(('localhost', 22226), ('127.0.0.1', 57535))
         os.system('sockstat | grep -w %d' % global_config['my_pid'])
-        rtpc.send_command('V', self.gotreply)
+        rtpc.send_command('V', self.gotreply, ED2)
         ED2.loop()
         rtpc.shutdown()
 
 if __name__ == '__main__':
-    selftest().run()
+    from sippy.Core.EventDispatcher import ED2
+    selftest().run(ED2)
