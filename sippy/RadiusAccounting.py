@@ -68,14 +68,14 @@ class RadiusAccounting(object):
         self.lperiod = lperiod
         self.send_start = send_start
 
-    def setParams(self, username, caller, callee, h323_cid, sip_cid, remote_ip, \
+    def setParams(self, username, caller, callee, sip_cid, remote_ip, \
       h323_in_cid = None):
         if caller == None:
             caller = ''
         self._attributes.extend((('User-Name', username), ('Calling-Station-Id', caller), \
-          ('Called-Station-Id', callee), ('h323-conf-id', h323_cid), ('call-id', sip_cid), \
+          ('Called-Station-Id', callee), ('call-id', sip_cid), \
           ('Acct-Session-Id', sip_cid), ('h323-remote-address', remote_ip)))
-        if h323_in_cid != None and h323_in_cid != h323_cid:
+        if h323_in_cid != None:
             self._attributes.append(('h323-incoming-conf-id', h323_in_cid))
         self.sip_cid = str(sip_cid)
         self.complete = True

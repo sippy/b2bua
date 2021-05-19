@@ -30,7 +30,7 @@ from time import time
 from functools import reduce
 
 class RadiusAuthorisation(Radius_client):
-    def do_auth(self, username, caller, callee, h323_cid, sip_cid, remote_ip, res_cb, \
+    def do_auth(self, username, caller, callee, sip_cid, remote_ip, res_cb, \
       realm = None, nonce = None, uri = None, response = None, extra_attributes = None):
         sip_cid = str(sip_cid)
         attributes = None
@@ -42,7 +42,7 @@ class RadiusAuthorisation(Radius_client):
             attributes = [('User-Name', remote_ip), ('Password', 'cisco')]
         if caller == None:
             caller = ''
-        attributes.extend((('Calling-Station-Id', caller), ('Called-Station-Id', callee), ('h323-conf-id', h323_cid), \
+        attributes.extend((('Calling-Station-Id', caller), ('Called-Station-Id', callee), \
           ('call-id', sip_cid), ('h323-remote-address', remote_ip), ('h323-session-protocol', 'sipv2')))
         if extra_attributes != None:
             for a, v in extra_attributes:

@@ -64,7 +64,6 @@ class UA(object):
     cId = None
     lCSeq = None
     lContact = None
-    cGUID = None
     rAddr = None
     rAddr0 = None
     routes = None
@@ -279,7 +278,7 @@ class UA(object):
             max_forwards_hf = None
         req = SipRequest(method = method, ruri = self.rTarget, to = self.rUri, fr0m = self.lUri,
                          cseq = self.lCSeq, callid = self.cId, contact = self.lContact,
-                         routes = self.routes, target = target, cguid = self.cGUID,
+                         routes = self.routes, target = target,
                          user_agent = self.local_ua, maxforwards = max_forwards_hf)
         if challenge != None:
             auth = challenge.genAuthHF(self.username, self.password, method, str(self.rTarget))

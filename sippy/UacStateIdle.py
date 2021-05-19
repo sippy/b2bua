@@ -43,7 +43,7 @@ class UacStateIdle(UaStateGeneric):
             if self.ua.setup_ts == None:
                 self.ua.setup_ts = event.rtime
             self.ua.origin = 'callee'
-            cId, cGUID, callingID, calledID, body, auth, callingName = event.getData()
+            cId, callingID, calledID, body, auth, callingName = event.getData()
             if body != None:
                 if self.ua.on_local_sdp_change != None and body.needs_update:
                     self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event))
@@ -66,7 +66,6 @@ class UacStateIdle(UaStateGeneric):
                 self.ua.lContact = SipContact()
             self.ua.lContact.getUrl().username = callingID
             self.ua.routes = []
-            self.ua.cGUID = cGUID
             self.ua.lSDP = body
             event.onUacSetupComplete(self.ua)
             req = self.ua.genRequest('INVITE', body, reason = event.reason, \

@@ -30,7 +30,6 @@ from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventTry
 from sippy.SipContact import SipContact
-from sippy.SipCiscoGUID import SipCiscoGUID
 from sippy.SipFrom import SipFrom
 from sippy.SipTo import SipTo
 
@@ -42,19 +41,7 @@ class UasStateIdle(UaStateGeneric):
             #print 'wrong request %s in the Trying state' % req.getMethod()
             return None
         self.ua.origin = 'caller'
-        #print 'INVITE received in the Idle state, going to the Trying state'
-        if req.countHFs('cisco-guid') != 0:
-            try:
-                self.ua.cGUID = req.getHFBody('cisco-guid').getCopy()
-            except:
-                self.ua.cGUID = SipCiscoGUID()
-        elif req.countHFs('h323-conf-id') != 0:
-            try:
-                self.ua.cGUID = req.getHFBody('h323-conf-id').getCopy()
-            except:
-                self.ua.cGUID = SipCiscoGUID()
-        else:
-            self.ua.cGUID = SipCiscoGUID()
+        #print('INVITE received in the Idle state, going to the Trying state')
         self.ua.uasResp = req.genResponse(100, 'Trying', server = self.ua.local_ua)
         self.ua.lCSeq = 100 # XXX: 100 for debugging so that incorrect CSeq generation will be easily spotted
         if self.ua.lContact == None:
@@ -89,7 +76,7 @@ class UasStateIdle(UaStateGeneric):
             auth = req.getHFBody('authorization').getCopy()
         body = req.getBody()
         self.ua.branch = req.getHFBody('via').getBranch()
-        event = CCEventTry((self.ua.cId, self.ua.cGUID, self.ua.rUri.getUrl().username, req.getRURI().username, body, auth, \
+        event = CCEventTry((self.ua.cId, self.ua.rUri.getUrl().username, req.getRURI().username, body, auth, \
           self.ua.rUri.getUri().name), rtime = req.rtime, origin = self.ua.origin)
         try:
             event.reason = req.getHFBody('reason')

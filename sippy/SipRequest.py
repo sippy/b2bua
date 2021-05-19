@@ -41,7 +41,7 @@ class SipRequest(SipMsg):
     user_agent = None
 
     def __init__(self, buf = None, method = None, ruri = None, sipver = 'SIP/2.0', to = None, fr0m = None, via = None, cseq = None, \
-                 callid = None, maxforwards = None, body = None, contact = None, routes = (), target = None, cguid = None,
+                 callid = None, maxforwards = None, body = None, contact = None, routes = (), target = None,
                  user_agent = None, expires = None):
         SipMsg.__init__(self, buf)
         if buf != None:
@@ -88,9 +88,6 @@ class SipRequest(SipMsg):
             self.appendHeader(SipHeader(name = 'user-agent', bodys = user_agent))
         else:
             self.appendHeader(SipHeader(name = 'user-agent'))
-        if cguid != None:
-            self.appendHeader(SipHeader(name = 'cisco-guid', body = cguid))
-            self.appendHeader(SipHeader(name = 'h323-conf-id', body = cguid))
         if body != None:
             self.setBody(body)
 
