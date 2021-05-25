@@ -83,7 +83,7 @@ endpoint (12). At this point, the session is established and endpoints start
 exchanging RTP media (13).
 
 
-![Figure 6 — BYE message sent to Originating SIP endpoint.png](Fig5_Endpoints_receiving_RTP_media.png)
+![Figure 5 — BYE message sent to Originating SIP endpoint.png](Fig5_Endpoints_receiving_RTP_media.png)
 
 When either party hangs up, the respective SIP endpoint generates a SIP BYE
 message and sends the message to the associated SIP UA (14). The UA generates
@@ -92,7 +92,7 @@ Call Control Logic (15), (16) and results in a BYE message, which is sent to
 the other endpoint (17).
 
 
-![Figure 5 — Endpoints receiving RTP Media.png](Fig5_BYE_message_sent_to_originating_SIP_endpoint.png)
+![Figure 6 — Endpoints receiving RTP Media.png](Fig6_BYE_message_sent_to_originating_SIP_endpoint.png)
 
 The session ends.
 
