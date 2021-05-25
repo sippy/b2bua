@@ -41,6 +41,7 @@ class SipRegistrationAgent(object):
     dead = False
     atries = 0
     source_address = None
+    exp = None
 
     def __init__(self, global_config, aor, contact, user = None, passw = None, exp = 180, rok_cb = None, rfail_cb = None, cb_arg = None, target = None):
         self.global_config = global_config
@@ -57,7 +58,8 @@ class SipRegistrationAgent(object):
         fr0m.genTag()
         to = SipTo(address = tfaddr)
         contact = SipContact(address = SipAddress(url = contact))
-        contact.address.params['expires'] = '180'
+        contact.address.params['expires'] = str(exp)
+        self.exp = exp
         self.rmsg = SipRequest(method = 'REGISTER', ruri = ruri, fr0m = fr0m, contact = contact, to = to, target = target)
 
     def doregister(self):
@@ -86,7 +88,7 @@ class SipRegistrationAgent(object):
             elif resp.countHFs('expires') > 0:
                 tout = resp.getHFBody('expires').getNum()
             else:
-                tout = 180
+                tout = self.exp
             timer = Timeout(self.doregister, tout)
             if self.rok_cb != None:
                 self.rok_cb(timer.etime.realt, contact, self.cb_arg)
