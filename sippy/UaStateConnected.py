@@ -133,6 +133,7 @@ class UaStateConnected(UaStateGeneric):
         if self.ua.expire_timer != None:
             self.ua.expire_timer.cancel()
             self.ua.expire_timer = None
+        self.ua.cancelCreditTimer() # prevent timer leak on body-less re-INVITE
         self.ua.startCreditTimer(req.rtime)
         self.ua.connect_ts = req.rtime
         for callback in self.ua.conn_cbs:
@@ -228,6 +229,7 @@ class UaStateConnected(UaStateGeneric):
             if body is not None and self.ua.on_local_sdp_change != None and body.needs_update:
                 self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
+            self.ua.cancelCreditTimer() # prevent timer leak on body-less re-INVITE
             self.ua.startCreditTimer(event.rtime)
             self.ua.connect_ts = event.rtime
             self.ua.lSDP = body
