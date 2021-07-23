@@ -169,7 +169,11 @@ class _CLIManager_w(Thread):
                 self.wbuffer = None
             self.w_available.release()
             while True:
-                res = self.clientsock.send(wbuffer)
+                try:
+                    res = self.clientsock.send(wbuffer)
+                except BrokenPipeError:
+                    self.clim = None
+                    return
                 if res == len(wbuffer):
                     break
                 if res > 0:
@@ -276,7 +280,7 @@ class CLIManager(object):
             self.clientsock.shutdown(socket.SHUT_RDWR)
         except Exception as e:
             if not isinstance(e, socket.error) or e.errno != ENOTCONN: # pylint: disable=no-member
-                dump_exception('self.clientsock.shutdown(socket.SHUT_RDWR)')
+                dump_exception('CLIManager: unhandled exception in self.clientsock.shutdown(socket.SHUT_RDWR)')
         self.clientsock.close()
         self.wthr = None
         self.rthr = None
