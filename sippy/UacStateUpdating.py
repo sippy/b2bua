@@ -59,7 +59,8 @@ class UacStateUpdating(UaStateGeneric):
         code, reason = resp.getSCode()
         scode = (code, reason, body)
         if code < 200:
-            self.ua.equeue.append(CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin))
+            if code != 100:
+                self.ua.equeue.append(CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin))
             return None
         if code >= 200 and code < 300:
             event = CCEventConnect(scode, rtime = resp.rtime, origin = self.ua.origin)
