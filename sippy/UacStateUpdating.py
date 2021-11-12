@@ -89,6 +89,7 @@ class UacStateUpdating(UaStateGeneric):
             scode = (code, reason, body, redirects)
             event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
         else:
+            self.ua.lSDP = None
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
             try:
                 event.reason = resp.getHFBody('reason')

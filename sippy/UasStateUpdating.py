@@ -102,6 +102,7 @@ class UasStateUpdating(UaStateGeneric):
             scode = event.getData()
             if scode == None:
                 scode = (500, 'Failed')
+            self.ua.rSDP = None
             if event.warning != None:
                 extra_headers = (event.warning,)
             else:
