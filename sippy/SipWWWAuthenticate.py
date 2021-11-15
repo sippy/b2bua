@@ -24,26 +24,44 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from random import random
-from hashlib import md5
-from time import time
 from sippy.SipGenericHF import SipGenericHF
 from sippy.SipConf import SipConf
+from sippy.SipAuthorization import SipAuthorization, IsDigestAlgSupported, \
+  NameList2AlgMask
+from sippy.Security.SipNonce import HashOracle
+
+from Crypto import Random
 
 class SipWWWAuthenticate(SipGenericHF):
     hf_names = ('www-authenticate',)
+    aclass = SipAuthorization
     realm = None
     nonce = None
+    qop = None
+    algorithm = None
+    opaque = None
+    otherparams = None
+    ho = HashOracle()
+    rng = Random.new()
+    try:
+        rng.read(1).hex()
+        readhex = lambda self, x: self.rng.read(x).hex()
+    except AttributeError:
+        # Python 2.7 shim
+        readhex = lambda self, x: self.rng.read(x).encode('hex')
 
-    def __init__(self, body = None, realm = None, nonce = None):
+    def __init__(self, body = None, realm = None, nonce = None, \
+      algorithm = None):
+        self.otherparams = []
         SipGenericHF.__init__(self, body)
         if body != None:
             return
         self.parsed = True
+        if algorithm != None:
+            self.algorithm = algorithm
+            self.qop = ('auth',)
         if nonce == None:
-            ctime = time()
-            salt = str((random() * 1000000000) + ctime)
-            nonce = md5(salt.encode()).hexdigest() + hex(int(ctime))[2:]
+            nonce = self.ho.emit_challenge(NameList2AlgMask((self.algorithm,)))
         if realm == None:
             realm = SipConf.my_address
         self.realm = realm
@@ -62,6 +80,14 @@ class SipWWWAuthenticate(SipGenericHF):
                     self.realm = value
                 elif name == 'nonce':
                     self.nonce = value
+                elif name == 'algorithm':
+                    self.algorithm = value
+                elif name == 'qop':
+                    self.qop = [x.strip() for x in value.split(',')]
+                elif name == 'opaque':
+                    self.opaque = value
+                else:
+                    self.otherparams.append((name, value))
         self.parsed = True
 
     def __str__(self):
@@ -70,14 +96,35 @@ class SipWWWAuthenticate(SipGenericHF):
     def localStr(self, local_addr = None, local_port = None):
         if not self.parsed:
             return self.body
-        if local_addr != None and 'my' in dir(self.realm):
-            return 'Digest realm="%s",nonce="%s"' % (local_addr, self.nonce)
-        return 'Digest realm="%s",nonce="%s"' % (self.realm, self.nonce)
+        if local_addr == None or 'my' not in dir(self.realm):
+            local_addr = self.realm
+        rval = 'Digest realm="%s",nonce="%s"' % (local_addr, self.nonce)
+        if self.qop != None:
+            sqop = self.qop[0]
+            for qop in self.qop[1:]:
+                sqop += ',%s' % qop
+            if len(self.qop) > 1:
+                rval += ',qop="%s"' % (sqop,)
+            else:
+                rval += ',qop=%s' % (sqop,)
+        if self.algorithm != None:
+            rval += ',algorithm=%s' % (self.algorithm,)
+        if self.opaque != None:
+            rval += ',opaque="%s"' % (self.opaque,)
+        for param in self.otherparams:
+            rval += ',%s="%s"' % param
+        return rval
 
     def getCopy(self):
         if not self.parsed:
             return self.__class__(self.body)
-        return self.__class__(realm = self.realm, nonce = self.nonce)
+        cself = self.__class__(realm = self.realm, nonce = self.nonce)
+        cself.algorithm = self.algorithm
+        cself.qop = self.qop
+        cself.opaque = self.opaque
+        if len(self.otherparams) > 0:
+            cself.otherparams = self.otherparams[:]
+        return cself
 
     def getCanName(self, name, compact = False):
         return 'WWW-Authenticate'
@@ -87,3 +134,20 @@ class SipWWWAuthenticate(SipGenericHF):
 
     def getNonce(self):
         return self.nonce
+
+    def genAuthHF(self, username, password, method, uri):
+        auth = self.aclass(realm = self.realm, nonce = self.nonce, uri = uri, username = username)
+        auth.algorithm = self.algorithm
+        if self.qop != None:
+            auth.qop = 'auth'
+            auth.nc = '00000001'
+            auth.cnonce = self.readhex(4)
+        if self.opaque != None:
+            auth.opaque = self.opaque
+        auth.genResponse(password, method)
+        return auth
+
+    def supportedAlgorithm(self):
+        if self.qop != None and 'auth' not in self.qop:
+            return False
+        return IsDigestAlgSupported(self.algorithm)

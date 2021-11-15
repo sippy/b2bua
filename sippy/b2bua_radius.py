@@ -36,7 +36,6 @@ from sippy.Time.Timeout import Timeout
 from sippy.Signal import Signal
 from sippy.SipFrom import SipFrom
 from sippy.SipTo import SipTo
-from sippy.SipCiscoGUID import SipCiscoGUID
 from sippy.UA import UA
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventDisconnect, CCEventTry, CCEventUpdate, CCEventFail
 from sippy.UasStateTrying import UasStateTrying
@@ -122,6 +121,7 @@ class CallController(object):
     auth_proc = None
     proxied = False
     challenge = None
+    pass_auth = True
 
     def __init__(self, remote_ip, source, global_config, pass_headers):
         self.id = CallController.id
@@ -145,8 +145,7 @@ class CallController(object):
                     # Some weird event received
                     self.uaA.recvEvent(CCEventDisconnect(rtime = event.rtime))
                     return
-                self.cId, cGUID, self.cli, self.cld, body, auth, self.caller_name = event.getData()
-                self.cGUID = cGUID.hexForm()
+                self.cId, self.cli, self.cld, body, auth, self.caller_name = event.getData()
                 if self.cld == None:
                     self.uaA.recvEvent(CCEventFail((500, 'Internal Server Error (1)'), rtime = event.rtime))
                     self.state = CCStateDead
@@ -173,10 +172,10 @@ class CallController(object):
                     self.cld = self.cld[4:]
                     if body != None:
                         body.content += 'a=nated:yes\r\n'
-                    event.data = (self.cId, cGUID, self.cli, self.cld, body, auth, self.caller_name)
+                    event.data = (self.cId, self.cli, self.cld, body, auth, self.caller_name)
                 if 'static_tr_in' in self.global_config:
                     self.cld = re_replace(self.global_config['static_tr_in'], self.cld)
-                    event.data = (self.cId, cGUID, self.cli, self.cld, body, auth, self.caller_name)
+                    event.data = (self.cId, self.cli, self.cld, body, auth, self.caller_name)
                 if '_rtp_proxy_clients' in self.global_config:
                     self.rtp_proxy_session = Rtp_proxy_session(self.global_config, call_id = self.cId, \
                       notify_socket = self.global_config['b2bua_socket'], \
@@ -190,11 +189,11 @@ class CallController(object):
                     self.rDone(((), 0))
                 elif auth == None or auth.username == None or len(auth.username) == 0:
                     self.username = self.remote_ip
-                    self.auth_proc = self.global_config['_radius_client'].do_auth(self.remote_ip, self.cli, self.cld, self.cGUID, \
+                    self.auth_proc = self.global_config['_radius_client'].do_auth(self.remote_ip, self.cli, self.cld, \
                       self.cId, self.remote_ip, self.rDone)
                 else:
                     self.username = auth.username
-                    self.auth_proc = self.global_config['_radius_client'].do_auth(auth.username, self.cli, self.cld, self.cGUID, 
+                    self.auth_proc = self.global_config['_radius_client'].do_auth(auth.username, self.cli, self.cld, \
                       self.cId, self.remote_ip, self.rDone, auth.realm, auth.nonce, auth.uri, auth.response)
                 return
             if self.state not in (CCStateARComplete, CCStateConnected, CCStateDisconnecting) or self.uaO == None:
@@ -229,7 +228,7 @@ class CallController(object):
               send_start = self.global_config['start_acct_enable'], lperiod = \
               self.global_config.getdefault('alive_acct_int', None))
             self.acctA.ms_precision = self.global_config.getdefault('precise_acct', False)
-            self.acctA.setParams(self.username, self.cli, self.cld, self.cGUID, self.cId, self.remote_ip)
+            self.acctA.setParams(self.username, self.cli, self.cld, self.cId, self.remote_ip)
         else:
             self.acctA = FakeAccounting()
         # Check that uaA is still in a valid state, send acct stop
@@ -278,7 +277,7 @@ class CallController(object):
         self.placeOriginate(self.routes.pop(0))
 
     def placeOriginate(self, oroute):
-        cId, cGUID, cli, cld, body, auth, caller_name = self.eTry.getData()
+        cId, cli, cld, body, auth, caller_name = self.eTry.getData()
         cld = oroute.cld
         self.huntstop_scodes = oroute.params.get('huntstop_scodes', ())
         if 'static_tr_out' in self.global_config:
@@ -295,7 +294,7 @@ class CallController(object):
               self.global_config.getdefault('alive_acct_int', None))
             self.acctO.ms_precision = self.global_config.getdefault('precise_acct', False)
             self.acctO.setParams(oroute.params.get('bill-to', self.username), oroute.params.get('bill-cli', oroute.cli), \
-              oroute.params.get('bill-cld', cld), self.cGUID, self.cId, host)
+              oroute.params.get('bill-cld', cld), self.cId, host)
         else:
             self.acctO = None
         self.acctA.credit_time = oroute.credit_time
@@ -306,7 +305,9 @@ class CallController(object):
         self.uaO = UA(self.global_config, self.recvEvent, oroute.user, oroute.passw, nh_address, oroute.credit_time, tuple(conn_handlers), \
           tuple(disc_handlers), tuple(disc_handlers), dead_cbs = (self.oDead,), expire_time = oroute.expires, \
           no_progress_time = oroute.no_progress_expires, extra_headers = oroute.extra_headers)
+        self.uaO.pass_auth = self.pass_auth
         self.uaO.local_ua = self.global_config['_uaname']
+        self.uaO.no_reply_time = oroute.no_reply_expires
         if self.source != oroute.params.get('outbound_proxy', None):
             self.uaO.outbound_proxy = oroute.params.get('outbound_proxy', None)
         if self.rtp_proxy_session != None and oroute.params.get('rtpp', True):
@@ -324,7 +325,7 @@ class CallController(object):
             cId = SipCallId(md5(str(cId).encode()).hexdigest() + ('-b2b_%d' % oroute.rnum))
         else:
             cId += '-b2b_%d' % oroute.rnum
-        event = CCEventTry((cId, cGUID, oroute.cli, cld, body, auth, \
+        event = CCEventTry((cId, oroute.cli, cld, body, auth, \
           oroute.params.get('caller_name', self.caller_name)))
         if self.eTry.max_forwards != None:
             event.max_forwards = self.eTry.max_forwards - 1

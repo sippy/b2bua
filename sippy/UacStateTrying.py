@@ -47,9 +47,9 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_reply_timer.cancel()
             self.ua.no_reply_timer = None
             if code == 100 and self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_mtime)
             elif code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if code == 100:
             if self.ua.p100_ts == None:
                 self.ua.p100_ts = resp.rtime
@@ -59,7 +59,7 @@ class UacStateTrying(UaStateGeneric):
             self.ua.no_progress_timer.cancel()
             self.ua.no_progress_timer = None
             if code < 200 and self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if code < 200:
             if resp.countHFs('rseq') > 0:
                 tag = resp.getHFBody('to').getTag()
@@ -171,9 +171,9 @@ class UacStateTrying(UaStateGeneric):
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
             if self.ua.pass_auth:
                 if code == 401 and resp.countHFs('www-authenticate') != 0:
-                    event.challenge = resp.getHF('www-authenticate').getCopy()
+                    event.challenges = [x.getCopy() for x in resp.getHFs('www-authenticate')]
                 elif code == 407 and resp.countHFs('proxy-authenticate') != 0:
-                    event.challenge = resp.getHF('proxy-authenticate').getCopy()
+                    event.challenges = [x.getCopy() for x in resp.getHF('proxy-authenticate')]
             if resp.countHFs('reason') != 0:
                 event.reason = resp.getHFBody('reason').getCopy()
             self.ua.equeue.append(event)

@@ -107,13 +107,13 @@ from sippy.SipWarning import SipWarning
 
 class CCEventFail(CCEventGeneric):
     name = 'CCEventFail'
-    challenge = None
+    challenges = None
     warning = None
 
     def getCopy(self):
         cself = CCEventGeneric.getCopy(self)
-        if self.challenge != None:
-            cself.challenge = self.challenge.getCopy()
+        if self.challenges != None:
+            cself.challenges = [x.getCopy() for x in self.challenges]
         return cself
 
     def setWarning(self, eistr):

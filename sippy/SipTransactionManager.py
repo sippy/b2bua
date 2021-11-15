@@ -282,8 +282,9 @@ class SipTransactionManager(object):
     def handleIncoming(self, data_in, address, server, rtime):
         if len(data_in) < 32:
             return
+        self.global_config['_sip_logger'].write('RECEIVED message from %s:%d:\n' % address, \
+          data_in.decode(errors = 'backslashreplace'), ltime = rtime.realt)
         data = data_in.decode()
-        self.global_config['_sip_logger'].write('RECEIVED message from %s:%d:\n' % address, data, ltime = rtime.realt)
         checksum = md5(data_in).digest()
         retrans = self.l1rcache.get(checksum, None)
         if retrans == None:
@@ -692,7 +693,7 @@ class SipTransactionManager(object):
                 return
             resp, t.cancel_cb, t.noack_cb = rval
             if resp != None:
-                self.sendResponse(resp, t)
+                self.sendResponse(resp, t, lossemul = resp.lossemul)
 
     def regConsumer(self, consumer, call_id, compact = False):
         cons = SipTransactionConsumer(consumer, compact)

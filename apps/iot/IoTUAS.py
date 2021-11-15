@@ -103,7 +103,7 @@ class IoTUAS(object):
 
     def recvEvent(self, event, ua):
         if isinstance(event, CCEventTry):
-            cId, cGUID, cli, cld, sdp_body, auth, caller_name = event.getData()
+            cId, cli, cld, sdp_body, auth, caller_name = event.getData()
             if sdp_body == None:
                 return
             sdp_body.parse()

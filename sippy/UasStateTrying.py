@@ -52,7 +52,7 @@ class UasStateTrying(UaStateGeneric):
                 self.ua.no_progress_timer.cancel()
                 self.ua.no_progress_timer = None
                 if self.ua.expire_time != None:
-                    self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+                    self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
             if self.ua.p1xx_ts == None:
                 self.ua.p1xx_ts = event.rtime
             return (UasStateRinging, self.ua.ring_cbs, event.rtime, event.origin, code)
@@ -105,8 +105,8 @@ class UasStateTrying(UaStateGeneric):
             extra_headers = []
             if event.extra_headers != None:
                 extra_headers.extend(event.extra_headers)
-            if event.challenge != None:
-                extra_headers.append(event.challenge)
+            if event.challenges != None:
+                extra_headers.extend(event.challenges)
             if len(extra_headers) == 0:
                 extra_headers = None
             else:

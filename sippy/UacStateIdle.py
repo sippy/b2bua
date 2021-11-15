@@ -33,6 +33,7 @@ from sippy.SipURL import SipURL
 from sippy.SipTo import SipTo
 from sippy.SipFrom import SipFrom
 from sippy.SipCallId import SipCallId
+from sippy.SipHeader import SipHeader
 
 class UacStateIdle(UaStateGeneric):
     sname = 'Idle(UAC)'
@@ -42,7 +43,7 @@ class UacStateIdle(UaStateGeneric):
             if self.ua.setup_ts == None:
                 self.ua.setup_ts = event.rtime
             self.ua.origin = 'callee'
-            cId, cGUID, callingID, calledID, body, auth, callingName = event.getData()
+            cId, callingID, calledID, body, auth, callingName = event.getData()
             if body != None:
                 if self.ua.on_local_sdp_change != None and body.needs_update:
                     self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event))
@@ -65,24 +66,25 @@ class UacStateIdle(UaStateGeneric):
                 self.ua.lContact = SipContact()
             self.ua.lContact.getUrl().username = callingID
             self.ua.routes = []
-            self.ua.cGUID = cGUID
             self.ua.lSDP = body
             event.onUacSetupComplete(self.ua)
             req = self.ua.genRequest('INVITE', body, reason = event.reason, \
               max_forwards = event.max_forwards)
+            if auth != None and self.ua.pass_auth:
+                req.appendHeader(SipHeader(body = auth))
             self.ua.lCSeq += 1
             self.ua.tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.ua.recvResponse, \
               laddress = self.ua.source_address, cb_ifver = 2, compact = self.ua.compact_sip)
             self.ua.auth = None
             if self.ua.expire_time != None:
-                self.ua.expire_time += event.rtime
+                self.ua.expire_mtime = event.rtime.getOffsetCopy(self.ua.expire_time)
             if self.ua.no_progress_time != None:
-                self.ua.no_progress_time += event.rtime
+                self.ua.no_progress_mtime = event.rtime.getOffsetCopy(self.ua.no_progress_time)
                 if self.ua.expire_time != None and self.ua.no_progress_time >= self.ua.expire_time:
                     self.ua.no_progress_time = None
             if self.ua.no_reply_time != None:
                 if self.ua.no_reply_time < 32:
-                    self.ua.no_reply_time += event.rtime
+                    no_reply_mtime = event.rtime.getOffsetCopy(self.ua.no_reply_time)
                     if self.ua.expire_time != None and self.ua.no_reply_time >= self.ua.expire_time:
                         self.ua.no_reply_time = None
                     elif self.ua.no_progress_time != None and self.ua.no_reply_time >= self.ua.no_progress_time:
@@ -90,11 +92,11 @@ class UacStateIdle(UaStateGeneric):
                 else:
                         self.ua.no_reply_time = None
             if self.ua.no_reply_time != None:
-                self.ua.no_reply_timer = TimeoutAbsMono(self.ua.no_reply_expires, self.ua.no_reply_time)
+                self.ua.no_reply_timer = TimeoutAbsMono(self.ua.no_reply_expires, no_reply_mtime)
             elif self.ua.no_progress_time != None:
-                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_time)
+                self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_mtime)
             elif self.ua.expire_time != None:
-                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_time)
+                self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
             return (UacStateTrying,)
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
             return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)

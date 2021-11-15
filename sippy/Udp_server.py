@@ -38,9 +38,9 @@ from time import sleep, time
 from threading import Thread, Condition
 from random import random
 import socket
-import sys, traceback
 
 from sippy.Core.EventDispatcher import ED2
+from sippy.Core.Exceptions import dump_exception
 from sippy.Time.Timeout import Timeout
 from sippy.Time.MonoTime import MonoTime
 
@@ -120,11 +120,7 @@ class AsyncReceiver(Thread):
                 if isinstance(why, socket.error) and why[0] in (EINTR,):
                     continue
                 else:
-                    print(datetime.now(), 'Udp_server: unhandled exception when receiving incoming data')
-                    print('-' * 70)
-                    traceback.print_exc(file = sys.stdout)
-                    print('-' * 70)
-                    sys.stdout.flush()
+                    dump_exception('Udp_server: unhandled exception when receiving incoming data')
                     sleep(1)
                     continue
             if self.userv.uopts.family == socket.AF_INET6:
@@ -258,11 +254,7 @@ class Udp_server(object):
             except Exception as ex:
                 if isinstance(ex, SystemExit):
                     raise 
-                print(datetime.now(), 'Udp_server: unhandled exception when processing incoming data')
-                print('-' * 70)
-                traceback.print_exc(file = sys.stdout)
-                print('-' * 70)
-                sys.stdout.flush()
+                dump_exception('Udp_server: unhandled exception when processing incoming data')
 
     def shutdown(self):
         try:

@@ -25,12 +25,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.SipHeader import SipHeader
-from sippy.SipAuthorization import SipAuthorization
 from sippy.UasStateIdle import UasStateIdle
 from sippy.UacStateIdle import UacStateIdle
 from sippy.SipRequest import SipRequest
 from sippy.SipContentType import SipContentType
-from sippy.SipProxyAuthorization import SipProxyAuthorization
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
 from sippy.MsgBody import MsgBody
@@ -48,6 +46,7 @@ class UA(object):
     uacResp = None
     username = None
     password = None
+    auth_enalgs = None
     equeue = None
     dId = None
     credit_time = None
@@ -65,7 +64,6 @@ class UA(object):
     cId = None
     lCSeq = None
     lContact = None
-    cGUID = None
     rAddr = None
     rAddr0 = None
     routes = None
@@ -173,32 +171,37 @@ class UA(object):
         else:
             return None
 
+    def processChallenge(self, resp, cseq, ch_hfname, auth_hfname):
+        if self.username == None or self.password == None or \
+          self.reqs[cseq].countHFs(auth_hfname) != 0:
+            return False
+        for challenge in resp.getHFBodys(ch_hfname):
+            if self.auth_enalgs != None and challenge.algorithm not in self.auth_enalgs:
+                continue
+            if challenge.supportedAlgorithm():
+                break
+        else:
+            return False
+        req = self.genRequest('INVITE', self.lSDP, challenge)
+        self.lCSeq += 1
+        self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
+          laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
+        del self.reqs[cseq]
+        return True
+
     def recvResponse(self, resp, tr):
         if self.state == None:
             return
         self.update_ua(resp)
         code, reason = resp.getSCode()
         cseq, method = resp.getHFBody('cseq').getCSeq()
-        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 401 and \
-          resp.countHFs('www-authenticate') != 0 and \
-          self.username != None and self.password != None and self.reqs[cseq].countHFs('authorization') == 0:
-            challenge = resp.getHFBody('www-authenticate')
-            req = self.genRequest('INVITE', self.lSDP, challenge.getNonce(), challenge.getRealm())
-            self.lCSeq += 1
-            self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
-              laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
-            del self.reqs[cseq]
-            return None
-        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs and code == 407 and \
-          resp.countHFs('proxy-authenticate') != 0 and \
-          self.username != None and self.password != None and self.reqs[cseq].countHFs('proxy-authorization') == 0:
-            challenge = resp.getHFBody('proxy-authenticate')
-            req = self.genRequest('INVITE', self.lSDP, challenge.getNonce(), challenge.getRealm(), SipProxyAuthorization)
-            self.lCSeq += 1
-            self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
-              laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
-            del self.reqs[cseq]
-            return None
+        if method == 'INVITE' and not self.pass_auth and cseq in self.reqs:
+            if code == 401 and self.processChallenge(resp, cseq, \
+              'www-authenticate', 'authorization'):
+                return None
+            if code == 407 and self.processChallenge(resp, cseq, \
+              'proxy-authenticate', 'proxy-authorization'):
+                return None
         if code >= 200 and cseq in self.reqs:
             del self.reqs[cseq]
         newstate = self.state.recvResponse(resp, tr)
@@ -265,7 +268,7 @@ class UA(object):
             self.elast_seq = event.seq
             self.event_cb(event, self)
 
-    def genRequest(self, method, body = None, nonce = None, realm = None, SipXXXAuthorization = SipAuthorization, \
+    def genRequest(self, method, body = None, challenge = None, \
       reason = None, max_forwards = None):
         if self.outbound_proxy != None:
             target = self.outbound_proxy
@@ -277,11 +280,10 @@ class UA(object):
             max_forwards_hf = None
         req = SipRequest(method = method, ruri = self.rTarget, to = self.rUri, fr0m = self.lUri,
                          cseq = self.lCSeq, callid = self.cId, contact = self.lContact,
-                         routes = self.routes, target = target, cguid = self.cGUID,
+                         routes = self.routes, target = target,
                          user_agent = self.local_ua, maxforwards = max_forwards_hf)
-        if nonce != None and realm != None and self.username != None and self.password != None:
-            auth = SipXXXAuthorization(realm = realm, nonce = nonce, method = method, uri = str(self.rTarget),
-              username = self.username, password = self.password)
+        if challenge != None:
+            auth = challenge.genAuthHF(self.username, self.password, method, str(self.rTarget))
             req.appendHeader(SipHeader(body = auth))
         if body != None:
             req.setBody(body)
@@ -408,7 +410,7 @@ class UA(object):
 
     def startCreditTimer(self, rtime):
         if self.credit_time != None:
-            self.credit_times[0] = rtime + self.credit_time
+            self.credit_times[0] = rtime.getOffsetCopy(self.credit_time)
             self.credit_time = None
         try:
             credit_time = min([x for x in self.credit_times.values() if x != None])

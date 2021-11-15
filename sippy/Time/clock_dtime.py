@@ -95,12 +95,20 @@ else:
 
 clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(timespec)]
 
-def clock_getdtime(type):
+def clock_getitime(type):
     t = timespec()
     if clock_gettime(type, ctypes.pointer(t)) != 0:
         errno_ = ctypes.get_errno()
         raise OSError(errno_, os.strerror(errno_))
-    return float(t.tv_sec) + float(t.tv_nsec * 1e-09)
+    return (t.tv_sec, t.tv_nsec)
+
+def clock_getntime(type):
+    ts = clock_getitime(type)
+    return (ts[0] * 10**9 + ts[1])
+
+def clock_getdtime(type):
+    ts = clock_getitime(type)
+    return float(ts[0]) + float(ts[1] * 1e-09)
 
 if __name__ == "__main__":
     print('%.10f' % (clock_getdtime(CLOCK_REALTIME),))
