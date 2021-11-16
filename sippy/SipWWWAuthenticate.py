@@ -81,6 +81,8 @@ class SipWWWAuthenticate(SipGenericHF):
                 elif name == 'nonce':
                     self.nonce = value
                 elif name == 'algorithm':
+                    if value == 'md5':
+                        value = 'MD5'
                     self.algorithm = value
                 elif name == 'qop':
                     self.qop = [x.strip() for x in value.split(',')]
