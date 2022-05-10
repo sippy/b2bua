@@ -82,7 +82,7 @@ class SipMsg(object):
                     header_names.append(header.name)
             except ESipHeaderCSV as einst:
                 for body in einst.bodys:
-                    header = SipHeader(name = einst.name, bodys = body)
+                    header = SipHeader(name = einst.name, bodys = body, fixname = True)
                     if header.name == 'content-type':
                         self.__content_type = header
                     elif header.name == 'content-length':
