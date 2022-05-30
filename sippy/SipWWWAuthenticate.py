@@ -81,6 +81,8 @@ class SipWWWAuthenticate(SipGenericHF):
                 elif name == 'nonce':
                     self.nonce = value
                 elif name == 'algorithm':
+                    if value == 'md5':
+                        value = 'MD5'
                     self.algorithm = value
                 elif name == 'qop':
                     self.qop = [x.strip() for x in value.split(',')]
@@ -135,19 +137,27 @@ class SipWWWAuthenticate(SipGenericHF):
     def getNonce(self):
         return self.nonce
 
-    def genAuthHF(self, username, password, method, uri):
+    def genAuthHF(self, username, password, method, uri, body = None, qop = None):
         auth = self.aclass(realm = self.realm, nonce = self.nonce, uri = uri, username = username)
         auth.algorithm = self.algorithm
-        if self.qop != None:
-            auth.qop = 'auth'
+        if self.qop is not None and qop is not None:
+            auth.qop = qop
             auth.nc = '00000001'
             auth.cnonce = self.readhex(4)
         if self.opaque != None:
             auth.opaque = self.opaque
-        auth.genResponse(password, method)
+        auth.genAuthResponse(password, method, body)
         return auth
 
     def supportedAlgorithm(self):
-        if self.qop != None and 'auth' not in self.qop:
+        if self.qop is not None:
+            qops = [x for x in self.qop if x in ('auth', 'auth-int')]
+            if len(qops) == 0:
+                return False
+            qop = qops[0]
+        elif self.algorithm is not None and (self.algorithm.endswith('-sess') or self.algorithm != 'MD5'):
+            # -sess variants and RFC8760 algorithms mandate qop
             return False
-        return IsDigestAlgSupported(self.algorithm)
+        else:
+            qop = None
+        return (IsDigestAlgSupported(self.algorithm), qop)

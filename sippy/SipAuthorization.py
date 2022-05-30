@@ -117,11 +117,11 @@ class SipAuthorization(SipGenericHF):
                 self.otherparams.append((name, value))
         self.parsed = True
 
-    def genResponse(self, password, method):
+    def genAuthResponse(self, password, method, body):
         HA1 = DigestCalcHA1(self.algorithm, self.username, self.realm, password, \
           self.nonce, self.cnonce)
         self.response = DigestCalcResponse(self.algorithm, HA1, self.nonce, \
-          self.nc, self.cnonce, self.qop, method, self.uri, '')
+          self.nc, self.cnonce, self.qop, method, self.uri, body)
 
     def __str__(self):
         if not self.parsed:
@@ -141,24 +141,24 @@ class SipAuthorization(SipGenericHF):
             return self.__class__(self.body)
         return self.__class__(cself = self)
 
-    def verify(self, password, method):
+    def verify(self, password, method, body = None):
         if not self.parsed:
             self.parse()
         HA1 = DigestCalcHA1(self.algorithm, self.username, self.realm, password, self.nonce, self.cnonce)
-        return self.verifyHA1(HA1, method)
+        return self.verifyHA1(HA1, method, body)
 
-    def verifyHA1(self, HA1, method):
+    def verifyHA1(self, HA1, method, body):
         if not self.parsed:
             self.parse()
         if self.algorithm not in _HASH_FUNC:
             return False
-        if self.qop != None and self.qop != 'auth':
+        if self.qop != None and self.qop not in ('auth', 'auth-int'):
             return False
         algmask = _HASH_FUNC[self.algorithm][1]
         if not self.ho.validate_challenge(self.nonce, (algmask,)):
             return False
         response = DigestCalcResponse(self.algorithm, HA1, self.nonce, self.nc, \
-          self.cnonce, self.qop, method, self.uri, '')
+          self.cnonce, self.qop, method, self.uri, body)
         return response == self.response
 
     def getCanName(self, name, compact = False):
@@ -199,7 +199,12 @@ def DigestCalcResponse(pszAlg, HA1, pszNonce, pszNonceCount, pszCNonce, pszQop, 
     m.update(pszDigestUri.encode())
     if pszQop == "auth-int":
         m.update(delim)
-        m.update(pszHEntity.encode())
+        if pszHEntity is None:
+            pszHEntity = ''
+        m1 = hashfunc()
+        m1.update(pszHEntity.encode())
+        HA_pszHEntity = m1.hexdigest()
+        m.update(HA_pszHEntity.encode())
     HA2 = m.hexdigest()
     m = hashfunc()
     m.update(HA1)

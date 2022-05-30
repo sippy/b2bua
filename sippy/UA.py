@@ -176,13 +176,15 @@ class UA(object):
           self.reqs[cseq].countHFs(auth_hfname) != 0:
             return False
         for challenge in resp.getHFBodys(ch_hfname):
+            #print(self.processChallenge, cseq, challenge, challenge.algorithm)
             if self.auth_enalgs != None and challenge.algorithm not in self.auth_enalgs:
                 continue
-            if challenge.supportedAlgorithm():
+            supported, qop = challenge.supportedAlgorithm()
+            if supported:
                 break
         else:
             return False
-        req = self.genRequest('INVITE', self.lSDP, challenge)
+        req = self.genRequest('INVITE', self.lSDP, (challenge, qop))
         self.lCSeq += 1
         self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
           laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
@@ -268,7 +270,7 @@ class UA(object):
             self.elast_seq = event.seq
             self.event_cb(event, self)
 
-    def genRequest(self, method, body = None, challenge = None, \
+    def genRequest(self, method, body = None, cqop = None, \
       reason = None, max_forwards = None):
         if self.outbound_proxy != None:
             target = self.outbound_proxy
@@ -282,8 +284,15 @@ class UA(object):
                          cseq = self.lCSeq, callid = self.cId, contact = self.lContact,
                          routes = self.routes, target = target,
                          user_agent = self.local_ua, maxforwards = max_forwards_hf)
-        if challenge != None:
-            auth = challenge.genAuthHF(self.username, self.password, method, str(self.rTarget))
+        if cqop != None:
+            challenge, qop = cqop
+            if body != None and qop == 'auth-int':
+                sbody = str(body)
+                #print(len(sbody), sbody)
+            else:
+                sbody = None
+            auth = challenge.genAuthHF(self.username, self.password, method, \
+              str(self.rTarget), sbody, qop)
             req.appendHeader(SipHeader(body = auth))
         if body != None:
             req.setBody(body)
