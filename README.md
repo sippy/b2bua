@@ -48,8 +48,8 @@ path.
 To get started, you can use the b2bua_simple implementation. The following
 example will cause the b2bua run in the foreground so you can see the SIP
 messaging. If you make a call to the IP address of your host machine, the b2bua
-will recieve the call on its UAC side, and it will send a new call leg out its
-UAS side to the IP address 192.168.1.1. It is expected that 192.168.1.1 is some
+will recieve the call on its UAS side, and it will send a new call leg out its
+UAC side to the IP address 192.168.1.1. It is expected that 192.168.1.1 is some
 sort of SIP switch or termination gateway.
 
 `b2bua_simple -f -n 192.168.1.1`
