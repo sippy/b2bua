@@ -48,6 +48,9 @@ class CCEventGeneric(object):
     def getData(self):
         return self.data
 
+    def getBody(self):
+        return None
+
     def getCopy(self):
         cself = self.__class__(self.data, self.rtime, self.origin)
         if self.reason != None:
@@ -73,17 +76,34 @@ class CCEventTry(CCEventGeneric):
     def onUacSetupComplete(self, uac):
         pass
 
+    def getBody(self):
+        if self.data != None:
+            return self.data[4]
+        return None
+
 class CCEventRing(CCEventGeneric):
     name = 'CCEventRing'
-    pass
+
+    def getBody(self):
+        if self.data != None:
+            return self.data[2]
+        return None
 
 class CCEventPreConnect(CCEventGeneric):
     name = 'CCEventPreConnect'
-    pass
+
+    def getBody(self):
+        if self.data != None:
+            return self.data[2]
+        return None
 
 class CCEventConnect(CCEventGeneric):
     name = 'CCEventConnect'
-    pass
+
+    def getBody(self):
+        if self.data != None:
+            return self.data[2]
+        return None
 
 class CCEventUpdate(CCEventGeneric):
     name = 'CCEventUpdate'
@@ -94,13 +114,20 @@ class CCEventUpdate(CCEventGeneric):
         cself.max_forwards = self.max_forwards
         return cself
 
+    def getBody(self):
+        return self.data
+
 class CCEventInfo(CCEventGeneric):
     name = 'CCEventInfo'
-    pass
+
+    def getBody(self):
+        return self.data
 
 class CCEventDisconnect(CCEventGeneric):
     name = 'CCEventDisconnect'
-    pass
+
+    def getBody(self):
+        return None
 
 from sippy.SipHeader import SipHeader
 from sippy.SipWarning import SipWarning
@@ -119,6 +146,11 @@ class CCEventFail(CCEventGeneric):
     def setWarning(self, eistr):
         self.warning = SipHeader(body = SipWarning(text = eistr))
 
+    def getBody(self):
+        return None
+
 class CCEventRedirect(CCEventGeneric):
     name = 'CCEventRedirect'
-    pass
+
+    def getBody(self):
+        return None
