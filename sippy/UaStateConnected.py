@@ -178,7 +178,7 @@ class UaStateConnected(UaStateGeneric):
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
         if isinstance(event, CCEventUpdate):
             body = event.getData()
-            if str(self.ua.lSDP) == str(body):
+            if self.ua.lSDP.localStr('127.0.0.1') == body.localStr('127.0.0.1'):
                 if self.ua.rSDP != None:
                     self.ua.equeue.append(CCEventConnect((200, 'OK', self.ua.rSDP.getCopy()), \
                         rtime = event.rtime, origin = event.origin))
