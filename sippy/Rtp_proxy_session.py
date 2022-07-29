@@ -1,5 +1,5 @@
 # Copyright (c) 2003-2005 Maxim Sobolev. All rights reserved.
-# Copyright (c) 2006-2014 Sippy Software, Inc. All rights reserved.
+# Copyright (c) 2006-2022 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
 #
@@ -57,6 +57,7 @@ class _rtpps_side(object):
     origin = None
     oh_remote = None
     repacketize = None
+    soft_repacketize = False
 
     def __init__(self):
         self.origin = SdpOrigin()
@@ -183,7 +184,7 @@ class _rtpps_side(object):
             return
         formats = sects[0].m_header.formats
         self.codecs = ','.join([ str(x) for x in formats ])
-        if self.repacketize != None:
+        if self.repacketize is not None and not self.soft_repacketize:
             options = 'z%d' % self.repacketize
         else:
             options = ''
@@ -205,19 +206,22 @@ class _rtpps_side(object):
             if sect.m_header.port != 0:
                 sect.m_header.port = rtpproxy_port
             if sendonly:
-                while 'sendrecv' in sect.a_headers:
-                    sect.a_headers.remove('sendrecv')
-                if 'sendonly' not in sect.a_headers:
-                    sect.a_headers.append('sendonly')
-            if self.repacketize != None:
+                for sendrecv in [x for x in sect.a_headers if x.name == 'sendrecv']:
+                    sect.a_headers.remove(sendrecv)
+                if len([x for x in sect.a_headers if x.name == 'sendonly']) == 0:
+                    sect.addHeader('a', 'sendonly')
+            if self.soft_repacketize or self.repacketize is not None:
                 fidx = -1
                 for a_header in sect.a_headers[:]:
-                    if a_header.startswith('ptime:'):
+                    if a_header.name == 'ptime':
                         fidx = sect.a_headers.index(a_header)
                         sect.a_headers.remove(a_header)
-                    if fidx == -1 and a_header.startswith('fmtp:'):
+                    elif fidx == -1 and a_header.name == 'fmtp':
                         fidx = sect.a_headers.index(a_header) + 1
-                sect.a_headers.insert(fidx, 'ptime:%d' % self.repacketize)
+                sect.insertHeader(fidx, 'a', 'ptime:%d' % self.repacketize)
+            for rtcp_header in [x for x in sect.a_headers if x.name == 'rtcp']:
+                rtcp_header.value = F'{rtpproxy_port + 1} IN {family} {rtpproxy_address}'
+
         if len([x for x in sects if x.needs_update]) == 0:
             if self.oh_remote != None:
                 if self.oh_remote.session_id != sdp_body.content.o_header.session_id:
