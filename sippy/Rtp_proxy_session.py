@@ -220,7 +220,7 @@ class _rtpps_side(object):
                         fidx = sect.a_headers.index(a_header) + 1
                 sect.insertHeader(fidx, 'a', 'ptime:%d' % self.repacketize)
             for rtcp_header in [x for x in sect.a_headers if x.name == 'rtcp']:
-                rtcp_header.value = F'{rtpproxy_port + 1} IN {family} {rtpproxy_address}'
+                rtcp_header.value = '%d IN %s %s' % (rtpproxy_port + 1, family, rtpproxy_address)
 
         if len([x for x in sects if x.needs_update]) == 0:
             if self.oh_remote != None:

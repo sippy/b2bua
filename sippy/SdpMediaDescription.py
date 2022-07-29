@@ -47,8 +47,8 @@ class a_header(object):
 
     def __str__(self):
         if self.value is None:
-            return F'{self.name}'
-        return F'{self.name}:{self.value}'
+            return self.name
+        return '%s:%s' % (self.name, self.value)
 
     def getCopy(self):
         return a_header(self)
