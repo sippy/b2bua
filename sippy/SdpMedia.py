@@ -27,6 +27,9 @@
 class MTAudio(object):
     pass
 
+class MTVideo(object):
+    pass
+
 class MTOther(object):
     pass
 
@@ -41,13 +44,16 @@ class SdpMedia(object):
         if body != None:
             params = body.split()
             self.stype = params[0]
-            if self.stype.lower() == 'audio':
+            lstype = self.stype.lower()
+            if lstype == 'audio':
                 self.type = MTAudio
+            elif lstype == 'video':
+                self.type = MTVideo
             else:
                 self.type = MTOther
             self.port = int(params[1])
             self.transport = params[2]
-            if self.type == MTAudio:
+            if self.type in (MTAudio, MTVideo):
                 self.formats = [int(x) for x in params[3:]]
             else:
                 self.formats = params[3:]
@@ -60,7 +66,7 @@ class SdpMedia(object):
 
     def __str__(self):
         rval = '%s %d %s' % (self.stype, self.port, self.transport)
-        if self.type == MTAudio:
+        if self.type in (MTAudio, MTVideo):
             for format in self.formats:
                 rval += ' %d' % format
         else:
