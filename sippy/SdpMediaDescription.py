@@ -1,5 +1,5 @@
 # Copyright (c) 2003-2005 Maxim Sobolev. All rights reserved.
-# Copyright (c) 2006-2014 Sippy Software, Inc. All rights reserved.
+# Copyright (c) 2006-2022 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
 #
@@ -31,6 +31,28 @@ from sippy.SdpGeneric import SdpGeneric
 f_types = {'m':SdpMedia, 'i':SdpGeneric, 'c':SdpConnecton, 'b':SdpGeneric, \
   'k':SdpGeneric}
 
+class a_header(object):
+    name = None
+    value = None
+
+    def __init__(self, s):
+        if isinstance(s, a_header):
+            self.name = s.name
+            self.value = s.value
+            return
+        parts = s.split(':', 1)
+        self.name = parts[0]
+        if len(parts) > 1:
+            self.value = parts[1]
+
+    def __str__(self):
+        if self.value is None:
+            return F'{self.name}'
+        return F'{self.name}:{self.value}'
+
+    def getCopy(self):
+        return a_header(self)
+
 class SdpMediaDescription(object):
     m_header = None
     i_header = None
@@ -48,7 +70,7 @@ class SdpMediaDescription(object):
                     setattr(self, header_name, getattr(cself, header_name).getCopy())
                 except AttributeError:
                     pass
-            self.a_headers = [x for x in cself.a_headers]
+            self.a_headers = [x.getCopy() for x in cself.a_headers]
             return
         self.a_headers = []
 
@@ -83,32 +105,31 @@ class SdpMediaDescription(object):
 
     def addHeader(self, name, header):
         if name == 'a':
-            self.a_headers.append(header)
+            self.a_headers.append(a_header(header))
         else:
             setattr(self, name + '_header', f_types[name](header))
 
+    def insertHeader(self, indx, name, header):
+        assert(name == 'a')
+        self.a_headers.insert(indx, a_header(header))
+
     def optimize_a(self):
-        new_a_headers = []
-        for ah in self.a_headers:
-            pt = None
+        for ah in [x for x in self.a_headers if x.name in ('rtpmap', 'fmtp') and \
+          x.value is not None]:
             try:
-                if ah.startswith('rtpmap:'):
-                    pt = int(ah[7:].split(' ')[0])
-                elif ah.startswith('fmtp:'):
-                    pt = int(ah[5:].split(' ')[0])
-            except:
-                pass
-            if pt != None and not pt in self.m_header.formats:
+                pt = int(ah.value.split(' ', 1)[0])
+            except ValueError:
                 continue
-            new_a_headers.append(ah)
-        self.a_headers = new_a_headers
+            if pt in self.m_header.formats:
+                continue
+            self.a_headers.remove(ah)
 
     def isOnHold(self):
         if self.c_header.atype == 'IP4' and self.c_header.addr == '0.0.0.0':
             return True
         if self.c_header.atype == 'IP6' and self.c_header.addr == '::':
             return True
-        for aname in ('sendonly', 'inactive'):
-            if aname in self.a_headers:
-                return True
+        if len([1 for x in self.a_headers if x.value is None and \
+          x.name in ('sendonly', 'inactive')]) > 0:
+            return True
         return False

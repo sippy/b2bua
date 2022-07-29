@@ -1,5 +1,5 @@
 # Copyright (c) 2003-2005 Maxim Sobolev. All rights reserved.
-# Copyright (c) 2006-2014 Sippy Software, Inc. All rights reserved.
+# Copyright (c) 2006-2022 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
 #
@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from sippy.SdpMediaDescription import SdpMediaDescription
+from sippy.SdpMediaDescription import SdpMediaDescription, a_header
 from sippy.SdpGeneric import SdpGeneric
 from sippy.SdpOrigin import SdpOrigin
 from sippy.SdpConnecton import SdpConnecton
@@ -63,7 +63,7 @@ class SdpBody(object):
                     setattr(self, header_name, getattr(cself, header_name).getCopy())
                 except AttributeError:
                     pass
-            self.a_headers = [x for x in cself.a_headers]
+            self.a_headers = [x.getCopy() for x in cself.a_headers]
             self.sections = [x.getCopy() for x in cself.sections]
             return
         self.a_headers = []
@@ -82,7 +82,7 @@ class SdpBody(object):
                 if name == 'c':
                     c_header = v
                 elif name == 'a':
-                    self.a_headers.append(v)
+                    self.a_headers.append(a_header(v))
                 else:
                     setattr(self, name + '_header', f_types[name](v))
             else:
@@ -218,6 +218,6 @@ class SdpBody(object):
 
     def addHeader(self, name, header):
         if name == 'a':
-            self.a_headers.append(header)
+            self.a_headers.append(a_header(header))
         else:
             setattr(self, name + '_header', f_types[name](header))
