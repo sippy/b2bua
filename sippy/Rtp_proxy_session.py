@@ -47,6 +47,7 @@ class Rtp_proxy_cmd_sequencer(object):
     rtp_proxy_client = None
     comqueue = None
     inflight = None
+    deleted = False
 
     def __init__(self, rtpp_client):
         self.rtp_proxy_client = rtpp_client
@@ -69,8 +70,14 @@ class Rtp_proxy_cmd_sequencer(object):
             self.rtp_proxy_client.send_command(self.inflight[0], self.result_callback)
         if result_callback != None:
             result_callback(result, *callback_parameters)
+        if self.deleted:
+            self.delete()
+            return
 
     def delete(self):
+        if self.inflight is not None:
+            self.deleted = True
+            return
         # break the reference loop
         self.rtp_proxy_client = None
 
