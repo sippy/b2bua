@@ -172,7 +172,7 @@ class local4remote(object):
 
     def getServer(self, address, is_local = False):
         if self.fixed:
-            return self.cache_l2s.items()[0][1]
+            return list(self.cache_l2s.items())[0][1]
         if not is_local:
             laddress = self.cache_r2l.get(address[0], None)
             if laddress == None:
