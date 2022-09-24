@@ -160,7 +160,7 @@ class CallController(object):
                     allowed_pts = self.global_config['_allowed_pts']
                     for sect in body.content.sections:
                         mbody = sect.m_header
-                        if mbody.transport.lower() not in ('rtp/avp', 'rtp/savp'):
+                        if mbody.transport.lower() not in Rtp_proxy_session.AV_TRTYPES:
                             continue
                         old_len = len(mbody.formats)
                         mbody.formats = [x for x in mbody.formats if x in allowed_pts]

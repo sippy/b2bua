@@ -222,8 +222,7 @@ class _rtpps_side(object):
             return
         for i in range(0, len(sdp_body.content.sections)):
             sect = sdp_body.content.sections[i]
-            if sect.m_header.transport.lower() not in ('udp', 'udptl', 'rtp/avp', \
-              'rtp/savp', 'udp/bfcp'):
+            if sect.m_header.transport.lower() not in rtpps.SUPPORTED_TRTYPES:
                 continue
             sects.append(sect)
         if len(sects) == 0:
@@ -295,6 +294,8 @@ class _rtpps_side(object):
         rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
 
 class Rtp_proxy_session(object):
+    AV_TRTYPES = ('rtp/avp', 'rtp/savp', 'udp/tls/rtp/savp')
+    SUPPORTED_TRTYPES = AV_TRTYPES + ('udp', 'udptl', 'udp/bfcp')
     rtp_proxy_client = None
     rtpp_seq = None
     call_id = None
