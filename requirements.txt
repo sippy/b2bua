@@ -1,1 +1,2 @@
 ElPeriodic>=1.1
+pycryptodome
