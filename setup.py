@@ -3,9 +3,12 @@ from setuptools import setup, find_packages
 
 requirements = [x.strip() for x in open("requirements.txt", "r").readlines()]
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name = "sippy",
-    version = "2.0.dev0",
+    version = "2.0.0",
     packages = find_packages(),
 
     install_requires = requirements,
@@ -21,11 +24,19 @@ setup(
             ],
         },
 
+    long_description = long_description,
+    long_description_content_type = "text/markdown",
+
     # meta-data for upload to PyPi
     author = "Sippy Software, Inc.",
-    author_email = "sales@sippysoft.com",
-    description = "SIP RFC3261 Back-to-back User Agent (B2BUA)",
+    author_email = "sobomax@sippysoft.com",
+    description = "RFC3261 SIP Stack and Back-to-Back User Agent (B2BUA)",
     license = "BSD",
-    keywords = "sip b2bua voip rfc3261 sippy",
+    keywords = "sip,b2bua,voip,rfc3261,sippy",
     url = "http://www.b2bua.org/",
+    classifiers = [
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: POSIX',
+        'Programming Language :: Python'
+    ],
 )
