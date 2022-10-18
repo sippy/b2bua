@@ -8,12 +8,12 @@ with open("README.md", "r") as fh:
 
 setup(
     name = "sippy",
-    version = "2.0.0",
+    version = "2.0.1",
     packages = find_packages(),
 
     install_requires = requirements,
     package_data = {
-        '': ['dictionary', '*.md']
+        '': ['dictionary', '*.md', 'requirements.txt']
         },
     test_suite = 'tests',
 
