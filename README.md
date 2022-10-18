@@ -36,11 +36,11 @@ path.
 
 ## Installation
 
-### Install libelperiodic (if not installed)
+### Install latest stable version
 
-`pip install ElPeriodic`
+`pip install sippy`
 
-### Install B2BUA
+### Install latest development version
 
 `pip install git+https://github.com/sippy/b2bua`
 
