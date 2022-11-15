@@ -151,7 +151,7 @@ class _rtpps_side(object):
             return rtpps.caller
 
     def update_result(self, result, args):
-        #print '%s.update_result(%s)' % (id(self), result)
+        #print('%s.update_result(%s)' % (id(self), result))
         rtpps, result_callback, cpo = args
         self.session_exists = True
         if result == None:
@@ -389,7 +389,7 @@ class Rtp_proxy_session(object):
         return self.rtpp_seq.send_command(command, self.command_result, result_callback)
 
     def command_result(self, result, result_callback):
-        #print '%s.command_result(%s)' % (id(self), result)
+        #print('%s.command_result(%s)' % (id(self), result))
         if result_callback != None:
             result_callback(result)
 
@@ -424,7 +424,7 @@ class Rtp_proxy_session(object):
 
     def __del__(self):
         if self.my_ident != get_ident():
-            #print 'Rtp_proxy_session.__del__() from wrong thread, re-routing'
+            #print('Rtp_proxy_session.__del__() from wrong thread, re-routing')
             ED2.callFromThread(self.delete)
         else:
             self.delete()
