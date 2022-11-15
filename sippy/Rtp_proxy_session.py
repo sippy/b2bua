@@ -81,16 +81,24 @@ class Rtp_proxy_cmd_sequencer(object):
         # break the reference loop
         self.rtp_proxy_client = None
 
-class _rtpps_callback_params(object):
-    proxy_address = None
-    callback_parameters = None
-    atype = None
-    remote_ip = None
+class update_params():
+    rtpps = None
+    remote_ip = '0.0.0.0'
+    remote_port = 0
+    result_callback = None
+    options = ''
+    index = 0
+    atype = 'IP4'
+    callback_parameters = ()
+    subcommand = None
 
-    def __init__(self, proxy_address, callback_parameters, atype):
-        self.proxy_address = proxy_address
-        self.callback_parameters = callback_parameters
-        self.atype = atype
+class update_result():
+    rtpproxy_address = None
+    rtpproxy_port = None
+    family = None
+    sendonly = None
+    dtls_mode = None
+    dtls_fingerprint = None
 
 class _rtpps_side(object):
     session_exists = False
@@ -105,34 +113,34 @@ class _rtpps_side(object):
     def __init__(self):
         self.origin = SdpOrigin()
 
-    def update(self, rtpps, remote_ip, remote_port, result_callback, options = '', index = 0, \
-      atype = 'IP4', *callback_parameters):
+    def update(self, up):
         command = 'U'
-        rtpps.max_index = max(rtpps.max_index, index)
-        rtpc = rtpps.rtp_proxy_client
-        rtpq = rtpps.rtpp_seq
+        up.rtpps.max_index = max(up.rtpps.max_index, up.index)
+        rtpc = up.rtpps.rtp_proxy_client
+        rtpq = up.rtpps.rtpp_seq
+        options = up.options
         if rtpc.sbind_supported:
             if self.raddress != None:
-                #if rtpc.is_local and atype == 'IP4':
-                #    options += 'L%s' % rtpps.global_config['_sip_tm'].l4r.getServer( \
+                #if rtpc.is_local and up.atype == 'IP4':
+                #    options += 'L%s' % up.rtpps.global_config['_sip_tm'].l4r.getServer( \
                 #      self.raddress).uopts.laddress[0]
                 #elif not rtpc.is_local:
                 options += 'R%s' % self.raddress[0]
             elif self.laddress != None and rtpc.is_local:
                 options += 'L%s' % self.laddress
         command += options
-        from_tag, to_tag = self.gettags(rtpps)
-        otherside = self.getother(rtpps)
+        from_tag, to_tag = self.gettags(up.rtpps)
+        otherside = self.getother(up.rtpps)
         if otherside.session_exists:
-            command += ' %s %s %d %s %s' % ('%s-%d' % (rtpps.call_id, index), remote_ip, remote_port, from_tag, to_tag)
+            command += ' %s %s %d %s %s' % ('%s-%d' % (up.rtpps.call_id, up.index), up.remote_ip, up.remote_port, from_tag, to_tag)
         else:
-            command += ' %s %s %d %s' % ('%s-%d' % (rtpps.call_id, index), remote_ip, remote_port, from_tag)
-        if rtpps.notify_socket != None and index == 0 and \
+            command += ' %s %s %d %s' % ('%s-%d' % (up.rtpps.call_id, up.index), up.remote_ip, up.remote_port, from_tag)
+        if up.rtpps.notify_socket != None and up.index == 0 and \
           rtpc.tnot_supported:
-            command += ' %s %s' % (rtpps.notify_socket, rtpps.notify_tag)
-        cpo = _rtpps_callback_params(rtpc.proxy_address, callback_parameters, atype)
-        cpo.remote_ip = remote_ip
-        rtpq.send_command(command, self.update_result, (rtpps, result_callback, cpo))
+            command += ' %s %s' % (up.rtpps.notify_socket, up.rtpps.notify_tag)
+        if up.subcommand:
+            command += ' && %s' % (up.subcommand,)
+        rtpq.send_command(command, self.update_result, up)
 
     def gettags(self, rtpps):
         if self not in (rtpps.caller, rtpps.callee):
@@ -150,38 +158,37 @@ class _rtpps_side(object):
         else:
             return rtpps.caller
 
-    def update_result(self, result, args):
+    def update_result(self, result, up):
         #print('%s.update_result(%s)' % (id(self), result))
-        rtpps, result_callback, cpo = args
         self.session_exists = True
         if result == None:
-            result_callback(None, rtpps, *cpo.callback_parameters)
+            up.result_callback(None, up.rtpps, *up.callback_parameters)
             return
         t1 = result.split()
         if t1[0][0] == 'E':
-            result_callback(None, rtpps, *cpo.callback_parameters)
+            up.result_callback(None, up.rtpps, *up.callback_parameters)
             return
-        rtpproxy_port = int(t1[0])
-        if rtpproxy_port == 0:
-            result_callback(None, rtpps, *cpo.callback_parameters)
+        ur = update_result()
+        ur.rtpproxy_port = int(t1[0])
+        if ur.rtpproxy_port == 0:
+            up.result_callback(None, up.rtpps, *up.callback_parameters)
             return
-        family = 'IP4'
+        ur.family = 'IP4'
         if len(t1) > 1:
-            rtpproxy_address = t1[1]
+            ur.rtpproxy_address = t1[1]
             if len(t1) > 2 and t1[2] == '6':
-                family = 'IP6'
+                ur.family = 'IP6'
         else:
-            rtpproxy_address = cpo.proxy_address
+            ur.rtpproxy_address = up.rtpps.rtp_proxy_client.proxy_address
         # Old-style request to put session on hold, convert it into
         # a new-style request.
-        if cpo.atype == 'IP4' and cpo.remote_ip == '0.0.0.0':
-            sendonly = True
-        elif cpo.atype == 'IP6' and cpo.remote_ip == '::':
-            sendonly = True
+        if up.atype == 'IP4' and up.remote_ip == '0.0.0.0':
+            ur.sendonly = True
+        elif up.atype == 'IP6' and up.remote_ip == '::':
+            ur.sendonly = True
         else:
-            sendonly = False
-        cb_args = (rtpproxy_address, rtpproxy_port, family, sendonly)
-        result_callback(cb_args, rtpps, *cpo.callback_parameters)
+            ur.sendonly = False
+        up.result_callback(ur, up.rtpps, *up.callback_parameters)
 
     def __play(self, result, rtpps, prompt_name, times, result_callback, index):
         from_tag, to_tag = self.gettags(rtpps)
@@ -194,7 +201,12 @@ class _rtpps_side(object):
             return
         otherside = self.getother(rtpps)
         if not otherside.session_exists:
-            otherside.update(rtpps, '0.0.0.0', 0, self.__play, '', index, 'IP4', prompt_name, times, result_callback, index)
+            up = update_params()
+            up.rtpps = rtpps
+            up.index = index
+            up.result_callback = self.__play
+            up.callback_parameters = (prompt_name, times, result_callback, index)
+            otherside.update(up)
             return
         self.__play(None, rtpps, prompt_name, times, result_callback, index)
 
@@ -240,19 +252,26 @@ class _rtpps_side(object):
                 sect_options = '6' + options
             else:
                 sect_options = options
-            self.update(rtpps, sect.c_header.addr, sect.m_header.port, self._sdp_change_finish, sect_options, \
-              sects.index(sect), sect.c_header.atype, sdp_body, sect, sects, result_callback)
+            up = update_params()
+            up.rtpps = rtpps
+            up.remote_ip = sect.c_header.addr
+            up.remote_port = sect.m_header.port
+            up.atype = sect.c_header.atype
+            up.options = sect_options
+            up.index = sects.index(sect)
+            up.result_callback = self._sdp_change_finish
+            up.callback_parameters = (sdp_body, sect, sects, result_callback)
+            self.update(up)
         return
 
-    def _sdp_change_finish(self, cb_args, rtpps, sdp_body, sect, sects, result_callback):
+    def _sdp_change_finish(self, ur, rtpps, sdp_body, sect, sects, result_callback):
         sect.needs_update = False
-        if cb_args != None:
-            rtpproxy_address, rtpproxy_port, family, sendonly = cb_args
-            sect.c_header.atype = family
-            sect.c_header.addr = rtpproxy_address
+        if ur != None:
+            sect.c_header.atype = ur.family
+            sect.c_header.addr = ur.rtpproxy_address
             if sect.m_header.port != 0:
-                sect.m_header.port = rtpproxy_port
-            if sendonly:
+                sect.m_header.port = ur.rtpproxy_port
+            if ur.sendonly:
                 for sendrecv in [x for x in sect.a_headers if x.name == 'sendrecv']:
                     sect.a_headers.remove(sendrecv)
                 if len([x for x in sect.a_headers if x.name == 'sendonly']) == 0:
@@ -267,7 +286,7 @@ class _rtpps_side(object):
                         fidx = sect.a_headers.index(a_header) + 1
                 sect.insertHeader(fidx, 'a', 'ptime:%d' % self.repacketize)
             for rtcp_header in [x for x in sect.a_headers if x.name == 'rtcp']:
-                rtcp_header.value = '%d IN %s %s' % (rtpproxy_port + 1, family, rtpproxy_address)
+                rtcp_header.value = '%d IN %s %s' % (ur.rtpproxy_port + 1, ur.family, ur.rtpproxy_address)
 
         if len([x for x in sects if x.needs_update]) == 0:
             if self.oh_remote != None:
@@ -284,7 +303,12 @@ class _rtpps_side(object):
 
     def _copy(self, rtpps, remote_ip, remote_port, result_callback = None, index = 0):
         if not self.session_exists:
-            self.update(self, '0.0.0.0', 0, self.__copy, '', index, 'IP4', remote_ip, remote_port, result_callback, index)
+            up = update_params()
+            up.rtpps = self
+            up.index = index
+            up.result_callback = self.__copy
+            up.callback_parameters = (remote_ip, remote_port, result_callback, index)
+            self.update(up)
             return
         self.__copy(None, rtpps, remote_ip, remote_port, result_callback, index)
 
@@ -371,7 +395,12 @@ class Rtp_proxy_session(object):
 
     def start_recording(self, rname = None, result_callback = None, index = 0):
         if not self.caller.session_exists:
-            self.caller.update(self, '0.0.0.0', 0, self._start_recording, '', index, 'IP4', rname, result_callback, index)
+            up = update_params()
+            up.rtpps = self
+            up.index = index
+            up.result_callback = self._start_recording
+            up.callback_parameters = (rname, result_callback, index)
+            self.caller.update(up)
             return
         self._start_recording(None, self, rname, result_callback, index)
 
