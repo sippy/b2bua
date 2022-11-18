@@ -110,6 +110,7 @@ class _rtpps_side(object):
     origin = None
     oh_remote = None
     repacketize = None
+    gateway_dtls = False
     soft_repacketize = False
     after_sdp_change = None
     needs_new_port = False
@@ -171,11 +172,18 @@ class _rtpps_side(object):
         if result == None:
             up.result_callback(None, up.rtpps, *up.callback_parameters)
             return
-        t1 = result.split()
+        t0 = result.split('&&', 1)
+        t1 = t0[0].split()
         if t1[0][0] == 'E':
             up.result_callback(None, up.rtpps, *up.callback_parameters)
             return
         ur = update_result()
+        if len(t0) > 1:
+            subc_res = t0[1].lstrip()
+            if subc_res == '-1':
+                up.result_callback(None, up.rtpps, *up.callback_parameters)
+                return
+            ur.dtls_mode, ur.dtls_fingerprint = subc_res.split(' ', 1)
         ur.rtpproxy_port = int(t1[0])
         if ur.rtpproxy_port == 0:
             up.result_callback(None, up.rtpps, *up.callback_parameters)
@@ -269,6 +277,25 @@ class _rtpps_side(object):
             up.options = sect_options
             up.index = sects.index(sect)
             up.result_callback = self._sdp_change_finish
+            if self.gateway_dtls and sect.m_header.transport == 'RTP/AVP':
+                up.subcommand = 'M4:1 S'
+            elif self.gateway_dtls and sect.m_header.transport == 'UDP/TLS/RTP/SAVP':
+                adict = dict([(x.name, x.value) for x in sect.a_headers if x.name in ('setup', 'ssrc', 'fingerprint')])
+                if 'setup' not in adict:
+                    raise Exception('Missing DTLS connection mode parameter')
+                if 'fingerprint' not in adict:
+                    raise Exception('Missing DTLS fingerprint parameter')
+                asetup = adict['setup']
+                if asetup in ('active', 'actpass'):
+                    up.subcommand = 'M4:1 A'
+                elif asetup in ('passive',):
+                    up.subcommand = 'M4:1 P'
+                else:
+                    raise Exception(F'Unknown connection mode: "{asetup}"')
+                up.subcommand += F' {adict["fingerprint"]}'
+                if 'ssrc' in adict:
+                    ssrc = adict['ssrc'].split(None, 1)[0]
+                    up.subcommand += F' {ssrc}'
             up.callback_parameters = (sdp_body, sect, sects, result_callback)
             self.update(up)
         return
@@ -278,6 +305,16 @@ class _rtpps_side(object):
         if ur != None:
             if self.after_sdp_change != None:
                 self.after_sdp_change(ur.rtpproxy_address) # pylint: disable=not-callable
+            if self.gateway_dtls and sect.m_header.transport == 'UDP/TLS/RTP/SAVP':
+                sect.m_header.transport = 'RTP/AVP'
+                for dtls_hdr in [x for x in sect.a_headers if x.name in ('setup', 'fingerprint')]:
+                    sect.a_headers.remove(dtls_hdr)
+            elif sect.m_header.transport == 'RTP/AVP' and ur.dtls_fingerprint:
+                sect.m_header.transport = 'UDP/TLS/RTP/SAVP'
+                for dtls_hdr in [x for x in sect.a_headers if x.name in ('setup', 'fingerprint')]:
+                    sect.a_headers.remove(dtls_hdr)
+                sect.addHeader('a', F'setup:{ur.dtls_mode}')
+                sect.addHeader('a', F'fingerprint:{ur.dtls_fingerprint}')
             sect.c_header.atype = ur.family
             sect.c_header.addr = ur.rtpproxy_address
             if sect.m_header.port != 0:
