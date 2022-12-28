@@ -109,6 +109,8 @@ class _rtpps_side(object):
     oh_remote = None
     repacketize = None
     soft_repacketize = False
+    after_sdp_change = None
+    needs_new_port = False
 
     def __init__(self):
         self.origin = SdpOrigin()
@@ -128,9 +130,12 @@ class _rtpps_side(object):
                 options += 'R%s' % self.raddress[0]
             elif self.laddress != None and rtpc.is_local:
                 options += 'L%s' % self.laddress
+        otherside = self.getother(up.rtpps)
+        if otherside.needs_new_port:
+            options += 'N'
+            otherside.needs_new_port = False
         command += options
         from_tag, to_tag = self.gettags(up.rtpps)
-        otherside = self.getother(up.rtpps)
         if otherside.session_exists:
             command += ' %s %s %d %s %s' % ('%s-%d' % (up.rtpps.call_id, up.index), up.remote_ip, up.remote_port, from_tag, to_tag)
         else:
