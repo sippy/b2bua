@@ -310,8 +310,7 @@ class CallController(object):
         self.uaO.pass_auth = self.pass_auth
         self.uaO.local_ua = self.global_config['_uaname']
         self.uaO.no_reply_time = oroute.no_reply_expires
-        if self.source != oroute.params.get('outbound_proxy', None):
-            self.uaO.outbound_proxy = oroute.params.get('outbound_proxy', None)
+        self.uaO.outbound_proxy = oroute.params.get('outbound_proxy', None)
         if self.rtp_proxy_session != None and oroute.params.get('rtpp', True):
             self.uaO.on_local_sdp_change = self.rtp_proxy_session.on_caller_sdp_change
             self.uaO.on_remote_sdp_change = self.rtp_proxy_session.on_callee_sdp_change
