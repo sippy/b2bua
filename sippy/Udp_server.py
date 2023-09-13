@@ -43,6 +43,7 @@ from sippy.Core.EventDispatcher import ED2
 from sippy.Core.Exceptions import dump_exception
 from sippy.Time.Timeout import Timeout
 from sippy.Time.MonoTime import MonoTime
+from sippy.SipConf import MyPort
 
 class AsyncSender(Thread):
     userv = None
@@ -200,6 +201,11 @@ class Udp_server(object):
             if hasattr(socket, 'SO_REUSEPORT') and \
               (self.uopts.flags & socket.SO_REUSEPORT) != 0:
                 self.skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            if isinstance(address[1], MyPort):
+                # XXX with some python 3.10 version I am getting
+                # TypeError: 'MyPort' object cannot be interpreted as an integer
+                # might be something inside socket.bind?
+                address = (address[0], int(address[1]))
             self.skt.bind(address)
             if self.uopts.laddress[1] == 0:
                 self.uopts.laddress = self.skt.getsockname()
