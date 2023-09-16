@@ -169,7 +169,8 @@ class Udp_server_opts(object):
             sockopts.append((socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1))
         if (self.flags & socket.SO_REUSEADDR) != 0:
             sockopts.append((socket.SOL_SOCKET, socket.SO_REUSEADDR, 1))
-        if hasattr(socket, 'SO_REUSEPORT') and (self.flags & socket.SO_REUSEPORT) != 0:
+        if self.nworkers > 1 and hasattr(socket, 'SO_REUSEPORT') and \
+          (self.flags & socket.SO_REUSEPORT) != 0:
             sockopts.append((socket.SOL_SOCKET, socket.SO_REUSEPORT, 1))
         return sockopts
 
