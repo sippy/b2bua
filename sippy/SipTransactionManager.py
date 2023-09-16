@@ -151,14 +151,22 @@ class local4remote(object):
         else:
             laddresses = ((global_config['_sip_address'], global_config['_sip_port']),)
             self.fixed = True
-        for laddress in laddresses:
-            self.initServer(laddress)
+        # Since we are (an)using SO_REUSEXXX do a quick dry run to make
+        # sure no existing app is running on the same port.
+        for dryr in (True, False):
+            for laddress in laddresses:
+                self.initServer(laddress, dryr)
 
-    def initServer(self, laddress):
+    def initServer(self, laddress, dryr=False):
         sopts = self.Udp_server_opts(laddress, self.handleIncoming)
         sopts.ploss_out_rate = self.ploss_out_rate
         sopts.pdelay_out_max = self.pdelay_out_max
+        if dryr:
+            sopts.flags = 0
         server = self.udp_server_class(self.global_config, sopts)
+        if dryr:
+            server.shutdown()
+            return None
         self.cache_l2s[laddress] = server
         return server
 
