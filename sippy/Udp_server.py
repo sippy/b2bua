@@ -146,22 +146,32 @@ class Udp_server_opts(object):
     pdelay_in_max = 0.0
 
     def __init__(self, laddress, data_callback, family = None, o = None):
-        if o == None:
-            if family == None:
-                if laddress != None and laddress[0].startswith('['):
-                    family = socket.AF_INET6
-                    laddress = (laddress[0][1:-1], laddress[1])
-                else:
-                    family = socket.AF_INET
-            self.family = family
-            self.laddress = laddress
-            self.data_callback = data_callback
-        else:
+        if o != None:
             self.laddress, self.data_callback, self.family, self.nworkers, self.flags, \
               self.ploss_out_rate, self.pdelay_out_max, self.ploss_in_rate, \
               self.pdelay_in_max = o.laddress, o.data_callback, o.family, \
               o.nworkers, o.flags, o.ploss_out_rate, o.pdelay_out_max, o.ploss_in_rate, \
               o.pdelay_in_max
+            return
+        if family == None:
+            if laddress != None and laddress[0].startswith('['):
+                family = socket.AF_INET6
+                laddress = (laddress[0][1:-1], laddress[1])
+            else:
+                family = socket.AF_INET
+        self.family = family
+        self.laddress = laddress
+        self.data_callback = data_callback
+
+    def getSockOpts(self):
+        sockopts = []
+        if self.family == socket.AF_INET6 and self.isWildCard():
+            sockopts.append((socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1))
+        if (self.flags & socket.SO_REUSEADDR) != 0:
+            sockopts.append((socket.SOL_SOCKET, socket.SO_REUSEADDR, 1))
+        if hasattr(socket, 'SO_REUSEPORT') and (self.flags & socket.SO_REUSEPORT) != 0:
+            sockopts.append((socket.SOL_SOCKET, socket.SO_REUSEPORT, 1))
+        return sockopts
 
     def getCopy(self):
         return self.__class__(None, None, o = self)
@@ -196,11 +206,8 @@ class Udp_server(object):
                 address = (ai[0][4][0], self.uopts.laddress[1])
             else:
                 address = (ai[0][4][0], self.uopts.laddress[1], ai[0][4][2], ai[0][4][3])
-            if (self.uopts.flags & socket.SO_REUSEADDR) != 0:
-                self.skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            if hasattr(socket, 'SO_REUSEPORT') and \
-              (self.uopts.flags & socket.SO_REUSEPORT) != 0:
-                self.skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            for so_val in self.uopts.getSockOpts():
+                self.skt.setsockopt(*so_val)
             if isinstance(address[1], MyPort):
                 # XXX with some python 3.10 version I am getting
                 # TypeError: 'MyPort' object cannot be interpreted as an integer
