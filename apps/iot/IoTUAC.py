@@ -61,7 +61,9 @@ class IoTUAC(object):
 
     def __init__(self, global_config):
         self.global_config = global_config
-        SipTransactionManager.nworkers_udp = 1
+        udsc, udsoc = SipTransactionManager.model_udp_server
+        udsoc.nworkers = 1
+        udsoc.flags = 0
         global_config['_sip_tm'] = SipTransactionManager(global_config)
         self.body = MsgBody(body_txt)
         self.body.parse()

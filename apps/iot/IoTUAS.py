@@ -66,7 +66,9 @@ class IoTUAS(object):
         self.global_config = global_config
         self.authname = authname
         self.authpass = authpass
-        SipTransactionManager.nworkers_udp = 1
+        udsc, udsoc = SipTransactionManager.model_udp_server
+        udsoc.nworkers = 1
+        udsoc.flags = 0
         global_config['_sip_tm'] = SipTransactionManager(global_config, self.recvRequest)
         self.body = MsgBody(body_txt)
         self.body.parse()
