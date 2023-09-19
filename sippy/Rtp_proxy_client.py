@@ -227,7 +227,7 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
             return
         if not self.online:
             if not self.caps_done:
-                rtpp_cc = Rtpp_caps_checker(self)
+                Rtpp_caps_checker(self)
                 return
             self.online = True
             self.heartbeat()
