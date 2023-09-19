@@ -92,26 +92,25 @@ class SipRegistrationAgent(object):
                 self.rok_cb(timer.etime.realt, contact, self.cb_arg)
             self.atries = 0
             return
-        if resp.scode == 401 and resp.countHFs('www-authenticate') != 0 and \
-          self.user != None and self.passw != None and self.atries < 3:
-            challenge = resp.getHFBody('www-authenticate')
-            auth = challenge.genAuthHF(self.user, self.passw, 'REGISTER', str(self.rmsg.ruri))
-            for authorization in self.rmsg.getHFs('authorization'):
-                self.rmsg.removeHeader(authorization)
-            self.rmsg.appendHeader(SipHeader(name = 'authorization', body = auth))
-            self.atries += 1
-            self.doregister()
-            return
-        if resp.scode == 407 and resp.countHFs('proxy-authenticate') != 0 and \
-          self.user != None and self.passw != None and self.atries < 3:
-            challenge = resp.getHFBody('proxy-authenticate')
-            auth = challenge.genAuthHF(self.user, self.passw, 'REGISTER', str(self.rmsg.ruri))
-            for authorization in self.rmsg.getHFs('proxy-authorization'):
-                self.rmsg.removeHeader(authorization)
-            self.rmsg.appendHeader(SipHeader(name = 'proxy-authorization', body = auth))
-            self.atries += 1
-            self.doregister()
-            return
+        if self.user != None and self.passw != None and self.atries < 3:
+            for sc, chn, rhn in ((401, 'www-authenticate', 'authorization'),
+                                 (407, 'proxy-authenticate', 'authorization')):
+                if resp.scode != sc:
+                    continue
+                if resp.countHFs(chn) == 0:
+                    break
+                challenge = resp.getHFBody(chn)
+                supported, qop = challenge.supportedAlgorithm()
+                if not supported:
+                    break
+                auth = challenge.genAuthHF(self.user, self.passw, 'REGISTER',
+                                           str(self.rmsg.ruri), qop=qop)
+                for authorization in self.rmsg.getHFs(rhn):
+                    self.rmsg.removeHeader(authorization)
+                self.rmsg.appendHeader(SipHeader(name = rhn, body = auth))
+                self.atries += 1
+                self.doregister()
+                return
         if self.rfail_cb != None:
             self.rfail_cb(resp.getSL(), self.cb_arg)
         Timeout(self.doregister, 60)
