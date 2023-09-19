@@ -119,6 +119,7 @@ class EventDispatcher2(Singleton):
     tlisteners = None
     slisteners = None
     endloop = False
+    el_rval = None
     signals_pending = None
     twasted = 0
     tcbs_lock = None
@@ -265,13 +266,11 @@ class EventDispatcher2(Singleton):
         while True:
             if len(self.signals_pending) > 0:
                 self.dispatchSignals()
-                if self.endloop:
-                    return
             if self.endloop:
-                return
+                break
             self.dispatchTimers()
             if self.endloop:
-                return
+                break
             if self.twasted * 2 > len(self.tlisteners):
                 # Clean-up removed timers when their share becomes more than 50%
                 self.tlisteners = [x for x in self.tlisteners if x.cb_func != None]
@@ -282,9 +281,11 @@ class EventDispatcher2(Singleton):
                 break
             self.elp.procrastinate()
             self.last_ts = MonoTime()
+        return self.el_rval
 
-    def breakLoop(self):
+    def breakLoop(self, rval=0):
         self.endloop = True
+        self.el_rval = rval
         #print('breakLoop')
         #import traceback
         #import sys
