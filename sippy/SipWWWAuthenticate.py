@@ -145,7 +145,7 @@ class SipWWWAuthenticate(SipGenericHF):
             auth.nc = '00000001'
             auth.cnonce = self.readhex(4)
         if self.opaque != None:
-            auth.opaque = self.opaque
+            auth.otherparams.append(('opaque', f'"{self.opaque}"'))
         auth.genAuthResponse(password, method, body)
         return auth
 
