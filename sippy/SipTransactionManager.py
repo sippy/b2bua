@@ -33,7 +33,8 @@ from sippy.SipRequest import SipRequest
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
 from sippy.SipHeader import SipHeader
-from sippy.ESipParseException import ESipParseException
+from sippy.Exceptions.SipParseError import SipParseError, SdpParseError
+from sippy.Exceptions.RtpProxyError import RtpProxyError
 from sippy.Udp_server import Udp_server, Udp_server_opts
 from datetime import datetime
 from hashlib import md5
@@ -304,7 +305,7 @@ class SipTransactionManager(object):
                 req = SipRequest(data)
                 tids = req.getTIds()
             except Exception as exception:
-                if isinstance(exception, ESipParseException) and exception.sip_response != None:
+                if isinstance(exception, SipParseError) and exception.sip_response != None:
                     self.transmitMsg(server, exception.sip_response, address, checksum)
                 dump_exception('can\'t parse SIP request from %s:%d' % (address[0], address[1]), extra = data)
                 self.l1rcache[checksum] = SipTMRetransmitO()
@@ -332,7 +333,20 @@ class SipTransactionManager(object):
                         curl.host, curl.port = address
                         req.nated = True
             req.setSource(address)
-            self.incomingRequest(req, checksum, tids, server)
+            try:
+                self.incomingRequest(req, checksum, tids, server)
+            except RtpProxyError:
+                resp = req.genResponse(502, 'Bad Gateway')
+                self.transmitMsg(server, resp, address, checksum)
+                raise
+            except SdpParseError:
+                resp = req.genResponse(488, 'Not Acceptable Here')
+                self.transmitMsg(server, resp, address, checksum)
+            except SipParseError:
+                if exception.sip_response is None:
+                    raise exception
+                self.transmitMsg(server, exception.sip_response,
+                                 address, checksum)
 
     # 1. Client transaction methods
     def newTransaction(self, msg, resp_cb = None, laddress = None, userv = None, \

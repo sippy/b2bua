@@ -30,7 +30,7 @@ from sippy.SipContentType import SipContentType
 from sippy.MsgBody import MsgBody
 from sippy.ESipHeaderCSV import ESipHeaderCSV
 from sippy.ESipHeaderIgnore import ESipHeaderIgnore
-from sippy.ESipParseException import ESipParseException
+from sippy.Exceptions.SipParseError import SipParseError
 
 class SipMsg(object):
     headers = None
@@ -113,7 +113,7 @@ class SipMsg(object):
             elif self.__mbody == None:
                 # XXX: Should generate 400 Bad Request if such condition
                 # happens with request
-                raise ESipParseException('Missed SIP body, %d bytes expected' % blen)
+                raise SipParseError('Missed SIP body, %d bytes expected' % blen)
             elif blen > mblen:
                 if blen - mblen < 7 and mblen > 7 and self.__mbody[-4:] == '\r\n\r\n':
                     # XXX: we should not really be doing this, but it appears to be
@@ -138,7 +138,7 @@ class SipMsg(object):
                 else:
                     # XXX: Should generate 400 Bad Request if such condition
                     # happens with request
-                    raise ESipParseException('Truncated SIP body, %d bytes expected, %d received' % (blen, mblen))
+                    raise SipParseError('Truncated SIP body, %d bytes expected, %d received' % (blen, mblen))
             elif blen < mblen:
                 self.__mbody = self.__mbody[:blen]
                 mblen = blen

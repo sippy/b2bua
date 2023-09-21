@@ -32,7 +32,7 @@ from sippy.SipResponse import SipResponse
 from sippy.SipURL import SipURL
 from sippy.SipAddress import SipAddress
 from sippy.SipExpires import SipExpires
-from sippy.ESipParseException import ESipParseException
+from sippy.Exceptions.SipParseError import SipParseError
 
 class SipRequest(SipMsg):
     method = None
@@ -47,7 +47,7 @@ class SipRequest(SipMsg):
         if buf != None:
             try:
                 SipMsg.init_body(self)
-            except ESipParseException as e:
+            except SipParseError as e:
                 try:
                     e.sip_response = self.genResponse(400, 'Bad Request - %s' % str(e))
                 except Exception as e1:

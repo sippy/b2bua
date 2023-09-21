@@ -37,6 +37,8 @@ import sys
 
 from sippy.Core.Exceptions import dump_exception
 from sippy.Core.EventDispatcher import ED2
+from sippy.Exceptions.RtpProxyError import RtpProxyError
+from sippy.Exceptions.SipParseError import SdpParseError
 
 try:
     strtypes = (str, unicode)
@@ -149,7 +151,7 @@ class _rtpps_side(object):
 
     def gettags(self, rtpps):
         if self not in (rtpps.caller, rtpps.callee):
-            raise Exception("Corrupt Rtp_proxy_session")
+            raise AssertionError("Corrupt Rtp_proxy_session")
         if self == rtpps.caller:
             return (rtpps.from_tag, rtpps.to_tag)
         else:
@@ -157,7 +159,7 @@ class _rtpps_side(object):
 
     def getother(self, rtpps):
         if self not in (rtpps.caller, rtpps.callee):
-            raise Exception("Corrupt Rtp_proxy_session")
+            raise AssertionError("Corrupt Rtp_proxy_session")
         if self == rtpps.caller:
             return rtpps.callee
         else:
@@ -228,8 +230,10 @@ class _rtpps_side(object):
         try:
             sdp_body.parse()
         except Exception as exception:
-            dump_exception('can\'t parse SDP body', extra = sdp_body.content)
-            if en_excpt:
+            is_spe = isinstance(exception, SdpParseError)
+            if not is_spe:
+                dump_exception('can\'t parse SDP body', extra = sdp_body.content)
+            if is_spe or en_excpt:
                 raise exception
             else:
                 return
@@ -349,12 +353,12 @@ class Rtp_proxy_session(object):
             rtp_proxy_clients = [x for x in global_config['_rtp_proxy_clients'] if x.online]
             n = len(rtp_proxy_clients)
             if n == 0:
-                raise Exception('No online RTP proxy client has been found')
+                raise RtpProxyError('No online RTP proxy client has been found')
             self.rtp_proxy_client = rtp_proxy_clients[int(random() * n)]
         else:
             self.rtp_proxy_client = global_config['rtp_proxy_client']
             if not self.rtp_proxy_client.online:
-                raise Exception('No online RTP proxy client has been found')
+                raise RtpProxyError('No online RTP proxy client has been found')
         self.rtpp_seq = Rtp_proxy_cmd_sequencer(self.rtp_proxy_client)
         if call_id != None:
             self.call_id = call_id
