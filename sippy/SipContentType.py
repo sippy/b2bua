@@ -28,12 +28,50 @@ from sippy.SipGenericHF import SipGenericHF
 
 class SipContentType(SipGenericHF):
     hf_names = ('content-type', 'c')
+    name = None
+    params = None
 
     def __init__(self, body):
         SipGenericHF.__init__(self, body)
+
+    def parse(self):
+        parts = self.body.split(';')
+        self.name = parts.pop(0)
+        params = []
+        for part in parts:
+            param = part.split('=', 1)
+            params.append(param)
+        self.params = dict(params)
         self.parsed = True
 
     def getCanName(self, name, compact = False):
         if compact:
             return 'c'
         return 'Content-Type'
+
+    def getCopy(self):
+        if not self.parsed:
+            return SipContentType(self.body)
+        copy = SipContentType(None)
+        copy.name = self.name
+        copy.params = self.params.copy()
+        copy.parsed = True
+        return copy
+
+    def __str__(self):
+        s = [self.name,]
+        s += [f'{k}={v}' for k, v in self.params.items()]
+        return ';'.join(s)
+
+if __name__ == '__main__':
+    t = 'multipart/mixed;boundary=OSS-unique-boundary-42'
+    ct1 = SipContentType(t)
+    ct1.parse()
+    assert f'{ct1}' == t
+    assert ct1.name == 'multipart/mixed'
+    assert ct1.params['boundary'] == 'OSS-unique-boundary-42'
+    ct2 = ct1.getCopy()
+    assert f'{ct2}' == t
+    ct1.params['some'] = 'value'
+    assert f'{ct1}' == t + ';some=value'
+    assert f'{ct2}' == t
