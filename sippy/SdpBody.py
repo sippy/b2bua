@@ -56,7 +56,7 @@ class SdpBody(object):
     sect_hdrs_req = ('c', 'm')
     sections = None
 
-    def __init__(self, body = None, cself = None):
+    def __init__(self, body = None, cself = None, ctype = None):
         if cself != None:
             for header_name in [x + '_header' for x in self.all_headers]:
                 try:

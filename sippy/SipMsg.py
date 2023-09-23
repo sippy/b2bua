@@ -144,7 +144,7 @@ class SipMsg(object):
                 mblen = blen
         if self.__mbody != None:
             if self.__content_type != None:
-                self.body = MsgBody(self.__mbody, str(self.__content_type.getBody()).lower())
+                self.body = MsgBody(self.__mbody, self.__content_type.getBody())
             else:
                 self.body = MsgBody(self.__mbody)
 

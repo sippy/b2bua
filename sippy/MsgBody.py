@@ -26,8 +26,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.SdpBody import SdpBody
-
-b_types = {'application/sdp':SdpBody}
+from sippy.SipContentType import SipContentType
 
 try:
     # Python < 3
@@ -35,28 +34,35 @@ try:
 except NameError:
     str_types = (str,)
 
+DEFAULT_CTYPE = SipContentType('application/sdp')
+DEFAULT_CTYPE.parse()
+
 class MsgBody(object):
     content = None
     mtype = None
     needs_update = True
     parsed = False
 
-    def __init__(self, content = None, mtype = 'application/sdp', cself = None):
+    def __init__(self, content = None, mtype = DEFAULT_CTYPE, cself = None):
         if content != None:
             self.mtype = mtype
             self.content = content
-        else:
+            return
+        if cself is not None:
             if type(cself.content) in str_types:
                 self.content = cself.content
             else:
                 self.content = cself.content.getCopy()
-            self.mtype = cself.mtype
+            self.mtype = cself.mtype.getCopy()
             self.parsed = True
 
     def parse(self):
+        b_types = {'application/sdp':SdpBody,
+                   'multipart/mixed':MultipartMixBody}
         if not self.parsed:
-            if self.mtype in b_types:
-                self.content = b_types[self.mtype](self.content)
+            mtype = self.getType()
+            if mtype in b_types:
+                self.content = b_types[mtype](self.content, ctype=self.mtype)
             self.parsed = True
 
     def __str__(self):
@@ -68,9 +74,12 @@ class MsgBody(object):
         return self.content.localStr(local_addr, local_port)
 
     def getType(self):
-        return self.mtype
+        return self.mtype.name.lower()
 
     def getCopy(self):
         if not self.parsed:
             return MsgBody(self.content)
         return MsgBody(cself = self)
+
+if not 'MultipartMixBody' in globals():
+    from sippy.MultipartMixBody import MultipartMixBody
