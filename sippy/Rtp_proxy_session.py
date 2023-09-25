@@ -282,16 +282,16 @@ class _rtpps_side(object):
             elif self.gateway_dtls and sect.m_header.transport == 'UDP/TLS/RTP/SAVP':
                 adict = dict([(x.name, x.value) for x in sect.a_headers if x.name in ('setup', 'ssrc', 'fingerprint')])
                 if 'setup' not in adict:
-                    raise Exception('Missing DTLS connection mode parameter')
+                    raise SdpParseError('Missing DTLS connection mode parameter')
                 if 'fingerprint' not in adict:
-                    raise Exception('Missing DTLS fingerprint parameter')
+                    raise SdpParseError('Missing DTLS fingerprint parameter')
                 asetup = adict['setup']
                 if asetup in ('active', 'actpass'):
                     up.subcommand = 'M4:1 A'
                 elif asetup in ('passive',):
                     up.subcommand = 'M4:1 P'
                 else:
-                    raise Exception(F'Unknown connection mode: "{asetup}"')
+                    raise SdpParseError(F'Unknown connection mode: "{asetup}"')
                 up.subcommand += F' {adict["fingerprint"]}'
                 if 'ssrc' in adict:
                     ssrc = adict['ssrc'].split(None, 1)[0]
