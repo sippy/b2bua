@@ -23,5 +23,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from sippy.Exceptions.SipParseError import SdpParseError
+
 class RtpProxyError(Exception):
-    pass
+    sip_response = None
+    arg = None
+    code = 502
+    msg = 'Bad Gateway'
+    def __init__(self, arg):
+        super().__init__()
+        self.arg = arg
+
+    def getResponse(self, req):
+        return SdpParseError.getResponse(self, req)
