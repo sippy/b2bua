@@ -305,8 +305,10 @@ class SipTransactionManager(object):
                 req = SipRequest(data)
                 tids = req.getTIds()
             except Exception as exception:
-                if isinstance(exception, SipParseError) and exception.sip_response != None:
-                    self.transmitMsg(server, exception.sip_response, address, checksum)
+                if isinstance(exception, SipParseError):
+                    resp = exception.getResponse()
+                    if resp is not None:
+                        self.transmitMsg(server, resp, address, checksum)
                 dump_exception('can\'t parse SIP request from %s:%d' % (address[0], address[1]), extra = data)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
@@ -335,18 +337,18 @@ class SipTransactionManager(object):
             req.setSource(address)
             try:
                 self.incomingRequest(req, checksum, tids, server)
-            except RtpProxyError:
-                resp = req.genResponse(502, 'Bad Gateway')
-                self.transmitMsg(server, resp, address, checksum)
+            except RtpProxyError as ex:
+                resp = ex.getResponse(req)
+                self.sendResponse(resp)
                 raise
-            except SdpParseError:
-                resp = req.genResponse(488, 'Not Acceptable Here')
-                self.transmitMsg(server, resp, address, checksum)
-            except SipParseError:
-                if exception.sip_response is None:
+            except SdpParseError as ex:
+                resp = ex.getResponse(req)
+                self.sendResponse(resp)
+            except SipParseError as ex:
+                resp = ex.getResponse(req)
+                if resp is None:
                     raise exception
-                self.transmitMsg(server, exception.sip_response,
-                                 address, checksum)
+                self.sendResponse(resp)
 
     # 1. Client transaction methods
     def newTransaction(self, msg, resp_cb = None, laddress = None, userv = None, \
