@@ -105,6 +105,10 @@ class update_result():
     dtls_mode = None
     dtls_fingerprint = None
 
+DTLS_TRANSPORTS = ('UDP/TLS/RTP/SAVP', 'UDP/TLS/RTP/SAVPF')
+DTLS_ATTRS = ('setup', 'fingerprint', 'rtcp', 'ssrc')
+DTLS_ATTRS_RM = tuple([a for a in DTLS_ATTRS if a != 'ssrc'])
+
 class _rtpps_side(object):
     session_exists = False
     codecs = None
@@ -113,19 +117,21 @@ class _rtpps_side(object):
     origin = None
     oh_remote = None
     repacketize = None
-    gateway_dtls = False
+    gateway_dtls = 'pass'
     soft_repacketize = False
     after_sdp_change = None
     needs_new_port = False
+    transports = None
     rinfo_hst = None
 
     def __init__(self, name):
         self.origin = SdpOrigin()
         self.name = name
+        self.transports = {}
         self.rinfo_hst = []
 
     def __str__(self):
-        return f'_rtpps_side("name={self.name}")'
+        return f'_rtpps_side("name={self.name},transports={self.transports}")'
 
     def update(self, up):
         command = 'U'
@@ -273,7 +279,9 @@ class _rtpps_side(object):
             options = 'z%d' % self.repacketize
         else:
             options = ''
+        otherside = self.getother(rtpps)
         for si, sect in enumerate(sects):
+            self.transports[si] = sect.m_header.transport
             if sect.c_header.atype == 'IP6':
                 sect_options = '6' + options
             else:
@@ -286,25 +294,30 @@ class _rtpps_side(object):
             up.options = sect_options
             up.index = si
             up.result_callback = self._sdp_change_finish
-            if self.gateway_dtls and sect.m_header.transport == 'RTP/AVP':
+            if otherside.gateway_dtls == 'dtls':
                 up.subcommands.append('M4:1 S')
-            elif self.gateway_dtls and sect.m_header.transport == 'UDP/TLS/RTP/SAVP':
-                adict = dict([(x.name, x.value) for x in sect.a_headers if x.name in ('setup', 'ssrc', 'fingerprint')])
+                otherside.transports[si] = 'UDP/TLS/RTP/SAVP'
+            if self.gateway_dtls == 'dtls' and sect.m_header.transport in DTLS_TRANSPORTS:
+                adict = dict([(x.name, x.value) for x in sect.a_headers
+                              if x.name in DTLS_ATTRS])
                 if 'setup' not in adict:
                     raise SdpParseError('Missing DTLS connection mode parameter')
                 if 'fingerprint' not in adict:
                     raise SdpParseError('Missing DTLS fingerprint parameter')
                 asetup = adict['setup']
                 if asetup in ('active', 'actpass'):
-                    up.subcommands.append('M4:1 A')
+                    subcommand = 'M4:1 A'
                 elif asetup in ('passive',):
-                    up.subcommands.append('M4:1 P')
+                    subcommand = 'M4:1 P'
                 else:
                     raise SdpParseError(F'Unknown connection mode: "{asetup}"')
-                up.subcommands[-1] += F' {adict["fingerprint"]}'
+                subcommand += F' {adict["fingerprint"]}'
                 if 'ssrc' in adict:
                     ssrc = adict['ssrc'].split(None, 1)[0]
-                    up.subcommands[-1] += F' {ssrc}'
+                    subcommand += F' {ssrc}'
+                up.subcommands.append(subcommand)
+                if otherside.gateway_dtls == 'rtp':
+                    otherside.transports[si] = 'RTP/AVP'
             up.callback_parameters = (sdp_body, sect, sects, result_callback)
             self.update(up)
         return
@@ -312,15 +325,18 @@ class _rtpps_side(object):
     def _sdp_change_finish(self, ur, rtpps, sdp_body, sect, sects, result_callback):
         sect.needs_update = False
         if ur != None:
+            otherside = self.getother(rtpps)
             if self.after_sdp_change != None:
                 self.after_sdp_change(ur.rtpproxy_address) # pylint: disable=not-callable
-            if self.gateway_dtls and sect.m_header.transport == 'UDP/TLS/RTP/SAVP':
-                sect.m_header.transport = 'RTP/AVP'
-                for dtls_hdr in [x for x in sect.a_headers if x.name in ('setup', 'fingerprint')]:
+            si = sects.index(sect)
+            if si in otherside.transports and self.gateway_dtls != 'pass' \
+              and otherside.transports[si] != sect.m_header.transport:
+                sect.m_header.transport = otherside.transports[si]
+                for dtls_hdr in [x for x in sect.a_headers
+                                 if x.name in DTLS_ATTRS_RM]:
                     sect.a_headers.remove(dtls_hdr)
-            elif sect.m_header.transport == 'RTP/AVP' and ur.dtls_fingerprint:
-                sect.m_header.transport = 'UDP/TLS/RTP/SAVP'
-                for dtls_hdr in [x for x in sect.a_headers if x.name in ('setup', 'fingerprint')]:
+            if ur.dtls_fingerprint:
+                for dtls_hdr in [x for x in sect.a_headers if x.name in DTLS_ATTRS_RM]:
                     sect.a_headers.remove(dtls_hdr)
                 sect.addHeader('a', F'setup:{ur.dtls_mode}')
                 sect.addHeader('a', F'fingerprint:{ur.dtls_fingerprint}')
