@@ -92,7 +92,10 @@ class update_params():
     index = 0
     atype = 'IP4'
     callback_parameters = ()
-    subcommand = None
+    subcommands = None
+
+    def __init__(self):
+        self.subcommands = []
 
 class update_result():
     rtpproxy_address = None
@@ -114,9 +117,15 @@ class _rtpps_side(object):
     soft_repacketize = False
     after_sdp_change = None
     needs_new_port = False
+    rinfo_hst = None
 
-    def __init__(self):
+    def __init__(self, name):
         self.origin = SdpOrigin()
+        self.name = name
+        self.rinfo_hst = []
+
+    def __str__(self):
+        return f'_rtpps_side("name={self.name}")'
 
     def update(self, up):
         command = 'U'
@@ -146,8 +155,8 @@ class _rtpps_side(object):
         if up.rtpps.notify_socket != None and up.index == 0 and \
           rtpc.tnot_supported:
             command += ' %s %s' % (up.rtpps.notify_socket, up.rtpps.notify_tag)
-        if up.subcommand:
-            command += ' && %s' % (up.subcommand,)
+        if len(up.subcommands) > 0:
+            command = ' && '.join([command,] + up.subcommands)
         rtpq.send_command(command, self.update_result, up)
 
     def gettags(self, rtpps):
@@ -203,6 +212,7 @@ class _rtpps_side(object):
             ur.sendonly = True
         else:
             ur.sendonly = False
+        self.rinfo_hst.append(ur)
         up.result_callback(ur, up.rtpps, *up.callback_parameters)
 
     def __play(self, result, rtpps, prompt_name, times, result_callback, index):
@@ -249,8 +259,7 @@ class _rtpps_side(object):
             sdp_body.needs_update = False
             result_callback(sdp_body)
             return
-        for i in range(0, len(sdp_body.content.sections)):
-            sect = sdp_body.content.sections[i]
+        for i, sect in enumerate(sdp_body.content.sections):
             if sect.m_header.transport.lower() not in rtpps.SUPPORTED_TRTYPES:
                 continue
             sects.append(sect)
@@ -264,7 +273,7 @@ class _rtpps_side(object):
             options = 'z%d' % self.repacketize
         else:
             options = ''
-        for sect in sects:
+        for si, sect in enumerate(sects):
             if sect.c_header.atype == 'IP6':
                 sect_options = '6' + options
             else:
@@ -275,10 +284,10 @@ class _rtpps_side(object):
             up.remote_port = sect.m_header.port
             up.atype = sect.c_header.atype
             up.options = sect_options
-            up.index = sects.index(sect)
+            up.index = si
             up.result_callback = self._sdp_change_finish
             if self.gateway_dtls and sect.m_header.transport == 'RTP/AVP':
-                up.subcommand = 'M4:1 S'
+                up.subcommands.append('M4:1 S')
             elif self.gateway_dtls and sect.m_header.transport == 'UDP/TLS/RTP/SAVP':
                 adict = dict([(x.name, x.value) for x in sect.a_headers if x.name in ('setup', 'ssrc', 'fingerprint')])
                 if 'setup' not in adict:
@@ -287,15 +296,15 @@ class _rtpps_side(object):
                     raise SdpParseError('Missing DTLS fingerprint parameter')
                 asetup = adict['setup']
                 if asetup in ('active', 'actpass'):
-                    up.subcommand = 'M4:1 A'
+                    up.subcommands.append('M4:1 A')
                 elif asetup in ('passive',):
-                    up.subcommand = 'M4:1 P'
+                    up.subcommands.append('M4:1 P')
                 else:
                     raise SdpParseError(F'Unknown connection mode: "{asetup}"')
-                up.subcommand += F' {adict["fingerprint"]}'
+                up.subcommands[-1] += F' {adict["fingerprint"]}'
                 if 'ssrc' in adict:
                     ssrc = adict['ssrc'].split(None, 1)[0]
-                    up.subcommand += F' {ssrc}'
+                    up.subcommands[-1] += F' {ssrc}'
             up.callback_parameters = (sdp_body, sect, sects, result_callback)
             self.update(up)
         return
@@ -366,7 +375,7 @@ class _rtpps_side(object):
         rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
 
 class Rtp_proxy_session(object):
-    AV_TRTYPES = ('rtp/avp', 'rtp/savp', 'udp/tls/rtp/savp')
+    AV_TRTYPES = ('rtp/avp', 'rtp/savp', 'rtp/savpf', 'udp/tls/rtp/savp', 'udp/tls/rtp/savpf')
     SUPPORTED_TRTYPES = AV_TRTYPES + ('udp', 'udptl', 'udp/bfcp')
     rtp_proxy_client = None
     rtpp_seq = None
@@ -414,8 +423,8 @@ class Rtp_proxy_session(object):
             self.to_tag = md5(salt.encode()).hexdigest()
         self.notify_socket = notify_socket
         self.notify_tag = notify_tag
-        self.caller = _rtpps_side()
-        self.callee = _rtpps_side()
+        self.caller = _rtpps_side('caller')
+        self.callee = _rtpps_side('callee')
 
     def version(self, result_callback):
         self.rtp_proxy_client.send_command('V', self.version_result, result_callback)
