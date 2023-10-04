@@ -111,8 +111,8 @@ class UpdateLookupOpts(object):
                 s = '%s %s' % (s, self.notify_socket)
             if self.notify_tag != None:
                 s = '%s %s' % (s, self.notify_tag)
-            if self.subargs != None:
-                s = '%s && %s' % (s, self.subargs)
+        if self.subargs != None:
+            s = '%s && %s' % (s, self.subargs)
         return s
 
 class Rtp_proxy_cmd(object):
