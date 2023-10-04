@@ -63,7 +63,7 @@ class UpdateLookupOpts(object):
                 val = val.strip()
                 if len(val) > 0:
                     self.destination_ip = val
-            if s[0] == 'L':
+            elif s[0] == 'L':
                 val, s = extract_to_next_token(s[1:], ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.'))
                 val = val.strip()
                 if len(val) > 0:
