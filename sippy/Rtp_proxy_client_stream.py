@@ -62,6 +62,7 @@ class _RTPPLWorker(Thread):
     def send_raw(self, command, _recurse = 0, stime = None):
         if _recurse > _MAX_RECURSE:
             raise Exception('Cannot reconnect: %s' % (str(self.userv.address),))
+        _recurse += 1
         if self.s == None:
             self.connect()
         #print('%s.send_raw(%s)' % (id(self), command))
@@ -76,14 +77,14 @@ class _RTPPLWorker(Thread):
                     continue
                 elif why.errno in (EPIPE, ENOTCONN, ECONNRESET):
                     self.s = None
-                    return self.send_raw(command, _recurse + 1, stime)
+                    return self.send_raw(command, _recurse, stime)
                 raise why
         while True:
             try:
                 rval = self.s.recv(1024)
                 if len(rval) == 0:
                     self.s = None
-                    return self.send_raw(command, _MAX_RECURSE, stime)
+                    return self.send_raw(command, _recurse, stime)
                 rval = rval.decode().strip()
                 break
             except socket.error as why:
@@ -91,7 +92,7 @@ class _RTPPLWorker(Thread):
                     continue
                 elif why.errno in (EPIPE, ENOTCONN, ECONNRESET):
                     self.s = None
-                    return self.send_raw(command, _recurse + 1, stime)
+                    return self.send_raw(command, _recurse, stime)
                 raise why
         rtpc_delay = stime.offsetFromNow()
         return (rval, rtpc_delay)
