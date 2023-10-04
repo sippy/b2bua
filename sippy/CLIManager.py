@@ -253,6 +253,8 @@ class CLIManager(object):
             self.close()
 
     def send(self, data):
+        if self.wthr is None:
+            return
         if not isinstance(data, _uobj):
             data = data.encode('ascii')
         self.wthr.send(data)
@@ -261,10 +263,12 @@ class CLIManager(object):
         return self.send(data)
 
     def close(self):
+        if self.wthr is None:
+            return
         self.wthr.shutdown(soft = True)
 
     def shutdown(self):
-        if self.wthr == None:
+        if self.wthr is None:
             return
         self.wthr.shutdown()
         try:
