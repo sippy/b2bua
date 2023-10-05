@@ -347,7 +347,7 @@ class SipTransactionManager(object):
             except SipParseError as ex:
                 resp = ex.getResponse(req)
                 if resp is None:
-                    raise exception
+                    raise ex
                 self.sendResponse(resp)
 
     # 1. Client transaction methods
