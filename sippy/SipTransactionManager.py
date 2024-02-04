@@ -56,6 +56,9 @@ def check1918(addr):
         pass
     return False
 
+def check7118(host):
+    return host.endswith('.invalid')
+
 class SipTransactionConsumer(object):
     compact = False
     cobj = None
@@ -316,7 +319,7 @@ class SipTransactionManager(object):
             via0 = req.getHFBody('via')
             ahost, aport = via0.getAddr()
             rhost, rport = address
-            if self.nat_traversal and rport != aport and check1918(ahost):
+            if self.nat_traversal and rport != aport and (check1918(ahost) or check7118(ahost)):
                 req.nated = True
             if ahost != rhost:
                 via0.params['received'] = rhost
