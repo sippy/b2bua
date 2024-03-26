@@ -65,7 +65,7 @@ class EventListener(object):
         self.randomize_runs = None
 
     def get_randomizer(self, p):
-        def randomizer(p, x): x * (1.0 + p * (1.0 - 2.0 * random()))
+        def randomizer(p, x): return x * (1.0 + p * (1.0 - 2.0 * random()))
         return partial(randomizer, p)
 
     def spread_runs(self, p):
