@@ -76,7 +76,7 @@ class UasStateUpdating(UaStateGeneric):
                 scode = (180, 'Ringing', None)
             body = scode[2]
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
-                self.ua.on_local_sdp_change(body, partial(self.ua.recvEvent, event))
+                self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             self.ua.lSDP = body
             self.ua.sendUasResponse(scode[0], scode[1], body)
@@ -84,7 +84,7 @@ class UasStateUpdating(UaStateGeneric):
         elif isinstance(event, CCEventConnect):
             code, reason, body = event.getData()
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
-                self.ua.on_local_sdp_change(body, partial(self.ua.recvEvent, event))
+                self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             self.ua.lSDP = body
             self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,))
