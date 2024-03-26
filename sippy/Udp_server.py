@@ -126,7 +126,10 @@ class AsyncReceiver(Thread):
                     continue
             if self.userv.uopts.family == socket.AF_INET6:
                 address = ('[%s]' % address[0], address[1])
-            ED2.callFromThread(self.userv.handle_read, data, address, rtime)
+            if not self.userv.uopts.direct_dispatch:
+                ED2.callFromThread(self.userv.handle_read, data, address, rtime)
+            else:
+                self.userv.handle_read(data, address, rtime)
         self.userv = None
 
 _DEFAULT_FLAGS = socket.SO_REUSEADDR
@@ -137,6 +140,7 @@ _DEFAULT_NWORKERS = 30
 class Udp_server_opts(object):
     laddress = None
     data_callback = None
+    direct_dispatch = False
     family = None
     flags = _DEFAULT_FLAGS
     nworkers = _DEFAULT_NWORKERS
