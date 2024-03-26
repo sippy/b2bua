@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from functools import partial
+
 from sippy.Time.Timeout import Timeout
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.SipAlso import SipAlso
@@ -85,7 +87,7 @@ class UaStateConnected(UaStateGeneric):
                 pass
             if body != None:
                 if self.ua.on_remote_sdp_change != None:
-                    self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))
+                    self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                     return (UasStateUpdating,)
                 else:
                     self.ua.rSDP = body.getCopy()
@@ -137,7 +139,7 @@ class UaStateConnected(UaStateGeneric):
             callback(self.ua, req.rtime, self.ua.origin)
         if body != None:
             if self.ua.on_remote_sdp_change != None:
-                self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))
+                self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                 return None
             else:
                 self.ua.rSDP = body.getCopy()
@@ -188,7 +190,7 @@ class UaStateConnected(UaStateGeneric):
                 return None
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
                 try:
-                    self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event), en_excpt = True)
+                    self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event), en_excpt = True)
                 except Exception as e:
                     event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
                     event.setWarning(str(e))
@@ -222,7 +224,7 @@ class UaStateConnected(UaStateGeneric):
                 self.ua.expire_timer = None
             code, reason, body = event.getData()
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
-                self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event))
+                self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             self.ua.startCreditTimer(event.rtime)
             self.ua.connect_ts = event.rtime

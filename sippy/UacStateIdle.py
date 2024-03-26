@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from functools import partial
+
 from sippy.Time.Timeout import TimeoutAbsMono
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventTry, CCEventFail, CCEventRedirect, CCEventDisconnect
@@ -46,7 +48,7 @@ class UacStateIdle(UaStateGeneric):
             cId, callingID, calledID, body, auth, callingName = event.getData()
             if body != None:
                 if self.ua.on_local_sdp_change != None and body.needs_update:
-                    self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event))
+                    self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                     return None
             else:
                 self.ua.late_media = True

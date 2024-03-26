@@ -26,15 +26,13 @@
 
 from __future__ import print_function
 
+from functools import partial
 from datetime import datetime
 from heapq import heappush, heappop, heapify
 from threading import Lock
 from random import random
 import sys, traceback, signal
-if sys.version_info[0] < 3:
-    from thread import get_ident
-else:
-    from _thread import get_ident
+from _thread import get_ident
 from sippy.Time.MonoTime import MonoTime
 from sippy.Core.Exceptions import dump_exception, StdException
 
@@ -67,7 +65,8 @@ class EventListener(object):
         self.randomize_runs = None
 
     def get_randomizer(self, p):
-        return lambda x: x * (1.0 + p * (1.0 - 2.0 * random()))
+        def randomizer(p, x): return x * (1.0 + p * (1.0 - 2.0 * random()))
+        return partial(randomizer, p)
 
     def spread_runs(self, p):
         self.randomize_runs = self.get_randomizer(p)

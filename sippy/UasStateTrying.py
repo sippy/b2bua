@@ -24,11 +24,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from functools import partial
+
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 from sippy.SipContact import SipContact
-from sippy.SipAddress import SipAddress
 from sippy.Time.Timeout import TimeoutAbsMono
 
 class UasStateTrying(UaStateGeneric):
@@ -44,7 +45,7 @@ class UasStateTrying(UaStateGeneric):
                 if code == 100:
                     return None
                 if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
-                    self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event))
+                    self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                     return None
             self.ua.lSDP = body
             self.ua.sendUasResponse(code, reason, body)
@@ -59,7 +60,7 @@ class UasStateTrying(UaStateGeneric):
         elif isinstance(event, CCEventConnect) or isinstance(event, CCEventPreConnect):
             code, reason, body = event.getData()
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
-                self.ua.on_local_sdp_change(body, lambda x: self.ua.recvEvent(event))
+                self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             if event.extra_headers != None:
                 extra_headers = tuple(event.extra_headers)

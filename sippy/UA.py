@@ -391,6 +391,9 @@ class UA(object):
         self.equeue.append(event)
         self.emitPendingEvents()
 
+    def delayed_local_sdp_update(self, event, local_sdp_body):
+        self.recvEvent(event)
+
     def getAcct(self):
         if self.disconnect_ts != None:
             disconnect_ts = self.disconnect_ts
