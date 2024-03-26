@@ -25,6 +25,7 @@
 
 #import sys; sys.path.append('..')
 
+from functools import partial
 from base64 import b64encode, b64decode
 
 from Crypto import Random
@@ -32,19 +33,8 @@ from Crypto.Cipher import AES
 
 from sippy.Time.clock_dtime import clock_getntime, CLOCK_MONOTONIC
 
-# Python 2.7 compat shims
-to_bytes_be = lambda x, sz: x.to_bytes(sz, 'big')
-try:
-    to_bytes_be(int(1), 1)
-except AttributeError:
-    to_bytes_be = lambda x, sz: '{:0{}x}'.format(x, sz * 2).decode('hex')
-
-from_bytes_be = lambda x: int.from_bytes(x, 'big')
-try:
-    from_bytes_be(to_bytes_be(1, 1))
-except AttributeError:
-    from_bytes_be = lambda x: int(x.encode('hex'), 16)
-
+to_bytes_be = partial(int.to_bytes, byteorder='big')
+from_bytes_be = partial(int.from_bytes, byteorder='big')
 
 def bxor(ba1, ba2):
     olen = len(ba1)

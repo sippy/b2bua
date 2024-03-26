@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from functools import partial
+
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
@@ -47,7 +49,7 @@ class UacStateRinging(UaStateGeneric):
                 ring_cb(self.ua, resp.rtime, self.ua.origin, code)
             if body != None:
                 if self.ua.on_remote_sdp_change != None:
-                    self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))
+                    self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                     return None
                 else:
                     self.ua.rSDP = body.getCopy()
@@ -121,7 +123,7 @@ class UacStateRinging(UaStateGeneric):
                 rval = (UaStateConnected,)
             if body != None:
                 if self.ua.on_remote_sdp_change != None:
-                    self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))
+                    self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                     return rval
                 else:
                     self.ua.rSDP = body.getCopy()

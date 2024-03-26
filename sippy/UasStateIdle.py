@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from functools import partial
+
 from sippy.Time.Timeout import TimeoutAbsMono
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
@@ -98,7 +100,7 @@ class UasStateIdle(UaStateGeneric):
             self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if body != None:
             if self.ua.on_remote_sdp_change != None:
-                self.ua.on_remote_sdp_change(body, lambda x: self.ua.delayed_remote_sdp_update(event, x))
+                self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                 self.ua.setup_ts = req.rtime
                 return (UasStateTrying,)
             else:
