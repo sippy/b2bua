@@ -45,7 +45,7 @@ class UasStateRinging(UaStateGeneric):
                 if code == 100:
                     return None
                 if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
-                    self.ua.on_local_sdp_change(body, partial(self.ua.recvEvent, event))
+                    self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                     return None
             self.ua.lSDP = body
             if self.ua.p1xx_ts == None:
@@ -57,7 +57,7 @@ class UasStateRinging(UaStateGeneric):
         elif isinstance(event, CCEventConnect) or isinstance(event, CCEventPreConnect):
             code, reason, body = event.getData()
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
-                self.ua.on_local_sdp_change(body, partial(self.ua.recvEvent, event))
+                self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             if event.extra_headers != None:
                 extra_headers = tuple(event.extra_headers)
