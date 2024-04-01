@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Copyright (c) 2003-2005 Maxim Sobolev. All rights reserved.
 # Copyright (c) 2006-2014 Sippy Software, Inc. All rights reserved.

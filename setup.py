@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 from setuptools import setup, find_packages
 
 requirements = [x.strip() for x in open("requirements.txt", "r").readlines()]
