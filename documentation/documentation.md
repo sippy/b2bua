@@ -179,8 +179,7 @@ secure digest method proposed in RADIUS Extension for Digest Authentication
 IEFT draft.
 
 #### Depends on:
-- Python 2.4 or later
-- [Twisted](https://twistedmatrix.com/) framework event framework
+- Python 3.4 or later
 - radiusclient-ng 0.5.0 or later (Note, see [#12](https://github.com/sippy/b2bua/issues/12)
 )
 
