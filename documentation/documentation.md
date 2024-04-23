@@ -111,15 +111,15 @@ call leg to outgoing call leg verbatim. The main purpose of this B2BUA is to
 serve as an example for building more complex call control logic.
 
 #### Depends on:
-- Python 2.4 or later
-- [Twisted](https://twistedmatrix.com/) framework event framework
+- Python 3.4 or later
 
 #### Synopsis
 
 To invoke the B2BUA use the following command:
 
-```python b2bua_simple.py [-f] [-L logfile] [-l local_ip] [-p local_port] [-n
-remote_ip]```
+```
+python b2bua_simple.py [-f] [-L logfile] [-l local_ip] [-p local_port] [-n remote_ip]
+```
 
 Options enclosed in square brackets are optional.
 
@@ -186,9 +186,11 @@ IEFT draft.
 
 #### Synopsis
 
-```python b2bua_radius.py [-fDu] [-l local_ip] [-p local_port] [-P pidfile] [-L
-logfile] [-s static_route] [-a ip1[,..[,ipN]]] [-k 0-3] [-m max_ctime] [-A 0-2]
-[-r rtp_proxy_contact1] [-r rtp_proxy_contact2] ... [-r rtp_proxy_contactN]```
+```
+python b2bua_radius.py [-fDu] [-l local_ip] [-p local_port] [-P pidfile] [-L logfile]
+  [-s static_route] [-a ip1[,..[,ipN]]] [-k 0-3] [-m max_ctime] [-A 0-2]
+  [-r rtp_proxy_contact1] [-r rtp_proxy_contact2] ... [-r rtp_proxy_contactN]
+```
 
 Options enclosed in square brackets are optional. The following options are
 available:
@@ -332,8 +334,14 @@ proxy. The first one is already supported by the B2BUA.
 
 For radiusclient-ng you should do the following:
 
-Install radiusclent-ng from source ``` ~# tar xvfz radiusclient-ng-X.Y.Z.tar.gz
-~# cd radiusclient-ng-X.Y.Z ~# ./configure ~# make ~# make install ```
+Install radiusclent-ng from source
+```
+~# tar xvfz radiusclient-ng-X.Y.Z.tar.gz
+~# cd radiusclient-ng-X.Y.Z
+~# ./configure
+~# make
+~# make install
+```
 
 Edit /usr/local/etc/radiusclient-ng/radiusclient.conf and set address of
 authentication and accounting servers 
@@ -357,9 +365,6 @@ refer to documentation of the selected server software on how to install and
 configure it. For a good GPL RADIUS server you can check FreeRADIUS.
 
 ImportError: No module named twisted.internet when trying to run B2BUA
-
-As it is mentioned above, the B2BUA requires Twisted framework version 2.4 or
-later to run.
 
 ## Troubleshooting
 
