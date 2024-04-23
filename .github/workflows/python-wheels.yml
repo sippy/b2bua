@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04]
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -40,10 +40,41 @@ jobs:
       - name: Install dependencies
         run: |
           ${PYTHON_CMD} -m pip install --upgrade pip
-          ${PYTHON_CMD} -m pip install setuptools wheel
+          pip install setuptools wheel
+          pip install -r requirements.txt
 
       - name: script
         run: |
           ${PYTHON_CMD} setup.py build
           ${PYTHON_CMD} setup.py sdist
           sudo "`which ${PYTHON_CMD}`" setup.py install
+          pip install dist/sippy*.gz
+
+  publish_wheels:
+    needs: build
+    if: github.event_name == 'release' && github.event.action == 'created'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/sippy
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel
+          pip install -r requirements.txt
+
+      - name: build
+        run: python setup.py build sdist
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
