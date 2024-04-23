@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name = "sippy",
-    version = "2.1.0-dev",
+    version = "2.1.0",
     packages = find_packages(),
 
     install_requires = requirements,
