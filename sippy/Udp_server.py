@@ -32,11 +32,12 @@ except NameError:
         pass
 
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, EWOULDBLOCK, ENOBUFS, EAGAIN, \
-  EINTR
+  EINTR, EBADF
 from datetime import datetime
 from time import sleep, time
 from threading import Thread, Condition
 from random import random
+from sysconfig import get_platform
 import socket
 
 from sippy.Core.EventDispatcher import ED2
@@ -116,7 +117,7 @@ class AsyncReceiver(Thread):
                     maxemptydata = 100
                 rtime = MonoTime()
             except Exception as why:
-                if isinstance(why, socket.error) and why.errno in (ECONNRESET, ENOTCONN, ESHUTDOWN):
+                if isinstance(why, socket.error) and why.errno in (ECONNRESET, ENOTCONN, ESHUTDOWN, EBADF):
                     break
                 if isinstance(why, socket.error) and why.errno in (EINTR,):
                     continue
@@ -194,6 +195,7 @@ class Udp_server_opts(object):
 
 class Udp_server(object):
     skt = None
+    close_on_shutdown = get_platform().startswith('macosx-')
     uopts = None
     sendqueue = None
     stats = None
@@ -281,9 +283,11 @@ class Udp_server(object):
         self.wi.append(None)
         self.wi_available.notify()
         self.wi_available.release()
+        for worker in self.asenders: worker.join()
+        if self.close_on_shutdown:
+            self.skt.close()
         self.uopts.data_callback = None
-        for worker in self.asenders + self.areceivers:
-            worker.join()
+        for worker in self.areceivers: worker.join()
         self.asenders = None
         self.areceivers = None
 
