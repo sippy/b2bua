@@ -1,5 +1,5 @@
 # Copyright (c) 2003-2005 Maxim Sobolev. All rights reserved.
-# Copyright (c) 2006-2014 Sippy Software, Inc. All rights reserved.
+# Copyright (c) 2006-2024 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
 #
@@ -35,38 +35,32 @@ from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, EWOULDBLOCK, ENOBUFS, EAGAIN,
   EINTR, EBADF
 from datetime import datetime
 from time import sleep, time
-from threading import Thread, Condition
-from random import random
+from threading import Thread
 from sysconfig import get_platform
 import socket
 
 from sippy.Core.EventDispatcher import ED2
 from sippy.Core.Exceptions import dump_exception
+from sippy.Network_server import Network_server_opts, Network_server
 from sippy.Time.Timeout import Timeout
 from sippy.Time.MonoTime import MonoTime
 from sippy.SipConf import MyPort
 
 class AsyncSender(Thread):
+    daemon = True
     userv = None
 
     def __init__(self, userv):
         Thread.__init__(self)
         self.userv = userv
-        self.setDaemon(True)
         self.start()
 
     def run(self):
         while True:
-            self.userv.wi_available.acquire()
-            while len(self.userv.wi) == 0:
-                self.userv.wi_available.wait()
-            wi = self.userv.wi.pop(0)
+            wi = self.userv.sendqueue.get()
             if wi == None:
                 # Shutdown request, relay it further
-                self.userv.wi.append(None)
-                self.userv.wi_available.notify()
-            self.userv.wi_available.release()
-            if wi == None:
+                self.userv.sendqueue.put(None)
                 break
             data, address = wi
             try:
@@ -91,12 +85,12 @@ class AsyncSender(Thread):
         self.userv = None
 
 class AsyncReceiver(Thread):
+    daemon = True
     userv = None
 
     def __init__(self, userv):
         Thread.__init__(self)
         self.userv = userv
-        self.setDaemon(True)
         self.start()
 
     def run(self):
@@ -138,35 +132,23 @@ if hasattr(socket, 'SO_REUSEPORT'):
     _DEFAULT_FLAGS |= socket.SO_REUSEPORT
 _DEFAULT_NWORKERS = 30
 
-class Udp_server_opts(object):
-    laddress = None
-    data_callback = None
-    direct_dispatch = False
+class Udp_server_opts(Network_server_opts):
     family = None
     flags = _DEFAULT_FLAGS
     nworkers = _DEFAULT_NWORKERS
-    ploss_out_rate = 0.0
-    pdelay_out_max = 0.0
-    ploss_in_rate = 0.0
-    pdelay_in_max = 0.0
 
-    def __init__(self, laddress, data_callback, family = None, o = None):
+    def __init__(self, *args, family = None, o = None):
+        super().__init__(*args, o=o)
         if o != None:
-            self.laddress, self.data_callback, self.family, self.nworkers, self.flags, \
-              self.ploss_out_rate, self.pdelay_out_max, self.ploss_in_rate, \
-              self.pdelay_in_max = o.laddress, o.data_callback, o.family, \
-              o.nworkers, o.flags, o.ploss_out_rate, o.pdelay_out_max, o.ploss_in_rate, \
-              o.pdelay_in_max
+            self.family = o.family
             return
         if family == None:
-            if laddress != None and laddress[0].startswith('['):
+            if self.laddress != None and self.laddress[0].startswith('['):
                 family = socket.AF_INET6
-                laddress = (laddress[0][1:-1], laddress[1])
+                self.laddress = (self.laddress[0][1:-1], self.laddress[1])
             else:
                 family = socket.AF_INET
         self.family = family
-        self.laddress = laddress
-        self.data_callback = data_callback
 
     def getSockOpts(self):
         sockopts = []
@@ -179,12 +161,9 @@ class Udp_server_opts(object):
             sockopts.append((socket.SOL_SOCKET, socket.SO_REUSEPORT, 1))
         return sockopts
 
-    def getCopy(self):
-        return self.__class__(None, None, o = self)
-
     def getSIPaddr(self):
         if self.family == socket.AF_INET:
-            return self.laddress
+            return super().getSIPaddr()
         return (('[%s]' % self.laddress[0], self.laddress[1]))
 
     def isWildCard(self):
@@ -193,19 +172,14 @@ class Udp_server_opts(object):
             return True
         return False
 
-class Udp_server(object):
+class Udp_server(Network_server):
     skt = None
     close_on_shutdown = get_platform().startswith('macosx-')
-    uopts = None
-    sendqueue = None
-    stats = None
-    wi_available = None
-    wi = None
     asenders = None
     areceivers = None
 
     def __init__(self, global_config, uopts):
-        self.uopts = uopts.getCopy()
+        super().__init__(uopts)
         self.skt = socket.socket(self.uopts.family, socket.SOCK_DGRAM)
         if self.uopts.laddress != None:
             ai = socket.getaddrinfo(self.uopts.laddress[0], None, self.uopts.family)
@@ -223,10 +197,6 @@ class Udp_server(object):
             self.skt.bind(address)
             if self.uopts.laddress[1] == 0:
                 self.uopts.laddress = self.skt.getsockname()
-        self.sendqueue = []
-        self.stats = [0, 0, 0]
-        self.wi_available = Condition()
-        self.wi = []
         self.asenders = []
         self.areceivers = []
         for i in range(0, self.uopts.nworkers):
@@ -236,42 +206,13 @@ class Udp_server(object):
     def send_to(self, data, address, delayed = False):
         if not isinstance(address, tuple):
             raise Exception('Invalid address, not a tuple: %s' % str(address))
-        if not isinstance(data, bytes):
-            data = data.encode('utf-8')
-        if self.uopts.ploss_out_rate > 0.0 and not delayed:
-            if random() < self.uopts.ploss_out_rate:
-                return
-        if self.uopts.pdelay_out_max > 0.0 and not delayed:
-            pdelay = self.uopts.pdelay_out_max * random()
-            Timeout(self.send_to, pdelay, 1, data, address, True)
-            return
         addr, port = address
         if self.uopts.family == socket.AF_INET6:
             if not addr.startswith('['):
                 raise Exception('Invalid IPv6 address: %s' % addr)
             address = (addr[1:-1], port)
-        self.wi_available.acquire()
-        self.wi.append((data, address))
-        self.wi_available.notify()
-        self.wi_available.release()
+        super().send_to(data, address, delayed)
  
-    def handle_read(self, data, address, rtime, delayed = False):
-        if len(data) > 0 and self.uopts.data_callback != None:
-            self.stats[2] += 1
-            if self.uopts.ploss_in_rate > 0.0 and not delayed:
-                if random() < self.uopts.ploss_in_rate:
-                    return
-            if self.uopts.pdelay_in_max > 0.0 and not delayed:
-                pdelay = self.uopts.pdelay_in_max * random()
-                Timeout(self.handle_read, pdelay, 1, data, address, rtime.getOffsetCopy(pdelay), True)
-                return
-            try:
-                self.uopts.data_callback(data, address, self, rtime)
-            except Exception as ex:
-                if isinstance(ex, SystemExit):
-                    raise 
-                dump_exception('Udp_server: unhandled exception when processing incoming data')
-
     def shutdown(self):
         try:
             self.skt.shutdown(socket.SHUT_RDWR)
@@ -279,14 +220,12 @@ class Udp_server(object):
             if not isinstance(e, socket.error) or e.errno != ENOTCONN:
                 dump_exception('exception in the self.skt.shutdown()')
             pass
-        self.wi_available.acquire()
-        self.wi.append(None)
-        self.wi_available.notify()
-        self.wi_available.release()
+        super().shutdown()
+
+    def join(self):
         for worker in self.asenders: worker.join()
         if self.close_on_shutdown:
             self.skt.close()
-        self.uopts.data_callback = None
         for worker in self.areceivers: worker.join()
         self.asenders = None
         self.areceivers = None
