@@ -34,6 +34,8 @@ from sippy.Exceptions.RtpProxyError import RtpProxyError
 from sippy.Rtp_proxy.Session.update import update_params
 from sippy.Rtp_proxy.Session.subcommand import subcommand_dtls, \
   subcommand_dedtls, DTLS_TRANSPORTS
+from sippy.Rtp_proxy.Session.subcommand_ice import subcommand_ice, \
+  subcommand_deice
 
 try:
     strtypes = (str, unicode)
@@ -49,6 +51,7 @@ class _rtpps_side(object):
     oh_remote = None
     repacketize = None
     gateway_dtls = 'pass'
+    deice = False
     soft_repacketize = False
     after_sdp_change = None
     needs_new_port = False
@@ -189,8 +192,12 @@ class _rtpps_side(object):
             up.index = si
             if otherside.gateway_dtls == 'dtls':
                 up.subcommands.append(subcommand_dtls())
+            if otherside.deice:
+                up.subcommands.append(subcommand_ice())
             if self.gateway_dtls == 'dtls' and sect.m_header.transport in DTLS_TRANSPORTS:
                 up.subcommands.append(subcommand_dedtls(sdp_bc, sect))
+            if self.deice:
+                up.subcommands.append(subcommand_deice(sdp_bc, sect))
             up.result_callback = partial(self._sdp_change_finish, sdp_body, sect, sects, result_callback)
             self.update(up)
         return
