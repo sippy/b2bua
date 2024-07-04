@@ -41,7 +41,7 @@ import socket
 
 from sippy.Core.EventDispatcher import ED2
 from sippy.Core.Exceptions import dump_exception
-from sippy.Network_server import Network_server_opts, Network_server
+from sippy.Network_server import Network_server_opts, Network_server, Remote_address
 from sippy.Time.Timeout import Timeout
 from sippy.Time.MonoTime import MonoTime
 from sippy.SipConf import MyPort
@@ -122,6 +122,7 @@ class AsyncReceiver(Thread):
             if self.userv.uopts.family == socket.AF_INET6:
                 address = ('[%s]' % address[0], address[1])
             if not self.userv.uopts.direct_dispatch:
+                address = Remote_address('udp', address)
                 ED2.callFromThread(self.userv.handle_read, data, address, rtime)
             else:
                 self.userv.handle_read(data, address, rtime)
@@ -246,30 +247,30 @@ class self_test(object):
     pong_raddr = None
     pong_raddr6 = None
 
-    def ping_received(self, data, address, udp_server, rtime):
+    def ping_received(self, data, ra, udp_server, rtime):
         if udp_server.uopts.family == socket.AF_INET:
             print('ping_received')
-            if data != self.ping_data or address != self.pong_raddr:
-                print(data, address, self.ping_data, self.pong_raddr)
+            if data != self.ping_data or ra.address != self.pong_raddr:
+                print(data, ra.address, self.ping_data, self.pong_raddr)
                 exit(1)
-            udp_server.send_to(self.pong_data, address)
+            udp_server.send_to(self.pong_data, ra.address)
         else:
             print('ping_received6')
-            if data != self.ping_data6 or address != self.pong_raddr6:
-                print(data, address, self.ping_data6, self.pong_raddr6)
+            if data != self.ping_data6 or ra.address != self.pong_raddr6:
+                print(data, ra.address, self.ping_data6, self.pong_raddr6)
                 exit(1)
-            udp_server.send_to(self.pong_data6, address)
+            udp_server.send_to(self.pong_data6, ra.address)
 
-    def pong_received(self, data, address, udp_server, rtime):
+    def pong_received(self, data, ra, udp_server, rtime):
         if udp_server.uopts.family == socket.AF_INET:
             print('pong_received')
-            if data != self.pong_data or address != self.ping_raddr:
-                print(data, address, self.pong_data, self.ping_raddr)
+            if data != self.pong_data or ra.address != self.ping_raddr:
+                print(data, ra.address, self.pong_data, self.ping_raddr)
                 exit(1)
         else:
             print('pong_received6')
-            if data != self.pong_data6 or address != self.ping_raddr6:
-                print(data, address, self.pong_data6, self.ping_raddr6)
+            if data != self.pong_data6 or ra.address != self.ping_raddr6:
+                print(data, ra.address, self.pong_data6, self.ping_raddr6)
                 exit(1)
         self.npongs -= 1
         if self.npongs == 0:

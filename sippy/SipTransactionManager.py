@@ -36,6 +36,7 @@ from sippy.SipHeader import SipHeader
 from sippy.Exceptions.SipParseError import SipParseError, SdpParseError
 from sippy.Exceptions.RtpProxyError import RtpProxyError
 from sippy.Udp_server import Udp_server, Udp_server_opts
+from sippy.Network_server import Remote_address
 from datetime import datetime
 from hashlib import md5
 from traceback import print_exc
@@ -259,10 +260,10 @@ class SipTransactionManager(object):
         self.req_consumers = {}
         Timeout(self.rCachePurge, 32, -1)
 
-    def handleIncoming(self, data_in, address, server, rtime):
+    def handleIncoming(self, data_in, ra:Remote_address, server, rtime):
         if len(data_in) < 32:
             return
-        self.global_config['_sip_logger'].write('RECEIVED message from %s:%d:\n' % address, \
+        self.global_config['_sip_logger'].write(f'RECEIVED message from {ra}:\n', \
           data_in.decode(errors = 'backslashreplace'), ltime = rtime.realt)
         data = data_in.decode()
         checksum = md5(data_in).digest()
@@ -280,11 +281,11 @@ class SipTransactionManager(object):
                 resp = SipResponse(data)
                 tid = resp.getTId(True, True)
             except Exception as exception:
-                dump_exception('can\'t parse SIP response from %s:%d' % (address[0], address[1]), extra = data)
+                dump_exception(f'can\'t parse SIP response from {ra}', extra = data)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             if resp.getSCode()[0] < 100 or resp.getSCode()[0] > 999:
-                print(datetime.now(), 'invalid status code in SIP response from %s:%d:' % address)
+                print(datetime.now(), f'invalid status code in SIP response from {ra}:')
                 print(data)
                 sys.stdout.flush()
                 self.l1rcache[checksum] = SipTMRetransmitO()
@@ -300,8 +301,8 @@ class SipTransactionManager(object):
                 if not cbody.asterisk:
                     curl = cbody.getUrl()
                     if check1918(curl.host):
-                        curl.host, curl.port = address
-            resp.setSource(address)
+                        curl.host, curl.port = ra.address
+            resp.setSource(ra.address)
             self.incomingResponse(resp, t, checksum)
         else:
             try:
@@ -311,33 +312,33 @@ class SipTransactionManager(object):
                 if isinstance(exception, SipParseError):
                     resp = exception.getResponse()
                     if resp is not None:
-                        self.transmitMsg(server, resp, address, checksum)
-                dump_exception('can\'t parse SIP request from %s:%d' % (address[0], address[1]), extra = data)
+                        self.transmitMsg(server, resp, ra.address, checksum)
+                dump_exception(f'can\'t parse SIP request from {ra}', extra = data)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             req.rtime = rtime
             via0 = req.getHFBody('via')
             ahost, aport = via0.getAddr()
-            rhost, rport = address
+            rhost, rport = ra.address
             if self.nat_traversal and rport != aport and (check1918(ahost) or check7118(ahost)):
                 req.nated = True
             if ahost != rhost:
-                via0.params['received'] = rhost
+                via0.params['received'] = ra.received
             if 'rport' in via0.params or req.nated:
                 via0.params['rport'] = str(rport)
             if self.nat_traversal and req.countHFs('contact') > 0 and req.countHFs('via') == 1:
                 try:
                     cbody = req.getHFBody('contact')
                 except Exception as exception:
-                    dump_exception('can\'t parse SIP request from %s:%d: %s:' % (address[0], address[1]), extra = data)
+                    dump_exception(f'can\'t parse SIP request from {ra}', extra = data)
                     self.l1rcache[checksum] = SipTMRetransmitO()
                     return
                 if not cbody.asterisk:
                     curl = cbody.getUrl()
                     if check1918(curl.host) or curl.port == 0 or curl.host == '255.255.255.255':
-                        curl.host, curl.port = address
+                        curl.host, curl.port = ra.address
                         req.nated = True
-            req.setSource(address)
+            req.setSource(ra.address)
             try:
                 self.incomingRequest(req, checksum, tids, server)
             except RtpProxyError as ex:

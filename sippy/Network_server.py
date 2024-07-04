@@ -31,6 +31,19 @@ from abc import ABC, abstractmethod
 from sippy.Core.Exceptions import dump_exception
 from sippy.Time.MonoTime import MonoTime
 
+class Remote_address():
+    transport: str
+    address: Tuple[str, int]
+    received: str
+
+    def __init__(self, transport:str, address:Tuple[str, int]):
+        self.transport = transport
+        self.address = address
+        self.received = address[0]
+
+    def __str__(self):
+        return f'{self.transport}:{self.address[0]}:{self.address[1]}'
+
 class Network_server_opts():
     laddress: Optional[Tuple[str, int]] = None
     data_callback: Optional[callable] = None
@@ -55,6 +68,9 @@ class Network_server_opts():
     def getSIPaddr(self) -> Tuple[str, int]:
         return self.laddress
 
+    def isWildCard(self) -> bool:
+        return False
+
 class Network_server(ABC):
     uopts: Network_server_opts
     sendqueue: Queue[Tuple[bytes, Tuple[str, int]]]
@@ -77,7 +93,7 @@ class Network_server(ABC):
             return
         self.sendqueue.put((data, address))
  
-    def handle_read(self, data:bytes, address:object, rtime:MonoTime, delayed:bool = False):
+    def handle_read(self, data:bytes, address:Remote_address, rtime:MonoTime, delayed:bool = False):
         if len(data) > 0 and self.uopts.data_callback != None:
             self.stats[2] += 1
             if self.uopts.ploss_in_rate > 0.0 and not delayed:
