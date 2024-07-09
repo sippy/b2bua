@@ -121,7 +121,6 @@ class CallController(object):
     auth_proc = None
     proxied = False
     challenge = None
-    pass_auth = True
 
     def __init__(self, remote_ip, source, global_config, pass_headers):
         self.id = CallController.id
@@ -307,7 +306,7 @@ class CallController(object):
         self.uaO = UA(self.global_config, self.recvEvent, oroute.user, oroute.passw, nh_address, oroute.credit_time, tuple(conn_handlers), \
           tuple(disc_handlers), tuple(disc_handlers), dead_cbs = (self.oDead,), expire_time = oroute.expires, \
           no_progress_time = oroute.no_progress_expires, extra_headers = oroute.extra_headers)
-        self.uaO.pass_auth = self.pass_auth
+        self.uaO.pass_auth = oroute.pass_auth
         self.uaO.local_ua = self.global_config['_uaname']
         self.uaO.no_reply_time = oroute.no_reply_expires
         if self.source != oroute.params.get('outbound_proxy', None):

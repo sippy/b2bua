@@ -48,6 +48,7 @@ class B2BRoute(object):
     forward_on_fail = False
     user = None
     passw = None
+    pass_auth = True
     cli = None
     cli_set = False
     params = None
@@ -70,6 +71,7 @@ class B2BRoute(object):
             self.forward_on_fail = cself.forward_on_fail
             self.user = cself.user
             self.passw = cself.passw
+            self.pass_auth = cself.pass_auth
             self.cli = cself.cli
             self.cli_set = cself.cli_set
             self.params = dict(cself.params)
@@ -131,7 +133,9 @@ class B2BRoute(object):
             elif a == 'forward_on_fail':
                 self.forward_on_fail = True
             elif a == 'auth':
-                self.user, self.passw = v.split(':', 1)
+                self.pass_auth = False
+                if v != 'nopass':
+                    self.user, self.passw = v.split(':', 1)
             elif a == 'cli':
                 self.cli = v
                 if len(self.cli) == 0:
