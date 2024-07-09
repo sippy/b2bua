@@ -263,10 +263,18 @@ class SipTransactionManager(object):
     def handleIncoming(self, data_in, ra:Remote_address, server, rtime):
         if len(data_in) < 32:
             return
+        if isinstance(data_in, bytes):
+            lmsg = data_in.decode(errors = 'backslashreplace')
+        else:
+            lmsg = data_in
         self.global_config['_sip_logger'].write(f'RECEIVED message from {ra}:\n', \
-          data_in.decode(errors = 'backslashreplace'), ltime = rtime.realt)
-        data = data_in.decode()
-        checksum = md5(data_in).digest()
+          lmsg, ltime = rtime.realt)
+        if isinstance(data_in, bytes):
+            data = data_in.decode()
+            checksum = md5(data_in).digest()
+        else:
+            data = data_in
+            checksum = md5(data_in.encode('utf-8')).digest()
         retrans = self.l1rcache.get(checksum, None)
         if retrans == None:
             retrans = self.l2rcache.get(checksum, None)
