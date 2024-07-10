@@ -5,31 +5,6 @@ from sippy.SdpBody import SdpBody
 # TODO Rename test names so each one represents clearly what it is
 # testing for. 
 
-class TestSdpBodyFunctions(unittest.TestCase):
-
-    def test_localStr(self):
-        got = SdpBody(sdp_multi_stream).localStr('1.2.3.4', 12345)
-        want = sdp_multi_stream.replace('\n','\r\n')
-        self.assertEquals(want, got)
-
-    def test_str_override_multiple_stremas(self):
-        got = SdpBody(sdp_multi_stream)
-        want = sdp_multi_stream.replace('\n','\r\n')
-        self.assertEquals(want, str(got))
-
-    def test_str_override_h323_sdp(self):
-        got = SdpBody(sdp_h323)
-        want = sdp_h323.replace('\n','\r\n')
-        self.assertEquals(want, str(got))
-
-    def test_str_override_single_audio(self):
-        got = SdpBody(sdp_single_audio)
-        want = sdp_single_audio.replace('\n','\r\n')
-        self.assertEquals(want, str(got))
-
-if __name__ == '__main__':
-    unittest.main()
-
 # Test data...
 sdp_multi_stream = """v=0
 o=LifeSize 1366021474 2 IN IP4 192.168.190.101
@@ -112,3 +87,29 @@ a=fmtp:101 0-15
 a=ptime:30
 a=sendrecv
 """
+
+class TestSdpBodyFunctions(unittest.TestCase):
+
+    def test_localStr(self):
+        laddr  = (('1.2.3.4', 12345), 'udp')
+        got = SdpBody(sdp_multi_stream).localStr(laddr)
+        want = sdp_multi_stream.replace('\n','\r\n')
+        self.assertEqual(want, got)
+
+    def test_str_override_multiple_stremas(self):
+        got = SdpBody(sdp_multi_stream)
+        want = sdp_multi_stream.replace('\n','\r\n')
+        self.assertEqual(want, str(got))
+
+    def test_str_override_h323_sdp(self):
+        got = SdpBody(sdp_h323)
+        want = sdp_h323.replace('\n','\r\n')
+        self.assertEqual(want, str(got))
+
+    def test_str_override_single_audio(self):
+        got = SdpBody(sdp_single_audio)
+        want = sdp_single_audio.replace('\n','\r\n')
+        self.assertEqual(want, str(got))
+
+if __name__ == '__main__':
+    unittest.main()
