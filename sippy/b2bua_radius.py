@@ -47,8 +47,8 @@ from sippy.RadiusAuthorisation import RadiusAuthorisation
 from sippy.RadiusAccounting import RadiusAccounting
 from sippy.FakeAccounting import FakeAccounting
 from sippy.SipLogger import SipLogger
-from sippy.Rtp_proxy_session import Rtp_proxy_session
-from sippy.Rtp_proxy_client import Rtp_proxy_client
+from sippy.Rtp_proxy.session import Rtp_proxy_session
+from sippy.Rtp_proxy.client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2, SIGTERM
 from sippy.CLIManager import CLIConnectionManager
 from sippy.SipTransactionManager import SipTransactionManager

@@ -31,8 +31,8 @@ from threading import Thread, Condition
 from errno import EINTR, EPIPE, ENOTCONN, ECONNRESET
 from sippy.Time.MonoTime import MonoTime
 from sippy.Math.recfilter import recfilter
-from sippy.Rtp_proxy_client_net import Rtp_proxy_client_net
-from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd
+from sippy.Rtp_proxy.Client.net import Rtp_proxy_client_net
+from sippy.Rtp_proxy.cmd import Rtp_proxy_cmd
 
 import socket
 

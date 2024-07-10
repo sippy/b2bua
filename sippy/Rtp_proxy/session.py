@@ -533,7 +533,7 @@ class Rtp_proxy_session(object):
 
 if __name__ == '__main__':
     from sippy.Time.Timeout import Timeout
-    from sippy.Rtp_proxy_client import Rtp_proxy_client
+    from sippy.Rtp_proxy.client import Rtp_proxy_client
     def display(*args):
         print('got:', args)
         ED2.breakLoop()

@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from sippy.Rtp_proxy_client_stream import Rtp_proxy_client_stream
+from sippy.Rtp_proxy.Client.stream import Rtp_proxy_client_stream
 
 import socket
 

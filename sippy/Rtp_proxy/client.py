@@ -25,8 +25,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.Time.Timeout import TimeoutInact
-from sippy.Rtp_proxy_client_udp import Rtp_proxy_client_udp
-from sippy.Rtp_proxy_client_stream import Rtp_proxy_client_stream
+from sippy.Rtp_proxy.Client.udp import Rtp_proxy_client_udp
+from sippy.Rtp_proxy.Client.stream import Rtp_proxy_client_stream
 
 import socket
 

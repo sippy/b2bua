@@ -30,8 +30,8 @@ from sippy.Time.Timeout import Timeout
 from sippy.Udp_server import Udp_server, Udp_server_opts
 from sippy.Time.MonoTime import MonoTime
 from sippy.Math.recfilter import recfilter
-from sippy.Rtp_proxy_cmd import Rtp_proxy_cmd
-from sippy.Rtp_proxy_client_net import Rtp_proxy_client_net
+from sippy.Rtp_proxy.cmd import Rtp_proxy_cmd
+from sippy.Rtp_proxy.Client.net import Rtp_proxy_client_net
 
 from socket import SOCK_DGRAM, AF_INET
 from time import time
