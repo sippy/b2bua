@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from functools import partial
 from hashlib import md5
 from random import random
 from time import time
@@ -119,13 +120,12 @@ class Rtp_proxy_session(object):
             up = update_params()
             up.rtpps = self
             up.index = index
-            up.result_callback = self._start_recording
-            up.callback_parameters = (rname, result_callback, index)
+            up.result_callback = partial(self._start_recording, rname, result_callback, index)
             self.caller.update(up)
             return
-        self._start_recording(None, self, rname, result_callback, index)
+        self._start_recording(rname, result_callback, index, None, self)
 
-    def _start_recording(self, result, rtpps, rname, result_callback, index):
+    def _start_recording(self, rname, result_callback, index, result, rtpps):
         if rname == None:
             command = 'R %s %s %s' % ('%s-%d' % (self.call_id, index), self.from_tag, self.to_tag)
             return self.rtpp_seq.send_command(command, self.command_result, result_callback)

@@ -24,21 +24,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from sippy.SdpOrigin import SdpOrigin
+from functools import partial
 
+from sippy.SdpOrigin import SdpOrigin
 from sippy.Core.Exceptions import dump_exception
 from sippy.Core.EventDispatcher import ED2
 from sippy.Exceptions.SipParseError import SdpParseError
-from sippy.Rtp_proxy.Session.update import update_params, update_result
+from sippy.Exceptions.RtpProxyError import RtpProxyError
+from sippy.Rtp_proxy.Session.update import update_params
+from sippy.Rtp_proxy.Session.subcommand import subcommand_dtls, \
+  subcommand_dedtls, DTLS_TRANSPORTS
 
 try:
     strtypes = (str, unicode)
 except NameError:
     strtypes = (str,)
-
-DTLS_TRANSPORTS = ('UDP/TLS/RTP/SAVP', 'UDP/TLS/RTP/SAVPF')
-DTLS_ATTRS = ('setup', 'fingerprint', 'rtcp', 'ssrc')
-DTLS_ATTRS_RM = tuple([a for a in DTLS_ATTRS if a != 'ssrc'])
 
 class _rtpps_side(object):
     session_exists = False
@@ -52,17 +52,15 @@ class _rtpps_side(object):
     soft_repacketize = False
     after_sdp_change = None
     needs_new_port = False
-    transports = None
     rinfo_hst = None
 
     def __init__(self, name):
         self.origin = SdpOrigin()
         self.name = name
-        self.transports = {}
         self.rinfo_hst = []
 
     def __str__(self):
-        return f'_rtpps_side("name={self.name},transports={self.transports}")'
+        return f'_rtpps_side("name={self.name}")'
 
     def update(self, up):
         command = 'U'
@@ -93,7 +91,7 @@ class _rtpps_side(object):
           rtpc.tnot_supported:
             command += ' %s %s' % (up.rtpps.notify_socket, up.rtpps.notify_tag)
         if len(up.subcommands) > 0:
-            command = ' && '.join([command,] + up.subcommands)
+            command = ' && '.join([command,] + [sc for subc in up.subcommands for sc in subc.commands])
         rtpq.send_command(command, self.update_result, up)
 
     def gettags(self, rtpps):
@@ -115,44 +113,10 @@ class _rtpps_side(object):
     def update_result(self, result, up):
         #print('%s.update_result(%s)' % (id(self), result))
         self.session_exists = True
-        if result == None:
-            up.result_callback(None, up.rtpps, *up.callback_parameters)
-            return
-        t0 = result.split('&&', 1)
-        t1 = t0[0].split()
-        if t1[0][0] == 'E':
-            up.result_callback(None, up.rtpps, *up.callback_parameters)
-            return
-        ur = update_result()
-        if len(t0) > 1:
-            subc_res = t0[1].lstrip()
-            if subc_res == '-1':
-                up.result_callback(None, up.rtpps, *up.callback_parameters)
-                return
-            ur.dtls_mode, ur.dtls_fingerprint = subc_res.split(' ', 1)
-        ur.rtpproxy_port = int(t1[0])
-        if ur.rtpproxy_port == 0:
-            up.result_callback(None, up.rtpps, *up.callback_parameters)
-            return
-        ur.family = 'IP4'
-        if len(t1) > 1:
-            ur.rtpproxy_address = t1[1]
-            if len(t1) > 2 and t1[2] == '6':
-                ur.family = 'IP6'
-        else:
-            ur.rtpproxy_address = up.rtpps.rtp_proxy_client.proxy_address
-        # Old-style request to put session on hold, convert it into
-        # a new-style request.
-        if up.atype == 'IP4' and up.remote_ip == '0.0.0.0':
-            ur.sendonly = True
-        elif up.atype == 'IP6' and up.remote_ip == '::':
-            ur.sendonly = True
-        else:
-            ur.sendonly = False
+        ur = up.process_rtpp_result(result)
         self.rinfo_hst.append(ur)
-        up.result_callback(ur, up.rtpps, *up.callback_parameters)
 
-    def __play(self, result, rtpps, prompt_name, times, result_callback, index):
+    def __play(self, prompt_name, times, result_callback, index, result, rtpps):
         from_tag, to_tag = self.gettags(rtpps)
         command = 'P%d %s %s %s %s %s' % (times, '%s-%d' % (rtpps.call_id, index), prompt_name, self.codecs, from_tag, to_tag)
         rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
@@ -166,11 +130,10 @@ class _rtpps_side(object):
             up = update_params()
             up.rtpps = rtpps
             up.index = index
-            up.result_callback = self.__play
-            up.callback_parameters = (prompt_name, times, result_callback, index)
+            up.result_callback = partial(self.__play, prompt_name, times, result_callback, index)
             otherside.update(up)
             return
-        self.__play(None, rtpps, prompt_name, times, result_callback, index)
+        self.__play(prompt_name, times, result_callback, index, None, rtpps)
 
     def _stop_play(self, rtpps, result_callback = None, index = 0):
         if not self.session_exists:
@@ -192,11 +155,12 @@ class _rtpps_side(object):
                 raise exception
             else:
                 return
-        if isinstance(sdp_body.content, strtypes):
+        sdp_bc = sdp_body.content
+        if isinstance(sdp_bc, strtypes):
             sdp_body.needs_update = False
             result_callback(sdp_body)
             return
-        for i, sect in enumerate(sdp_body.content.sections):
+        for i, sect in enumerate(sdp_bc.sections):
             if sect.m_header.transport.lower() not in rtpps.SUPPORTED_TRTYPES:
                 continue
             sects.append(sect)
@@ -212,7 +176,6 @@ class _rtpps_side(object):
             options = ''
         otherside = self.getother(rtpps)
         for si, sect in enumerate(sects):
-            self.transports[si] = sect.m_header.transport
             if sect.c_header.atype == 'IP6':
                 sect_options = '6' + options
             else:
@@ -224,84 +187,61 @@ class _rtpps_side(object):
             up.atype = sect.c_header.atype
             up.options = sect_options
             up.index = si
-            up.result_callback = self._sdp_change_finish
             if otherside.gateway_dtls == 'dtls':
-                up.subcommands.append('M4:1 S')
-                otherside.transports[si] = 'UDP/TLS/RTP/SAVP'
+                up.subcommands.append(subcommand_dtls())
             if self.gateway_dtls == 'dtls' and sect.m_header.transport in DTLS_TRANSPORTS:
-                adict = dict([(x.name, x.value) for x in sect.a_headers
-                              if x.name in DTLS_ATTRS])
-                if 'setup' not in adict:
-                    raise SdpParseError('Missing DTLS connection mode parameter')
-                if 'fingerprint' not in adict:
-                    raise SdpParseError('Missing DTLS fingerprint parameter')
-                asetup = adict['setup']
-                if asetup in ('active', 'actpass'):
-                    subcommand = 'M4:1 A'
-                elif asetup in ('passive',):
-                    subcommand = 'M4:1 P'
-                else:
-                    raise SdpParseError(F'Unknown connection mode: "{asetup}"')
-                subcommand += F' {adict["fingerprint"]}'
-                if 'ssrc' in adict:
-                    ssrc = adict['ssrc'].split(None, 1)[0]
-                    subcommand += F' {ssrc}'
-                up.subcommands.append(subcommand)
-                if otherside.gateway_dtls == 'rtp':
-                    otherside.transports[si] = 'RTP/AVP'
-            up.callback_parameters = (sdp_body, sect, sects, result_callback)
+                up.subcommands.append(subcommand_dedtls(sdp_bc, sect))
+            up.result_callback = partial(self._sdp_change_finish, sdp_body, sect, sects, result_callback)
             self.update(up)
         return
 
-    def _sdp_change_finish(self, ur, rtpps, sdp_body, sect, sects, result_callback):
+    def _sdp_change_finish(self, sdp_body, sect, sects, result_callback, ur, rtpps, ex:Exception = None):
+        if not sdp_body.needs_update:
+            return
         sect.needs_update = False
-        if ur != None:
-            otherside = self.getother(rtpps)
-            if self.after_sdp_change != None:
-                self.after_sdp_change(ur.rtpproxy_address) # pylint: disable=not-callable
-            si = sects.index(sect)
-            if si in otherside.transports and self.gateway_dtls != 'pass' \
-              and otherside.transports[si] != sect.m_header.transport:
-                sect.m_header.transport = otherside.transports[si]
-                for dtls_hdr in [x for x in sect.a_headers
-                                 if x.name in DTLS_ATTRS_RM]:
-                    sect.a_headers.remove(dtls_hdr)
-            if ur.dtls_fingerprint:
-                for dtls_hdr in [x for x in sect.a_headers if x.name in DTLS_ATTRS_RM]:
-                    sect.a_headers.remove(dtls_hdr)
-                sect.addHeader('a', F'setup:{ur.dtls_mode}')
-                sect.addHeader('a', F'fingerprint:{ur.dtls_fingerprint}')
-            sect.c_header.atype = ur.family
-            sect.c_header.addr = ur.rtpproxy_address
-            if sect.m_header.port != 0:
-                sect.m_header.port = ur.rtpproxy_port
-            if ur.sendonly:
-                for sendrecv in [x for x in sect.a_headers if x.name == 'sendrecv']:
-                    sect.a_headers.remove(sendrecv)
-                if len([x for x in sect.a_headers if x.name == 'sendonly']) == 0:
-                    sect.addHeader('a', 'sendonly')
-            if self.soft_repacketize or self.repacketize is not None:
-                fidx = -1
-                for a_header in sect.a_headers[:]:
-                    if a_header.name == 'ptime':
-                        fidx = sect.a_headers.index(a_header)
-                        sect.a_headers.remove(a_header)
-                    elif fidx == -1 and a_header.name == 'fmtp':
-                        fidx = sect.a_headers.index(a_header) + 1
-                sect.insertHeader(fidx, 'a', 'ptime:%d' % self.repacketize)
-            for rtcp_header in [x for x in sect.a_headers if x.name == 'rtcp']:
-                rtcp_header.value = '%d IN %s %s' % (ur.rtpproxy_port + 1, ur.family, ur.rtpproxy_address)
+        sdp_bc = sdp_body.content
+
+        if ur == None:
+            sdp_body.needs_update = False
+            if ex is None: ex = RtpProxyError("RTPProxy errored")
+            result_callback(None, ex=ex)
+            return
+
+        otherside = self.getother(rtpps)
+        if self.after_sdp_change != None:
+            self.after_sdp_change(ur.rtpproxy_address) # pylint: disable=not-callable
+        ur.sdp_sect_fin(sdp_bc, sect)
+        sect.c_header.atype = ur.family
+        sect.c_header.addr = ur.rtpproxy_address
+        if sect.m_header.port != 0:
+            sect.m_header.port = ur.rtpproxy_port
+        if ur.sendonly:
+            for sendrecv in [x for x in sect.a_headers if x.name == 'sendrecv']:
+                sect.a_headers.remove(sendrecv)
+            if len([x for x in sect.a_headers if x.name == 'sendonly']) == 0:
+                sect.addHeader('a', 'sendonly')
+        if self.soft_repacketize or self.repacketize is not None:
+            fidx = -1
+            for a_header in sect.a_headers[:]:
+                if a_header.name == 'ptime':
+                    fidx = sect.a_headers.index(a_header)
+                    sect.a_headers.remove(a_header)
+                elif fidx == -1 and a_header.name == 'fmtp':
+                    fidx = sect.a_headers.index(a_header) + 1
+            sect.insertHeader(fidx, 'a', 'ptime:%d' % self.repacketize)
+        for rtcp_header in [x for x in sect.a_headers if x.name == 'rtcp']:
+            rtcp_header.value = '%d IN %s %s' % (ur.rtpproxy_port + 1, ur.family, ur.rtpproxy_address)
 
         if len([x for x in sects if x.needs_update]) == 0:
             if self.oh_remote != None:
-                if self.oh_remote.session_id != sdp_body.content.o_header.session_id:
+                if self.oh_remote.session_id != sdp_bc.o_header.session_id:
                     self.origin = SdpOrigin()
-                elif self.oh_remote.version != sdp_body.content.o_header.version:
+                elif self.oh_remote.version != sdp_bc.o_header.version:
                     self.origin.version += 1
-            self.oh_remote = sdp_body.content.o_header.getCopy()
-            sdp_body.content.o_header = self.origin.getCopy()
+            self.oh_remote = sdp_bc.o_header.getCopy()
+            sdp_bc.o_header = self.origin.getCopy()
             if rtpps.insert_nortpp:
-                sdp_body.content += 'a=nortpproxy:yes\r\n'
+                sdp_bc += 'a=nortpproxy:yes\r\n'
             sdp_body.needs_update = False
             result_callback(sdp_body)
 
@@ -310,13 +250,12 @@ class _rtpps_side(object):
             up = update_params()
             up.rtpps = self
             up.index = index
-            up.result_callback = self.__copy
-            up.callback_parameters = (remote_ip, remote_port, result_callback, index)
+            up.result_callback = partial(self.__copy, remote_ip, remote_port, result_callback, index)
             self.update(up)
             return
-        self.__copy(None, rtpps, remote_ip, remote_port, result_callback, index)
+        self.__copy(remote_ip, remote_port, result_callback, index, None, rtpps)
 
-    def __copy(self, result, rtpps, remote_ip, remote_port, result_callback = None, index = 0):
+    def __copy(self, remote_ip, remote_port, result_callback, index, result, rtpps):
         from_tag, to_tag = self.gettags(rtpps)
         command = 'C %s udp:%s:%d %s %s' % ('%s-%d' % (rtpps.call_id, index), remote_ip, remote_port, from_tag, to_tag)
         rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
