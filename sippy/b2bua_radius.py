@@ -31,6 +31,7 @@ from os.path import dirname, join as p_join
 sys.path.append(p_join(dirname(sys.argv[0]), '..'))
 
 from sippy.Core.EventDispatcher import ED2
+from sippy.Core.Exceptions import dump_exception
 from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import Timeout
 from sippy.Signal import Signal
@@ -65,8 +66,6 @@ except ImportError:
     from urllib.parse import quote
 from hashlib import md5
 from sippy.MyConfigParser import MyConfigParser
-from traceback import print_exc
-from datetime import datetime
 
 def re_replace(ptrn, s):
     s = s.split('#', 1)[0]
@@ -418,13 +417,7 @@ class CallMap(object):
         try:
             to_tag = req.getHFBody('to').getTag()
         except Exception as exception:
-            print(datetime.now(), 'can\'t parse SIP request: %s:\n' % str(exception))
-            print( '-' * 70)
-            print_exc(file = sys.stdout)
-            print( '-' * 70)
-            print(req)
-            print('-' * 70)
-            sys.stdout.flush()
+            dump_exception('can\'t parse SIP request', extra = req)
             return (None, None, None)
         if to_tag != None:
             # Request within dialog, but no such dialog
