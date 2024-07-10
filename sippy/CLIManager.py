@@ -85,7 +85,7 @@ class _Acceptor(Thread):
 class CLIConnectionManager(object):
     command_cb = None
     tcp = False
-    accept_list = None
+    accept_list: list = None
     serversock = None
     atr = None
 
@@ -120,9 +120,10 @@ class CLIConnectionManager(object):
 
     def handle_accept(self, conn, address):
         #print(self.handle_accept)
-        if self.tcp and self.accept_list != None and address[0] not in self.accept_list:
-            conn.close()
-            return
+        if self.tcp and self.accept_list is not None:
+            if address[0] not in self.accept_list: # pylint: disable=unsupported-membership-test
+                conn.close()
+                return
         try:
             cm = CLIManager(conn, self.command_cb, address)
         except Exception as e:
@@ -274,7 +275,7 @@ class CLIManager(object):
         try:
             self.clientsock.shutdown(socket.SHUT_RDWR)
         except Exception as e:
-            if not isinstance(e, socket.error) or e.errno != ENOTCONN:
+            if not isinstance(e, socket.error) or e.errno != ENOTCONN: # pylint: disable=no-member
                 dump_exception('self.clientsock.shutdown(socket.SHUT_RDWR)')
         self.clientsock.close()
         self.wthr = None

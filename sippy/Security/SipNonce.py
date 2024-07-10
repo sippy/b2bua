@@ -71,7 +71,7 @@ DGST_SHA512SESS = (1 << 5)
 DGST_PRIOS = (DGST_SHA512, DGST_SHA512SESS, DGST_SHA256, DGST_SHA256SESS, DGST_MD5, DGST_MD5SESS)
 
 class HashOracle(object):
-    try: key
+    try: key # pylint: disable=used-before-assignment
     except: key = Random.new().read(AES.block_size * 2)
     ac = None
     vtime = 32 * 10**9

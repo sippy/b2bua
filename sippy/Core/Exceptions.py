@@ -34,7 +34,7 @@ class StdException(Exception):
 
     def __init__(self, *args):
         pin_exception(self, 2)
-        super(self.__class__, self).__init__(*args)
+        super(StdException, self).__init__(*args)
 
 def dump_exception(msg, f = sys.stdout, extra = None):
     exc_type, exc_value, exc_traceback = sys.exc_info()
