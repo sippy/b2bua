@@ -33,7 +33,7 @@ import datetime, time
 import traceback, sys, os
 from select import poll, POLLIN, POLLOUT
 
-from Sippy.Core.EventDispatcher import ED2
+from sippy.Core.EventDispatcher import ED2
 
 MAX_WORKERS = 5
 
@@ -82,10 +82,10 @@ class Worker(iksemel.Stream):
                     continue
                 self.recv()
             except:
-                print datetime.datetime.now(), 'XMPP_server: unhandled exception when receiving incoming data'
-                print '-' * 70
+                print(datetime.datetime.now(), 'XMPP_server: unhandled exception when receiving incoming data')
+                print('-' * 70)
                 traceback.print_exc(file = sys.stdout)
-                print '-' * 70
+                print('-' * 70)
                 sys.stdout.flush()
                 self.__reconnect = True
                 self.__owner._wi_available.acquire()
@@ -98,10 +98,10 @@ class Worker(iksemel.Stream):
         try:
             self.__run_tx()
         except:
-            print datetime.datetime.now(), 'XMPP_server: unhandled exception when processing outgoing data'
-            print '-' * 70
+            print(datetime.datetime.now(), 'XMPP_server: unhandled exception when processing outgoing data')
+            print('-' * 70)
             traceback.print_exc(file = sys.stdout)
-            print '-' * 70
+            print('-' * 70)
             sys.stdout.flush()
 
     def __run_tx(self):
@@ -225,10 +225,10 @@ class XMPP_server(object):
             try:
                 self.uopts.data_callback(data, address, lserver, rtime)
             except:
-                print datetime.datetime.now(), 'XMPP_server: unhandled exception when receiving incoming data'
-                print '-' * 70
+                print(datetime.datetime.now(), 'XMPP_server: unhandled exception when receiving incoming data')
+                print('-' * 70)
                 traceback.print_exc(file = sys.stdout)
-                print '-' * 70
+                print('-' * 70)
                 sys.stdout.flush()
 
     def send_to(self, data, address):
