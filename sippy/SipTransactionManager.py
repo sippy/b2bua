@@ -39,7 +39,6 @@ from sippy.Udp_server import Udp_server, Udp_server_opts
 from sippy.Network_server import Remote_address
 from datetime import datetime
 from hashlib import md5
-from traceback import print_exc
 from functools import reduce
 import sys, socket
 
