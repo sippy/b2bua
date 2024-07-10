@@ -24,6 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from hashlib import md5
+from random import random
+from time import time
+
 from sippy.SipHeader import SipHeader
 from sippy.UasStateIdle import UasStateIdle
 from sippy.UacStateIdle import UacStateIdle
@@ -32,11 +36,10 @@ from sippy.SipContentType import SipContentType
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
 from sippy.MsgBody import MsgBody
-from hashlib import md5
-from random import random
-from time import time
 from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import TimeoutAbsMono
+from sippy.Exceptions.RtpProxyError import RtpProxyError
+from sippy.Exceptions.SipParseError import SdpParseError
 
 class UA(object):
     global_config = None
@@ -386,12 +389,25 @@ class UA(object):
             rval[2] = self.rUri.getTag()
         return tuple(rval)
 
-    def delayed_remote_sdp_update(self, event, remote_sdp_body):
-        self.rSDP = remote_sdp_body.getCopy()
+    def delayed_remote_sdp_update(self, event, remote_sdp_body, ex=None):
+        if ex is not None:
+            if not isinstance(ex, (RtpProxyError, SdpParseError)): raise ex
+            event = CCEventFail((ex.code, ex.msg))
+            event.reason = ex.getReason()
+        else:
+            self.rSDP = remote_sdp_body.getCopy()
         self.equeue.append(event)
         self.emitPendingEvents()
+        if ex is not None:
+            self.recvEvent(event)
 
-    def delayed_local_sdp_update(self, event, local_sdp_body):
+    def delayed_local_sdp_update(self, event, local_sdp_body, ex=None):
+        if ex is not None:
+            if not isinstance(ex, (RtpProxyError, SdpParseError)): raise ex
+            event = CCEventFail((ex.code, ex.msg))
+            event.reason = ex.getReason()
+            self.equeue.append(event)
+            self.emitPendingEvents()
         self.recvEvent(event)
 
     def getAcct(self):
