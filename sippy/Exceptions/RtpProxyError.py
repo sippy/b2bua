@@ -36,3 +36,6 @@ class RtpProxyError(Exception):
 
     def getResponse(self, req):
         return SdpParseError.getResponse(self, req)
+
+    def getReason(self):
+        return SdpParseError.getReason(self)

@@ -48,9 +48,13 @@ class SdpParseError(SipParseError):
         if self.sip_response is not None:
             return self.sip_response
         resp = req.genResponse(self.code, self.msg)
-        if self.arg is not None and len(self.arg) > 0:
-            reason = SipReason(protocol='SIP', cause=self.code,
-                               reason=self.arg)
+        if (reason:=self.getReason()) is not None:
             rsh = SipHeader(body = reason)
             resp.appendHeader(rsh)
         return resp
+
+    def getReason(self):
+        if self.arg is not None and len(self.arg) > 0:
+            return SipReason(protocol='SIP', cause=self.code,
+                             reason=self.arg)
+        return None
