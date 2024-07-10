@@ -57,10 +57,8 @@ class SipRequest(SipMsg):
         self.method = method
         self.ruri = ruri
         if target == None:
-            if len(routes) == 0:
-                self.setTarget(self.ruri.getAddr())
-            else:
-                self.setTarget(routes[0].getAddr())
+            turi = self.ruri if len(routes) == 0 else routes[0]
+            self.setTarget(turi.getTAddr())
         else:
             self.setTarget(target)
         self.sipver = sipver
@@ -95,8 +93,8 @@ class SipRequest(SipMsg):
         self.method, ruri, self.sipver = startline.split()
         self.ruri = SipURL(ruri)
 
-    def getSL(self):
-        return self.method + ' ' + str(self.ruri) + ' ' + self.sipver
+    def getSL(self, local_addr = None):
+        return self.method + ' ' + self.ruri.localStr(local_addr) + ' ' + self.sipver
 
     def getMethod(self):
         return self.method

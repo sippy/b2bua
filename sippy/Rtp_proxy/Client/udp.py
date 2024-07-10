@@ -82,7 +82,7 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
         #print('Rtp_proxy_client_udp(family=%s)' % family)
         self.address = self.getdestbyaddr(address, family)
         self.is_local = False
-        self.uopts = Udp_server_opts(bind_address, self.process_reply, family)
+        self.uopts = Udp_server_opts(bind_address, self.process_reply, family=family)
         self.uopts.flags = 0
         self.uopts.ploss_out_rate = self.ploss_out_rate
         self.uopts.pdelay_out_max = self.pdelay_out_max

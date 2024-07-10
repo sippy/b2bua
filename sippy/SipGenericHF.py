@@ -37,7 +37,7 @@ class SipGenericHF(object):
     def parse(self):
         pass
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         return self.__str__()
 
     def __str__(self):

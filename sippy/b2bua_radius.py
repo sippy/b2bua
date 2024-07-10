@@ -561,13 +561,15 @@ class CallMap(object):
             for cc in self.ccmap:
                 res += '%s: %s (' % (cc.cId, cc.state.sname)
                 if cc.uaA != None:
-                    res += '%s %s:%d %s %s -> ' % (cc.uaA.state, cc.uaA.getRAddr0()[0], \
-                      cc.uaA.getRAddr0()[1], cc.uaA.getCLD(), cc.uaA.getCLI())
+                    (_h, _p), _t = cc.uaA.getRAddr0()
+                    res += '%s %s:%s:%d %s %s -> ' % (cc.uaA.state, _t, _h, \
+                      _p, cc.uaA.getCLD(), cc.uaA.getCLI())
                 else:
                     res += 'N/A -> '
                 if cc.uaO != None:
-                    res += '%s %s:%d %s %s)\n' % (cc.uaO.state, cc.uaO.getRAddr0()[0], \
-                      cc.uaO.getRAddr0()[1], cc.uaO.getCLI(), cc.uaO.getCLD())
+                    (_h, _p), _t = cc.uaA.getRAddr0()
+                    res += '%s %s:%s:%d %s %s)\n' % (cc.uaO.state, _t, _h, \
+                      _p, cc.uaO.getCLI(), cc.uaO.getCLD())
                 else:
                     res += 'N/A)\n'
                 total += 1

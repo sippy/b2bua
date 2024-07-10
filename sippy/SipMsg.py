@@ -161,12 +161,12 @@ class SipMsg(object):
             s += 'Content-Length: 0\r\n\r\n'
         return s
 
-    def localStr(self, local_addr = None, local_port = None, compact = False):
-        s = self.getSL() + '\r\n'
+    def localStr(self, local_addr = None, compact = False):
+        s = self.getSL(local_addr) + '\r\n'
         for header in self.headers:
-            s += header.localStr(local_addr, local_port, compact) + '\r\n'
+            s += header.localStr(local_addr, compact) + '\r\n'
         if self.body != None:
-            mbody = self.body.localStr(local_addr, local_port)
+            mbody = self.body.localStr(local_addr)
             if compact:
                 s += 'c: %s\r\n' % self.body.mtype
                 s += 'l: %d\r\n\r\n' % len(mbody)
@@ -184,7 +184,7 @@ class SipMsg(object):
     def setSL(self, startline):
         self.startline = startline
 
-    def getSL(self):
+    def getSL(self, local_addr = None):
         return self.startline
 
     def getHFs(self, name):

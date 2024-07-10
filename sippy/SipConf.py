@@ -48,14 +48,28 @@ class MyPort(object):
     def __int__(self):
         return self.default_port
 
+class MyTransport(object):
+    my = True
+    default = None
+
+    def __init__(self, default_transport):
+        self.default = default_transport
+
+    def __str__(self):
+        return str(self.default)
+
 class SipConf(object):
     default_port = 5060
+    default_transport = 'udp'
 
     try: my_address
     except: my_address = MyAddress()
 
     try: my_port
     except: my_port = MyPort(default_port)
+
+    try: my_transport
+    except: my_transport = MyTransport(default_transport)
 
     try: my_uaname
     except: my_uaname = 'Sippy'
@@ -65,3 +79,8 @@ class SipConf(object):
 
     try: autoconvert_tel_url
     except: autoconvert_tel_url = False
+
+    @staticmethod
+    def port_needed(port, transport, local_transport):
+        return not('my' in dir(transport) and local_transport == SipConf.default_transport \
+                   and int(port) == SipConf.default_port)

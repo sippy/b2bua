@@ -57,16 +57,19 @@ class UacStateIdle(UaStateGeneric):
             else:
                 self.ua.cId = cId.getCopy()
             self.ua.global_config['_sip_tm'].regConsumer(self.ua, str(self.ua.cId), compact = self.ua.compact_sip)
-            self.ua.rTarget = SipURL(username = calledID, host = self.ua.rAddr0[0], port = self.ua.rAddr0[1])
-            self.ua.rUri = SipTo(address = SipAddress(url = self.ua.rTarget.getCopy(), hadbrace = True))
-            self.ua.rUri.getUrl().port = None
-            self.ua.lUri = SipFrom(address = SipAddress(url = SipURL(username = callingID), hadbrace = True, name = callingName))
-            self.ua.lUri.getUrl().port = None
+            (_h, _p), _t = self.ua.rAddr0
+            self.ua.rTarget = SipURL(username = calledID, host = _h, port = _p, transport = _t)
+            rurl = SipURL(username = calledID, host = _h, port = None)
+            self.ua.rUri = SipTo(address = SipAddress(url = rurl, hadbrace = True))
+            lurl = SipURL(username = callingID)
+            lurl.port = lurl.transport = None
+            self.ua.lUri = SipFrom(address = SipAddress(url = lurl, hadbrace = True, name = callingName))
             self.ua.lUri.setTag(self.ua.lTag)
             self.ua.lCSeq = 200
             if self.ua.lContact == None:
                 self.ua.lContact = SipContact()
-            self.ua.lContact.getUrl().username = callingID
+            curl = self.ua.lContact.getUrl()
+            curl.username = callingID
             self.ua.routes = []
             self.ua.lSDP = body
             event.onUacSetupComplete(self.ua)

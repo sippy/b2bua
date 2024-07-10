@@ -328,24 +328,37 @@ class SipTransactionManager(object):
             via0 = req.getHFBody('via')
             ahost, aport = via0.getAddr()
             rhost, rport = ra.address
-            if self.nat_traversal and rport != aport and (check1918(ahost) or check7118(ahost)):
+            if ra.transport != 'ws' and self.nat_traversal and rport != aport \
+              and (check1918(ahost) or check7118(ahost)):
                 req.nated = True
             if ahost != rhost:
                 via0.params['received'] = ra.received
             if 'rport' in via0.params or req.nated:
                 via0.params['rport'] = str(rport)
-            if self.nat_traversal and req.countHFs('contact') > 0 and req.countHFs('via') == 1:
+
+            def usable_contact():
+                return req.countHFs('contact') > 0 and req.countHFs('via') == 1
+
+            def get_contact():
                 try:
-                    cbody = req.getHFBody('contact')
+                    return req.getHFBody('contact')
                 except Exception as exception:
                     dump_exception(f'can\'t parse SIP request from {ra}', extra = data)
                     self.l1rcache[checksum] = SipTMRetransmitO()
-                    return
+                    return None
+
+            if self.nat_traversal and usable_contact():
+                if (cbody:=get_contact()) is None: return
                 if not cbody.asterisk:
                     curl = cbody.getUrl()
                     if check1918(curl.host) or curl.port == 0 or curl.host == '255.255.255.255':
                         curl.host, curl.port = ra.address
                         req.nated = True
+            if ra.transport == 'ws' and usable_contact():
+                if (cbody:=get_contact()) is None: return
+                if not cbody.asterisk:
+                    curl = cbody.getUrl()
+                    curl.host = ra.received
             req.setSource(ra.address)
             try:
                 self.incomingRequest(req, checksum, tids, server)
@@ -376,15 +389,21 @@ class SipTransactionManager(object):
             raise ValueError('BUG: Attempt to initiate transaction with the same TID as existing one!!!')
         t.tout = 0.5
         t.fcode = None
-        t.address = msg.getTarget()
+        t.address, transport = msg.getTarget()
         if userv == None:
-            if laddress == None:
-                t.userv = self.l4r.getServer(t.address)
+            transport = str(transport)
+            if transport == 'udp':
+                if laddress == None:
+                    t.userv = self.l4r.getServer(t.address)
+                else:
+                    t.userv = self.l4r.getServer(laddress, is_local = True)
+            elif transport == 'ws':
+                t.userv = self.global_config['_wss_server']
             else:
-                t.userv = self.l4r.getServer(laddress, is_local = True)
+                raise RuntimeError(f'BUG: newTransaction() to unsupported transport: {transport}')
         else:
             t.userv = userv
-        t.data = msg.localStr(*t.userv.uopts.getSIPaddr(), compact = t.compact)
+        t.data = msg.localStr(t.userv.getSIPaddr(), compact = t.compact)
         if t.method == 'INVITE':
             try:
                 t.expires = msg.getHFBody('expires').getNum()
@@ -478,11 +497,11 @@ class SipTransactionManager(object):
                                 if rTarget != None:
                                     routes.append(SipRoute(address = SipAddress(url = rTarget)))
                                 rTarget = routes.pop(0).getUrl()
-                                rAddr = rTarget.getAddr()
+                                rAddr = rTarget.getTAddr()
                             else:
-                                rAddr = routes[0].getAddr()
+                                rAddr = routes[0].getTAddr()
                         elif rTarget != None:
-                            rAddr = rTarget.getAddr()
+                            rAddr = rTarget.getTAddr()
                         if rTarget != None:
                             t.ack.setRURI(rTarget)
                         if rAddr != None:
@@ -492,9 +511,9 @@ class SipTransactionManager(object):
                     if fcode >= 200 and fcode < 300:
                         t.ack.getHFBody('via').genBranch()
                     if rAddr == None:
-                        rAddr = t.address
+                        rAddr = (t.address, t.userv.transport)
                     if not t.uack:
-                        self.transmitMsg(t.userv, t.ack, rAddr, checksum, t.compact)
+                        self.transmitMsg(t.userv, t.ack, rAddr[0], checksum, t.compact)
                         if t.req_out_cb != None:
                             t.req_out_cb(t.ack)
                     else:
@@ -696,7 +715,7 @@ class SipTransactionManager(object):
         toHF = resp.getHFBody('to')
         if scode > 100 and toHF.getTag() == None:
             toHF.genTag()
-        t.data = resp.localStr(*t.userv.uopts.getSIPaddr(), compact = t.compact)
+        t.data = resp.localStr(t.userv.getSIPaddr(), compact = t.compact)
         t.address = resp.getHFBody('via').getTAddr()
         self.transmitData(t.userv, t.data, t.address, t.checksum, lossemul)
         if t.res_out_cb != None:
@@ -788,7 +807,7 @@ class SipTransactionManager(object):
         self.l4r.rotateCache()
 
     def transmitMsg(self, userv, msg, address, cachesum, compact = False):
-        data = msg.localStr(*userv.uopts.getSIPaddr(), compact = compact)
+        data = msg.localStr(userv.getSIPaddr(), compact = compact)
         self.transmitData(userv, data, address, cachesum)
 
     def transmitData(self, userv, data, address, cachesum = None, \
@@ -811,7 +830,7 @@ class SipTransactionManager(object):
         if t.teG != None:
             t.teG.cancel()
             t.teG = None
-        self.transmitMsg(t.userv, t.ack, t.ack_rAddr, t.ack_checksum, t.compact)
+        self.transmitMsg(t.userv, t.ack, t.ack_rAddr[0], t.ack_checksum, t.compact)
         if t.req_out_cb != None:
             t.req_out_cb(t.ack)
         del self.tclient[t.tid]

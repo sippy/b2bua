@@ -70,12 +70,13 @@ class SipURL(object):
             if host == None:
                 self.host = SipConf.my_address
                 self.port = SipConf.my_port
+                self.transport = SipConf.my_transport
             else:
                 self.host = host
                 self.port = port
+                self.transport = transport
             self.headers = headers
             self.usertype = usertype
-            self.transport = transport
             self.ttl = ttl
             self.maddr = maddr
             self.method = method
@@ -107,6 +108,7 @@ class SipURL(object):
         else:
             self.host = SipConf.my_address
             self.port = SipConf.my_port
+            self.transport = SipConf.my_transport
         parts = url.split(';')
         self.username = unquote(parts[0])
         if len(parts) > 1:
@@ -234,7 +236,11 @@ class SipURL(object):
     def __str__(self):
         return self.localStr()
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
+        if local_addr is not None:
+            (local_addr, local_port), local_transport = local_addr
+        else:
+            local_addr = local_port = local_transport = None
         l = []; w = l.append
         w(self.scheme + ':')
         if self.username != None:
@@ -248,26 +254,35 @@ class SipURL(object):
             w(local_addr)
         else:
             w(str(self.host))
+
+        def port_needed(port):
+            return SipConf.port_needed(port, self.transport, local_transport)
+
         if self.port != None:
-            if local_port != None and 'my' in dir(self.port):
-                w(':%d' % local_port)
-            else:
+            if local_port is not None and 'my' in dir(self.port):
+                if port_needed(local_port):
+                    w(':%d' % local_port)
+            elif port_needed(self.port):
                 w(':%d' % self.port)
-        for p in self.getParams():
+        for p in self.getParams(local_transport):
             w(';%s' % p)
         if self.headers:
             w('?')
             w('&'.join([('%s=%s' % (h, quote(v))) for (h, v) in self.headers.items()]))
         return ''.join(l)
 
-    def getParams(self):
+    def getParams(self, local_transport=None):
         res = []; w = res.append
         if self.usertype != None:
             w('user=%s' % self.usertype)
         for n in ('transport', 'ttl', 'maddr', 'method', 'tag'):
             v = getattr(self, n)
-            if v != None:
-                w('%s=%s' % (n, v))
+            if v is None: continue
+            if n == 'transport' and 'my' in dir(v):
+                if local_transport in (None, SipConf.default_transport):
+                    continue
+                v = local_transport
+            w('%s=%s' % (n, v))
         for v in self.other:
             w(v)
         if self.lr:
@@ -295,6 +310,10 @@ class SipURL(object):
         else:
             return (self.host, SipConf.default_port)
 
+    def getTAddr(self):
+        _t = self.transport if self.transport is not None else SipConf.default_transport
+        return (self.getAddr(), _t)
+
     def setAddr(self, addr):
         self.host, self.port = addr
 
@@ -302,7 +321,7 @@ if __name__ == '__main__':
     import sys
 
     test_set = (('sip:user;par=u%40example.net@example.com', ()), \
-      ('sip:user@example.com?Route=%3Csip:example.com%3E', ()), \
+      ('sip:user@example.com?Route=%3Csip%3Aexample.com%3E', ()), \
       ('sip:[2001:db8::10]', ()), \
       ('sip:[2001:db8::10]:5070', ()), \
       ('sip:user@example.net;tag=9817--94', ('tag=9817--94',)), \

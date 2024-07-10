@@ -25,7 +25,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class SdpGeneric(str):
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         return str(self)
 
     def getCopy(self):

@@ -67,7 +67,7 @@ class SipResponse(SipMsg):
         self.scode = scode
         self.reason = reason
 
-    def getSL(self):
+    def getSL(self, local_addr = None):
         return self.sipver + ' ' + str(self.scode) + ' ' + self.reason
 
     def getSCode(self):

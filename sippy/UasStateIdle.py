@@ -54,7 +54,7 @@ class UasStateIdle(UaStateGeneric):
             if not self.ua.routes[0].getUrl().lr:
                 self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
                 self.ua.rTarget = self.ua.routes.pop(0).getUrl()
-                self.ua.rAddr = self.ua.rTarget.getAddr()
+                self.ua.rAddr = self.ua.rTarget.getTAddr()
             elif self.ua.outbound_proxy != None:
                 self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
                 self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
@@ -62,9 +62,9 @@ class UasStateIdle(UaStateGeneric):
                 self.ua.rTarget.other = tuple()
                 self.ua.rTarget.headers = tuple()
             else:
-                self.ua.rAddr = self.ua.routes[0].getAddr()
+                self.ua.rAddr = self.ua.routes[0].getTAddr()
         else:
-            self.ua.rAddr = self.ua.rTarget.getAddr()
+            self.ua.rAddr = self.ua.rTarget.getTAddr()
         self.ua.rAddr0 = self.ua.rAddr
         self.ua.global_config['_sip_tm'].sendResponse(self.ua.uasResp, lossemul = self.ua.uas_lossemul)
         self.ua.uasResp.getHFBody('to').setTag(self.ua.lTag)

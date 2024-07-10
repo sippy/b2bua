@@ -41,8 +41,10 @@ class SipContact(SipAddressHF):
             self.asterisk = True
             return
         SipAddressHF.__init__(self, body, address)
-        if body == None and address == None:
-            self.address = SipAddress(name = 'Anonymous', url = SipURL(host = SipConf.my_address, port = SipConf.my_port))
+        if body is not None or address is not None: return
+        curl = SipURL(host = SipConf.my_address, port = SipConf.my_port,
+          transport = SipConf.my_transport)
+        self.address = SipAddress(name = 'Anonymous', url = curl)
 
     def getCanName(self, name, compact = False):
         if compact:

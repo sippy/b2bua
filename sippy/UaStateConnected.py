@@ -180,7 +180,8 @@ class UaStateConnected(UaStateGeneric):
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
         if isinstance(event, CCEventUpdate):
             body = event.getData()
-            if self.ua.lSDP.localStr('127.0.0.1') == body.localStr('127.0.0.1'):
+            fake_laddr = (('127.0.0.1', None), None)
+            if self.ua.lSDP.localStr(fake_laddr) == body.localStr(fake_laddr):
                 if self.ua.rSDP != None:
                     self.ua.equeue.append(CCEventConnect((200, 'OK', self.ua.rSDP.getCopy()), \
                         rtime = event.rtime, origin = event.origin))
@@ -276,11 +277,12 @@ class UaStateConnected(UaStateGeneric):
         self.ka_tr = None
         self.keepalives += 1
         if code in (408, 481, 486):
+            _h, _p = self.ua.rAddr[0]
             if self.keepalives == 1:
-                print('%s: Remote UAS at %s:%d does not support re-INVITES, disabling keep alives' % (self.ua.cId, self.ua.rAddr[0], self.ua.rAddr[1]))
+                print('%s: Remote UAS at %s:%d does not support re-INVITES, disabling keep alives' % (self.ua.cId, _h, _p))
                 Timeout(self.ua.disconnect, 600)
                 return
-            print('%s: Received %d response to keep alive from %s:%d, disconnecting the call' % (self.ua.cId, code, self.ua.rAddr[0], self.ua.rAddr[1]))
+            print('%s: Received %d response to keep alive from %s:%d, disconnecting the call' % (self.ua.cId, code, _h, _p))
             self.ua.disconnect()
             return
         Timeout(self.keepAlive, self.ua.kaInterval)

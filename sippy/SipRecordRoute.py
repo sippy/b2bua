@@ -38,3 +38,6 @@ class SipRecordRoute(SipFrom):
 
     def getAddr(self):
         return self.address.url.getAddr()
+
+    def getTAddr(self):
+        return self.address.url.getTAddr()

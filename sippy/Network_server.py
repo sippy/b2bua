@@ -27,16 +27,18 @@
 from typing import Optional, Tuple, List, Union
 from queue import Queue
 from abc import ABC, abstractmethod
+from random import random
 
 from sippy.Core.Exceptions import dump_exception
 from sippy.Time.MonoTime import MonoTime
+from sippy.Time.Timeout import Timeout
 
 class Remote_address():
     transport: str
     address: Tuple[str, int]
     received: str
 
-    def __init__(self, transport:str, address:Tuple[str, int]):
+    def __init__(self, address:Tuple[str, int], transport:str):
         self.transport = transport
         self.address = address
         self.received = address[0]
@@ -65,21 +67,22 @@ class Network_server_opts():
     def getCopy(self) -> 'Network_server_opts':
         return self.__class__(o = self)
 
-    def getSIPaddr(self) -> Tuple[str, int]:
-        return self.laddress
-
     def isWildCard(self) -> bool:
         return False
 
 class Network_server(ABC):
+    transport: str
     uopts: Network_server_opts
-    sendqueue: Queue[Tuple[bytes, Tuple[str, int]]]
+    sendqueue: Queue
     stats: List[int]
 
     def __init__(self, uopts:Network_server_opts):
         self.uopts = uopts.getCopy()
         self.sendqueue = Queue()
         self.stats = [0, 0, 0]
+
+    def getSIPaddr(self) -> Tuple[Tuple[str, int], int]:
+        return (self.uopts.laddress, self.transport)
 
     def send_to(self, data:Union[bytes, str], address:object, delayed:bool = False):
         if not isinstance(data, bytes):

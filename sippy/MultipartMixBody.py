@@ -53,9 +53,9 @@ class MultipartMixBody():
         s += f'{bnd[:-2]}--\r\n'
         return s
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         bnd = f'--{self.boundary}\r\n'
-        parts = [f'{bnd}Content-Type: {p.mtype}\r\n{p.localStr(local_addr, local_port)}'
+        parts = [f'{bnd}Content-Type: {p.mtype}\r\n{p.localStr(local_addr)}'
                  for p in self.parts]
         s = ''.join(parts)
         s += f'{bnd[:-2]}--\r\n'

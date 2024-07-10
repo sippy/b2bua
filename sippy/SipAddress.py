@@ -129,7 +129,7 @@ class SipAddress(object):
     def __str__(self):
         return self.localStr()
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         if self.hadbrace:
             od = '<'
             cd = '>'
@@ -144,7 +144,7 @@ class SipAddress(object):
                 s += self.name + ' '
             od = '<'
             cd = '>'
-        s += od + self.url.localStr(local_addr, local_port) + cd
+        s += od + self.url.localStr(local_addr) + cd
         for k in self.params_order:
             v = self.params[k]
             if v != None:

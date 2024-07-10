@@ -154,56 +154,56 @@ class SdpBody(object):
                 s += str(section)
         return s
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         s = ''
         if len(self.sections) == 1 and self.sections[0].c_header != None:
             for name in self.first_half:
                 header = getattr(self, name + '_header')
                 if header != None:
-                    s += '%s=%s\r\n' % (name, header.localStr(local_addr, local_port))
-            s += 'c=%s\r\n' % self.sections[0].c_header.localStr(local_addr, local_port)
+                    s += '%s=%s\r\n' % (name, header.localStr(local_addr))
+            s += 'c=%s\r\n' % self.sections[0].c_header.localStr(local_addr)
             for name in self.second_half:
                 header = getattr(self, name + '_header')
                 if header != None:
-                    s += '%s=%s\r\n' % (name, header.localStr(local_addr, local_port))
+                    s += '%s=%s\r\n' % (name, header.localStr(local_addr))
             for header in self.a_headers:
                 s += 'a=%s\r\n' % str(header)
-            s += self.sections[0].localStr(local_addr, local_port, noC = True)
+            s += self.sections[0].localStr(local_addr, noC = True)
             return s
         # Special code to optimize for the cases when there are many media streams pointing to
         # the same IP. Only include c= header into the top section of the SDP and remove it from
         # the streams that match.
         optimize_c_headers = False
         if len(self.sections) > 1 and self.c_header == None and self.sections[0].c_header != None and \
-          self.sections[0].c_header.localStr(local_addr, local_port) == self.sections[1].c_header.localStr(local_addr, local_port):
+          self.sections[0].c_header.localStr(local_addr) == self.sections[1].c_header.localStr(local_addr):
             # Special code to optimize for the cases when there are many media streams pointing to
             # the same IP. Only include c= header into the top section of the SDP and remove it from
             # the streams that match.
             optimize_c_headers = True
-            sections_0_str = self.sections[0].c_header.localStr(local_addr, local_port)
+            sections_0_str = self.sections[0].c_header.localStr(local_addr)
         if optimize_c_headers:
             for name in self.first_half:
                 header = getattr(self, name + '_header')
                 if header != None:
-                    s += '%s=%s\r\n' % (name, header.localStr(local_addr, local_port))
+                    s += '%s=%s\r\n' % (name, header.localStr(local_addr))
             s += 'c=%s\r\n' % sections_0_str
             for name in self.second_half:
                 header = getattr(self, name + '_header')
                 if header != None:
-                    s += '%s=%s\r\n' % (name, header.localStr(local_addr, local_port))
+                    s += '%s=%s\r\n' % (name, header.localStr(local_addr))
         else:
             for name in self.all_headers:
                 header = getattr(self, name + '_header')
                 if header != None:
-                    s += '%s=%s\r\n' % (name, header.localStr(local_addr, local_port))
+                    s += '%s=%s\r\n' % (name, header.localStr(local_addr))
         for header in self.a_headers:
             s += 'a=%s\r\n' % str(header)
         for section in self.sections:
             if optimize_c_headers and section.c_header != None and \
-              section.c_header.localStr(local_addr, local_port) == sections_0_str:
-                s += section.localStr(local_addr, local_port, noC = True)
+              section.c_header.localStr(local_addr) == sections_0_str:
+                s += section.localStr(local_addr, noC = True)
             else:
-                s += section.localStr(local_addr, local_port)
+                s += section.localStr(local_addr)
         return s
 
     def __iadd__(self, other):

@@ -95,7 +95,7 @@ class SipWWWAuthenticate(SipGenericHF):
     def __str__(self):
         return self.localStr()
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         if not self.parsed:
             return self.body
         if local_addr == None or 'my' not in dir(self.realm):

@@ -86,7 +86,7 @@ class UacStateTrying(UaStateGeneric):
                 if not self.ua.routes[0].getUrl().lr:
                     self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
                     self.ua.rTarget = self.ua.routes.pop(0).getUrl()
-                    self.ua.rAddr = self.ua.rTarget.getAddr()
+                    self.ua.rAddr = self.ua.rTarget.getTAddr()
                 elif self.ua.outbound_proxy != None:
                     self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
                     self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
@@ -94,9 +94,9 @@ class UacStateTrying(UaStateGeneric):
                     self.ua.rTarget.other = tuple()
                     self.ua.rTarget.headers = tuple()
                 else:
-                    self.ua.rAddr = self.ua.routes[0].getAddr()
+                    self.ua.rAddr = self.ua.routes[0].getTAddr()
             else:
-                self.ua.rAddr = self.ua.rTarget.getAddr()
+                self.ua.rAddr = self.ua.rTarget.getTAddr()
             tag = resp.getHFBody('to').getTag()
             if tag == None:
                 print('tag-less 200 OK, disconnecting')
@@ -111,7 +111,7 @@ class UacStateTrying(UaStateGeneric):
                     if not self.ua.routes[0].getUrl().lr:
                         self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
                         self.ua.rTarget = self.ua.routes.pop(0).getUrl()
-                        self.ua.rAddr = self.ua.rTarget.getAddr()
+                        self.ua.rAddr = self.ua.rTarget.getTAddr()
                     elif self.ua.outbound_proxy != None:
                         self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
                         self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
@@ -119,9 +119,9 @@ class UacStateTrying(UaStateGeneric):
                         self.ua.rTarget.other = tuple()
                         self.ua.rTarget.headers = tuple()
                     else:
-                        self.ua.rAddr = self.ua.routes[0].getAddr()
+                        self.ua.rAddr = self.ua.routes[0].getTAddr()
                 else:
-                    self.ua.rAddr = self.ua.rTarget.getAddr()
+                    self.ua.rAddr = self.ua.rTarget.getTAddr()
                 req = self.ua.genRequest('BYE')
                 self.ua.lCSeq += 1
                 self.ua.global_config['_sip_tm'].newTransaction(req, \

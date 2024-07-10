@@ -84,14 +84,14 @@ class SdpMediaDescription(object):
             s += 'a=%s\r\n' % str(header)
         return s
 
-    def localStr(self, local_addr = None, local_port = None, noC = False):
+    def localStr(self, local_addr = None, noC = False):
         s = ''
         for name in self.all_headers:
             if noC and name == 'c':
                 continue
             header = getattr(self, name + '_header')
             if header != None:
-                s += '%s=%s\r\n' % (name, header.localStr(local_addr, local_port))
+                s += '%s=%s\r\n' % (name, header.localStr(local_addr))
         for header in self.a_headers:
             s += 'a=%s\r\n' % str(header)
         return s

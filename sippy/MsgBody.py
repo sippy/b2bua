@@ -68,10 +68,10 @@ class MsgBody(object):
     def __str__(self):
         return str(self.content)
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         if type(self.content) in str_types:
             return self.content
-        return self.content.localStr(local_addr, local_port)
+        return self.content.localStr(local_addr)
 
     def getType(self):
         return self.mtype.name.lower()

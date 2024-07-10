@@ -98,9 +98,9 @@ class SipHeader(object):
     def __str__(self):
         return str(self.body.getCanName(self.name)) + ': ' + str(self.body)
 
-    def localStr(self, local_addr = None, local_port = None, compact = False):
+    def localStr(self, local_addr = None, compact = False):
         return str(self.body.getCanName(self.name, compact)) + ': ' + \
-          self.body.localStr(local_addr, local_port)
+          self.body.localStr(local_addr)
 
     def getBody(self):
         if not self.body.parsed:

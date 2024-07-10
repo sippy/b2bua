@@ -65,10 +65,10 @@ class SipAddressHF(SipGenericHF):
     def __str__(self):
         return self.localStr()
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         if not self.parsed:
             return self.body
-        return self.address.localStr(local_addr, local_port)
+        return self.address.localStr(local_addr)
 
     def getCopy(self):
         if not self.parsed:

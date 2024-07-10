@@ -40,6 +40,7 @@ from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import TimeoutAbsMono
 from sippy.Exceptions.RtpProxyError import RtpProxyError
 from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.SipConf import SipConf
 
 class UA(object):
     global_config = None
@@ -114,7 +115,7 @@ class UA(object):
         self.equeue = []
         self.username = username
         self.password = password
-        self.rAddr = nh_address
+        self.rAddr = (nh_address, SipConf.my_transport)
         self.rAddr0 = self.rAddr
         self.credit_time = credit_time
         self.credit_times = {}
@@ -274,7 +275,7 @@ class UA(object):
     def genRequest(self, method, body = None, cqop = None, \
       reason = None, max_forwards = None):
         if self.outbound_proxy != None:
-            target = self.outbound_proxy
+            target = (self.outbound_proxy, SipConf.my_transport)
         else:
             target = self.rAddr
         if max_forwards != None:

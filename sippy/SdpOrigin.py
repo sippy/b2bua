@@ -60,8 +60,9 @@ class SdpOrigin(object):
     def __str__(self):
         return '%s %s %s %s %s %s' % (self.username, self.session_id, self.version, self.network_type, self.address_type, self.address)
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         if local_addr != None and 'my' in dir(self.address):
+            (local_addr, local_port), local_transport = local_addr
             if local_addr.startswith('['):
                 address_type = 'IP6'
                 local_addr = local_addr[1:-1]

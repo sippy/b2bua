@@ -122,7 +122,7 @@ class AsyncReceiver(Thread):
             if self.userv.uopts.family == socket.AF_INET6:
                 address = ('[%s]' % address[0], address[1])
             if not self.userv.uopts.direct_dispatch:
-                address = Remote_address('udp', address)
+                address = Remote_address(address, self.userv.transport)
                 ED2.callFromThread(self.userv.handle_read, data, address, rtime)
             else:
                 self.userv.handle_read(data, address, rtime)
@@ -162,11 +162,6 @@ class Udp_server_opts(Network_server_opts):
             sockopts.append((socket.SOL_SOCKET, socket.SO_REUSEPORT, 1))
         return sockopts
 
-    def getSIPaddr(self):
-        if self.family == socket.AF_INET:
-            return super().getSIPaddr()
-        return (('[%s]' % self.laddress[0], self.laddress[1]))
-
     def isWildCard(self):
         if (self.family, self.laddress[0]) in ((socket.AF_INET, '0.0.0.0'), \
           (socket.AF_INET6, '::')):
@@ -174,6 +169,7 @@ class Udp_server_opts(Network_server_opts):
         return False
 
 class Udp_server(Network_server):
+    transport = 'udp'
     skt = None
     close_on_shutdown = get_platform().startswith('macosx-')
     asenders = None
@@ -203,6 +199,11 @@ class Udp_server(Network_server):
         for i in range(0, self.uopts.nworkers):
             self.asenders.append(AsyncSender(self))
             self.areceivers.append(AsyncReceiver(self))
+
+    def getSIPaddr(self):
+        if self.uopts.family == socket.AF_INET:
+            return super().getSIPaddr()
+        return (('[%s]' % self.uopts.laddress[0], self.uopts.laddress[1]), self.transport)
 
     def send_to(self, data, address, delayed = False):
         if not isinstance(address, tuple):

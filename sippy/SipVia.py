@@ -34,35 +34,34 @@ from sippy.ESipHeaderCSV import ESipHeaderCSV
 class SipVia(SipGenericHF):
     hf_names = ('via', 'v')
 
-    sipver = None
+    sipver = 'SIP/2.0'
+    transport = 'UDP'
     hostname = None
     port = None
     params = None
 
-    def __init__(self, body = None, sipver = None, hostname = None, port = None, params = None):
+    def __init__(self, body = None, cself = None):
         if body != None and body.find(',') > -1:
             raise ESipHeaderCSV(None, body.split(','))
         SipGenericHF.__init__(self, body)
-        if body == None:
-            self.parsed = True
-            self.params = {}
-            if sipver == None:
-                self.sipver = 'SIP/2.0/UDP'
-            else:
-                self.sipver = sipver
-            if hostname == None:
-                self.hostname = SipConf.my_address
-                self.port = SipConf.my_port
-                self.params['rport'] = None
-            else:
-                self.hostname = hostname
-                self.port = port
-            if params != None:
-                self.params = params
+        if body is not None:
+            assert cself is None
+            return
+        if cself is not None:
+            self.parsed, self.sipver, self.transport, self.hostname, self.port, \
+              self.params = cself.parsed, cself.sipver, cself.transport, \
+              cself.hostname, cself.port, cself.params.copy()
+            return
+        self.parsed = True
+        self.params = {'rport':None}
+        self.hostname = SipConf.my_address
+        self.port = SipConf.my_port
+        self.transport = SipConf.my_transport
 
     def parse(self):
         self.params = {}
-        self.sipver, hostname = self.body.split(None, 1)
+        parts, hostname = self.body.split(None, 1)
+        self.sipver, self.transport = (p:=parts.rsplit('/', 1))[0].rstrip(), p[1].lstrip()
         hcomps = [x.strip() for x in hostname.split(';')]
         for param in hcomps[1:]:
             sparam = param.split('=', 1)
@@ -95,16 +94,29 @@ class SipVia(SipGenericHF):
     def __str__(self):
         return self.localStr()
 
-    def localStr(self, local_addr = None, local_port = None):
+    def localStr(self, local_addr = None):
         if not self.parsed:
             return self.body
-        if local_addr != None and 'my' in dir(self.hostname):
-            s = self.sipver + ' ' + local_addr
+        if local_addr is not None:
+            (local_addr, local_port), local_transport = local_addr
         else:
-            s = self.sipver + ' ' + str(self.hostname)
+            local_addr = local_port = local_transport = None
+        if 'my' in dir(self.transport):
+            transport = str(self.transport) if local_transport is None \
+                                            else local_transport
+            transport = transport.upper()
+            if transport == 'WS': transport = 'WSS'
+        else:
+            transport = self.transport
+        sipver = f'{self.sipver}/{transport}'
+        if local_addr != None and 'my' in dir(self.hostname):
+            s = sipver + ' ' + local_addr
+        else:
+            s = sipver + ' ' + str(self.hostname)
         if self.port != None:
             if local_port != None and 'my' in dir(self.port):
-                s += ':' + str(local_port)
+                if SipConf.port_needed(local_port, self.transport, local_transport):
+                    s += ':' + str(local_port)
             else:
                 s += ':' + str(self.port)
         for key, val in self.params.items():
@@ -116,7 +128,7 @@ class SipVia(SipGenericHF):
     def getCopy(self):
         if not self.parsed:
             return SipVia(self.body)
-        return SipVia(sipver = self.sipver, hostname = self.hostname, port = self.port, params = self.params.copy())
+        return SipVia(cself=self)
 
     def genBranch(self):
         salt = str((random() * 1000000000) + time())
