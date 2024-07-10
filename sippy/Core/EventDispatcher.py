@@ -43,11 +43,6 @@ class EventListener(object):
     cb_with_ts = False
     randomize_runs = None
 
-    def __cmp__(self, other):
-        if other == None:
-            return 1
-        return cmp(self.etime, other.etime)
-
     def __lt__(self, other):
         return self.etime < other.etime
 

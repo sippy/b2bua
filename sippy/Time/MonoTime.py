@@ -140,17 +140,6 @@ class MonoTime(object):
             return (x.monot - self.monot)
         return (x - self.monot)
 
-    def __cmp__(self, other):
-        if other == None:
-            return (1)
-        if isinstance(other, int):
-            otime = float(other)
-        elif isinstance(other, float):
-            otime = other
-        else:
-            otime = other.monot
-        return cmp(self.monot, otime)
-
     def __lt__(self, other):
         return (self.monot < other.monot)
 
