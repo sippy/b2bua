@@ -179,7 +179,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
 
     def reconnect(self, address, bind_address = None):
         if not self.is_local:
-            address = self.getdestbyaddr(address, family)
+            address = self.getdestbyaddr(address, self.family)
         self.rtpp_class._reconnect(self, address, bind_address)
 
     def _reconnect(self, address, bind_address = None):
