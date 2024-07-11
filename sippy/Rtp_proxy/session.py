@@ -39,49 +39,12 @@ from sippy.Core.Exceptions import dump_exception
 from sippy.Core.EventDispatcher import ED2
 from sippy.Exceptions.RtpProxyError import RtpProxyError
 from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.Rtp_proxy.Cmd.sequencer import Rtp_proxy_cmd_sequencer
 
 try:
     strtypes = (str, unicode)
 except NameError:
     strtypes = (str,)
-
-class Rtp_proxy_cmd_sequencer(object):
-    rtp_proxy_client = None
-    comqueue = None
-    inflight = None
-    deleted = False
-
-    def __init__(self, rtpp_client):
-        self.rtp_proxy_client = rtpp_client
-        self.comqueue = []
-
-    def send_command(self, command, result_callback = None, *callback_parameters):
-        if self.rtp_proxy_client == None:
-            return
-        if self.inflight != None:
-            self.comqueue.append((command, result_callback, callback_parameters))
-            return
-        self.inflight = (command, result_callback, callback_parameters)
-        self.rtp_proxy_client.send_command(command, self.result_callback)
-
-    def result_callback(self, result):
-        command, result_callback, callback_parameters = self.inflight
-        self.inflight = None
-        if self.rtp_proxy_client != None and len(self.comqueue) > 0:
-            self.inflight = self.comqueue.pop(0)
-            self.rtp_proxy_client.send_command(self.inflight[0], self.result_callback)
-        if result_callback != None:
-            result_callback(result, *callback_parameters)
-        if self.deleted:
-            self.delete()
-            return
-
-    def delete(self):
-        if self.inflight is not None:
-            self.deleted = True
-            return
-        # break the reference loop
-        self.rtp_proxy_client = None
 
 class update_params():
     rtpps = None
