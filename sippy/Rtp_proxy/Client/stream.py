@@ -24,10 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
+from queue import Queue
 
 from sippy.Time.Timeout import Timeout
-from threading import Thread, Condition
+from threading import Thread
 from errno import EINTR, EPIPE, ENOTCONN, ECONNRESET
 from sippy.Time.MonoTime import MonoTime
 from sippy.Math.recfilter import recfilter
@@ -59,9 +59,9 @@ class _RTPPLWorker(Thread):
             address = self.userv.address
         self.s.connect(address)
 
-    def send_raw(self, command, _recurse = 0, stime = None):
+    def send_raw(self, command, _recurse = 0, stime = None, ex = None):
         if _recurse > _MAX_RECURSE:
-            raise Exception('Cannot reconnect: %s' % (str(self.userv.address),))
+            raise Exception('Cannot reconnect: %s' % (str(self.userv.address),)) from ex
         _recurse += 1
         if self.s == None:
             self.connect()
@@ -77,14 +77,14 @@ class _RTPPLWorker(Thread):
                     continue
                 elif why.errno in (EPIPE, ENOTCONN, ECONNRESET):
                     self.s = None
-                    return self.send_raw(command, _recurse, stime)
+                    return self.send_raw(command, _recurse, stime, why)
                 raise why
         while True:
             try:
                 rval = self.s.recv(1024)
                 if len(rval) == 0:
                     self.s = None
-                    return self.send_raw(command, _recurse, stime)
+                    return self.send_raw(command, _recurse, stime, why)
                 rval = rval.decode().strip()
                 break
             except socket.error as why:
@@ -92,7 +92,7 @@ class _RTPPLWorker(Thread):
                     continue
                 elif why.errno in (EPIPE, ENOTCONN, ECONNRESET):
                     self.s = None
-                    return self.send_raw(command, _recurse, stime)
+                    return self.send_raw(command, _recurse, stime, why)
                 raise why
         rtpc_delay = stime.offsetFromNow()
         return (rval, rtpc_delay)
@@ -101,15 +101,10 @@ class _RTPPLWorker(Thread):
         #print(self.run, 'enter')
         while True:
             #print(self.run, 'spin')
-            self.userv.wi_available.acquire()
-            while len(self.userv.wi) == 0:
-                self.userv.wi_available.wait()
-            wi = self.userv.wi.pop(0)
+            wi = self.userv.wi.get()
             if wi == None:
                 # Shutdown request, relay it further
-                self.userv.wi.append(None)
-                self.userv.wi_available.notify()
-            self.userv.wi_available.release()
+                self.userv.wi.put(None)
             if wi == None:
                 break
             command, result_callback, callback_parameters = wi
@@ -134,7 +129,6 @@ class _RTPPLWorker(Thread):
 
 class Rtp_proxy_client_stream(Rtp_proxy_client_net):
     is_local = None
-    wi_available = None
     wi = None
     nworkers = None
     nworkers_act = None
@@ -153,8 +147,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
             self.is_local = False
             self.address = self.getdestbyaddr(address, family)
         self.family = family
-        self.wi_available = Condition()
-        self.wi = []
+        self.wi = Queue()
         self.nworkers = nworkers
         self.workers = []
         for i in range(0, self.nworkers):
@@ -172,10 +165,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
             command = str(command)
         elif not command.endswith('\n'):
             command += '\n'
-        self.wi_available.acquire()
-        self.wi.append((command, result_callback, callback_parameters))
-        self.wi_available.notify()
-        self.wi_available.release()
+        self.wi.put((command, result_callback, callback_parameters))
 
     def reconnect(self, address, bind_address = None):
         if not self.is_local:
@@ -195,10 +185,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
         self.delay_flt = recfilter(0.95, 0.25)
 
     def shutdown(self):
-        self.wi_available.acquire()
-        self.wi.append(None)
-        self.wi_available.notify()
-        self.wi_available.release()
+        self.wi.put(None)
         for rworker in self.workers:
             rworker.join()
         self.workers = None
