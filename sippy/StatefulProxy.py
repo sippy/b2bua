@@ -34,7 +34,7 @@ class StatefulProxy:
     def __init__(self, global_config, destination):
         print(destination)
         self.global_config = global_config
-        self.destination = destination
+        self.destination = (destination, 'udp')
 
     def recvRequest(self, req):
         via0 = SipVia()
