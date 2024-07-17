@@ -309,6 +309,11 @@ class SipTransactionManager(object):
                     curl = cbody.getUrl()
                     if check1918(curl.host):
                         curl.host, curl.port = ra.address
+            if ra.transport == 'wss' and resp.countHFs('contact') > 0:
+                cbody = resp.getHFBody('contact')
+                if not cbody.asterisk:
+                    curl = cbody.getUrl()
+                    curl.host = ra.received
             resp.setSource(ra.address)
             self.incomingResponse(resp, t, checksum)
         else:
@@ -327,7 +332,8 @@ class SipTransactionManager(object):
             via0 = req.getHFBody('via')
             ahost, aport = via0.getAddr()
             rhost, rport = ra.address
-            if self.nat_traversal and rport != aport and (check1918(ahost) or check7118(ahost)):
+            if ra.transport != 'wss' and self.nat_traversal and rport != aport \
+              and (check1918(ahost) or check7118(ahost)):
                 req.nated = True
             if ahost != rhost:
                 via0.params['received'] = ra.received
@@ -352,6 +358,11 @@ class SipTransactionManager(object):
                     if check1918(curl.host) or curl.port == 0 or curl.host == '255.255.255.255':
                         curl.host, curl.port = ra.address
                         req.nated = True
+            if ra.transport == 'wss' and usable_contact():
+                if (cbody:=get_contact()) is None: return
+                if not cbody.asterisk:
+                    curl = cbody.getUrl()
+                    curl.host = ra.received
             req.setSource(ra.address)
             try:
                 self.incomingRequest(req, checksum, tids, server)
@@ -390,6 +401,8 @@ class SipTransactionManager(object):
                     t.userv = self.l4r.getServer(t.address)
                 else:
                     t.userv = self.l4r.getServer(laddress, is_local = True)
+            elif transport in ('ws', 'wss'):
+                t.userv = self.global_config['_wss_server']
             else:
                 raise RuntimeError(f'BUG: newTransaction() to unsupported transport: {transport}')
         else:
@@ -808,8 +821,9 @@ class SipTransactionManager(object):
             logop = 'SENDING'
         else:
             logop = 'DISCARDING'
-        self.global_config['_sip_logger'].write('%s message to %s:%d:\n' % \
-          (logop, address[0], address[1]), data)
+        paddr = userv.addr2str(address)
+        msg = f'{logop} message to {paddr}:\n'
+        self.global_config['_sip_logger'].write(msg, data)
         if cachesum != None:
             if lossemul > 0:
                 lossemul -= 1

@@ -98,6 +98,11 @@ SUPPORTED_OPTIONS = { \
                              'and "SUBSCRIBE" messages. Address in the format ' \
                              '"host[:port]"'),
  'nat_traversal':     ('B', 'enable NAT traversal for signalling'), \
+ 'wss_socket':        ('S', 'WSS (SIP via websockets, RFC7118) socket ' \
+                             'configuration. Configuration in the format ' \
+                             '"host:port:cert_file:key_file", where "cert_file" ' \
+                             '/ "key_file" are paths to the TLS certificate ' \
+                             'and key file respectively in the X.509 PEM format'),
  'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server')}
 
 class MyConfigParser(RawConfigParser):

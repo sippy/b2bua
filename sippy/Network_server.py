@@ -84,6 +84,9 @@ class Network_server(ABC):
     def getSIPaddr(self) -> Tuple[Tuple[str, int], int]:
         return (self.uopts.laddress, self.transport)
 
+    def addr2str(self, address):
+        return f'{self.transport}:{address[0]}:{address[1]}'
+
     def send_to(self, data:Union[bytes, str], address:object, delayed:bool = False):
         if not isinstance(data, bytes):
             data = data.encode('utf-8')

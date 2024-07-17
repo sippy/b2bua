@@ -49,6 +49,7 @@ from sippy.RadiusAccounting import RadiusAccounting
 from sippy.FakeAccounting import FakeAccounting
 from sippy.SipLogger import SipLogger
 from sippy.Rtp_proxy.session import Rtp_proxy_session
+from sippy.Rtp_proxy.Session.webrtc import Rtp_proxy_session_webrtc
 from sippy.Rtp_proxy.client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2, SIGTERM
 from sippy.CLIManager import CLIConnectionManager
@@ -57,6 +58,7 @@ from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
 from sippy.misc import daemonize
 from sippy.B2BRoute import B2BRoute
+from sippy.Wss_server import Wss_server, Wss_server_opts
 
 import gc, getopt, os
 from re import sub
@@ -100,6 +102,8 @@ class CCStateDead(object):
 class CCStateDisconnecting(object):
     sname = 'Disconnecting'
 
+class Rtp_proxy_session_default(Rtp_proxy_session): insert_nortpp = True
+
 class CallController(object):
     id = 1
     uaA = None
@@ -114,6 +118,7 @@ class CallController(object):
     acctA = None
     acctO = None
     global_config = None
+    rtpps_cls = Rtp_proxy_session_default
     rtp_proxy_session = None
     huntstop_scodes = None
     pass_headers = None
@@ -121,9 +126,10 @@ class CallController(object):
     proxied = False
     challenge = None
 
-    def __init__(self, remote_ip, source, global_config, pass_headers):
+    def __init__(self, remote_ip, source, vtrans, global_config, pass_headers):
         self.id = CallController.id
         CallController.id += 1
+        if vtrans == 'WSS': self.rtpps_cls = Rtp_proxy_session_webrtc
         self.global_config = global_config
         self.uaA = UA(self.global_config, event_cb = self.recvEvent, conn_cbs = (self.aConn,), disc_cbs = (self.aDisc,), \
           fail_cbs = (self.aDisc,), dead_cbs = (self.aDead,))
@@ -158,7 +164,7 @@ class CallController(object):
                     allowed_pts = self.global_config['_allowed_pts']
                     for sect in body.content.sections:
                         mbody = sect.m_header
-                        if mbody.transport.lower() not in Rtp_proxy_session.AV_TRTYPES:
+                        if mbody.transport.lower() not in self.rtpps_cls.AV_TRTYPES:
                             continue
                         old_len = len(mbody.formats)
                         mbody.formats = [x for x in mbody.formats if x in allowed_pts]
@@ -177,11 +183,10 @@ class CallController(object):
                     self.cld = re_replace(self.global_config['static_tr_in'], self.cld)
                     event.data = (self.cId, self.cli, self.cld, body, auth, self.caller_name)
                 if '_rtp_proxy_clients' in self.global_config:
-                    self.rtp_proxy_session = Rtp_proxy_session(self.global_config, call_id = self.cId, \
+                    self.rtp_proxy_session = self.rtpps_cls(self.global_config, call_id = self.cId, \
                       notify_socket = self.global_config['b2bua_socket'], \
                       notify_tag = quote('r %s' % str(self.id)))
                     self.rtp_proxy_session.callee.raddress = (self.remote_ip, 5060)
-                    self.rtp_proxy_session.insert_nortpp = True
                 self.eTry = event
                 self.state = CCStateWaitRoute
                 if not self.global_config['auth_enable']:
@@ -428,8 +433,11 @@ class CallMap(object):
                 via = req.getHFBody('via', 1)
             else:
                 via = req.getHFBody('via', 0)
-            remote_ip = via.getTAddr()[0]
             source = req.getSource()
+            if not via.transport == 'WSS':
+                remote_ip = via.getTAddr()[0]
+            else:
+                remote_ip = source[0]
 
             # First check if request comes from IP that
             # we want to accept our traffic from
@@ -459,7 +467,7 @@ class CallMap(object):
                 hfs = req.getHFs(header)
                 if len(hfs) > 0:
                     pass_headers.extend(hfs)
-            cc = CallController(remote_ip, source, self.global_config, pass_headers)
+            cc = CallController(remote_ip, source, via.transport, self.global_config, pass_headers)
             cc.challenge = challenge
             rval = cc.uaA.recvRequest(req, sip_t)
             self.ccmap.append(cc)
@@ -813,7 +821,17 @@ def main_func():
 
     if global_config.getdefault('xmpp_b2bua_id', None) != None:
         global_config['_xmpp_mode'] = True
-    global_config['_sip_tm'] = SipTransactionManager(global_config, global_config['_cmap'].recvRequest)
+    stm = SipTransactionManager(global_config, global_config['_cmap'].recvRequest)
+
+    if 'wss_socket' in global_config:
+        parts = global_config['wss_socket'].split(':', 3)
+        wss_laddr = (parts[0], int(parts[1]))
+        wss_certfile = parts[2]
+        wss_keyfile = parts[3]
+        wss_opts = Wss_server_opts(wss_laddr, stm.handleIncoming, certfile=wss_certfile, keyfile=wss_keyfile)
+        global_config['_wss_server'] = Wss_server(global_config, wss_opts)
+
+    global_config['_sip_tm'] = stm
     global_config['_sip_tm'].nat_traversal = global_config.getdefault('nat_traversal', False)
 
     cmdfile = global_config['b2bua_socket']
@@ -825,7 +843,11 @@ def main_func():
         open(global_config['pidfile'], 'w').write(str(os.getpid()) + '\n')
         Signal(SIGUSR1, reopen, SIGUSR1, global_config['logfile'])
 
-    ED2.loop()
+    try:
+        ED2.loop()
+    finally:
+        if '_wss_server' in global_config:
+            global_config['_wss_server'].shutdown()
 
 if __name__ == '__main__':
     main_func()
