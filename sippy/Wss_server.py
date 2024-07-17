@@ -107,6 +107,10 @@ class Wss_server(Thread, Network_server):
             subprotocols = ['sip']
         )
         server = await start_server
+        if self.uopts.laddress[0] == '0.0.0.0':
+            addr = server.sockets[0].getsockname()
+            self.uopts.laddress = addr
+            print(f'WSS server is listening on {addr[0]}:{addr[1]}')
         await self.monitor_queue()
         server.close()
         await server.wait_closed()
