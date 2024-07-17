@@ -87,6 +87,10 @@ class Wss_server(Thread, Network_server):
         sender = create_task(self.sip_to_ws(queue, websocket))
         conn_id = f'{websocket.id}.invalid'
         self.connections[conn_id] = (websocket, queue)
+        if self.uopts.laddress[0] == '0.0.0.0':
+            sock = websocket.transport.get_extra_info('socket')
+            addr = sock.getsockname()
+            ED2.callFromThread(self.set_laddress, addr)
         address = Remote_address(websocket.remote_address, self.transport)
         address.received = conn_id
         try:
@@ -107,16 +111,16 @@ class Wss_server(Thread, Network_server):
             subprotocols = ['sip']
         )
         server = await start_server
-        if self.uopts.laddress[0] == '0.0.0.0':
-            addr = server.sockets[0].getsockname()
-            self.uopts.laddress = addr
-            print(f'WSS server is listening on {addr[0]}:{addr[1]}')
         await self.monitor_queue()
         server.close()
         await server.wait_closed()
 
     def addr2str(self, address):
         return f'{self.transport}:{address[0]}'
+
+    def set_laddress(self, address):
+        print(f'WSS server is listening on {address[0]}:{address[1]}')
+        self.uopts.laddress = address
 
     def runFailed(self, exception):
         ED2.breakLoop(255)
