@@ -16,6 +16,13 @@ Sippy B2BUA doesn't perform any media relaying or processing, therefore it
 doesn't introduce any additional packet loss, delay or jitter into the media
 path. 
 
+## News
+
+- Support for WebRTC clients has been added via RFC7118-compatible secure
+  websocket (`wss`) interface. Combined with the functionality provided
+  by the RTPProxy's `dtls_gw` and `ice_lite` modules allows building
+  high-capacity WebRTC<->SIP gateways.
+
 ## Features
 
 - 5,000-10,000 simultaneous sessions per server
