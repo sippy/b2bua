@@ -327,8 +327,7 @@ class SipTransactionManager(object):
             via0 = req.getHFBody('via')
             ahost, aport = via0.getAddr()
             rhost, rport = ra.address
-            if ra.transport != 'ws' and self.nat_traversal and rport != aport \
-              and (check1918(ahost) or check7118(ahost)):
+            if self.nat_traversal and rport != aport and (check1918(ahost) or check7118(ahost)):
                 req.nated = True
             if ahost != rhost:
                 via0.params['received'] = ra.received
@@ -353,11 +352,6 @@ class SipTransactionManager(object):
                     if check1918(curl.host) or curl.port == 0 or curl.host == '255.255.255.255':
                         curl.host, curl.port = ra.address
                         req.nated = True
-            if ra.transport == 'ws' and usable_contact():
-                if (cbody:=get_contact()) is None: return
-                if not cbody.asterisk:
-                    curl = cbody.getUrl()
-                    curl.host = ra.received
             req.setSource(ra.address)
             try:
                 self.incomingRequest(req, checksum, tids, server)
@@ -396,8 +390,6 @@ class SipTransactionManager(object):
                     t.userv = self.l4r.getServer(t.address)
                 else:
                     t.userv = self.l4r.getServer(laddress, is_local = True)
-            elif transport == 'ws':
-                t.userv = self.global_config['_wss_server']
             else:
                 raise RuntimeError(f'BUG: newTransaction() to unsupported transport: {transport}')
         else:
