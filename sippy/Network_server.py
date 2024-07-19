@@ -132,7 +132,9 @@ class RTP_port_allocator():
     min_port: int
     max_port: int
 
-    def __init__(self, min_port:int = 1024, max_port:int = 65535):
+    def __init__(self, min_port:Optional[int]=None, max_port:Optional[int]=None):
+        if min_port is None: min_port = 1024
+        if max_port is None: max_port = 65535
         if min_port % 2 != 0:
             min_port += 1
         assert min_port <= max_port, f'min_port={min_port} > max_port={max_port}'
