@@ -27,11 +27,12 @@
 from typing import Optional, Tuple, List, Union
 from queue import Queue
 from abc import ABC, abstractmethod
-from random import random
+from random import random, randint
 
 from sippy.Core.Exceptions import dump_exception
 from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import Timeout
+from sippy.SipConf import MyPort
 
 class Remote_address():
     transport: str
@@ -47,7 +48,7 @@ class Remote_address():
         return f'{self.transport}:{self.address[0]}:{self.address[1]}'
 
 class Network_server_opts():
-    laddress: Optional[Tuple[str, int]] = None
+    laddress: Optional[Tuple[str, Union[int, callable, MyPort]]] = None
     data_callback: Optional[callable] = None
     direct_dispatch: bool = False
     ploss_out_rate: float = 0.0
@@ -124,3 +125,24 @@ class Network_server(ABC):
         self.sendqueue.put(None)
         self.join()
         self.uopts.data_callback = None
+
+class PortAllocationError(Exception): pass
+
+class RTP_port_allocator():
+    min_port: int
+    max_port: int
+
+    def __init__(self, min_port:int = 1024, max_port:int = 65535):
+        if min_port % 2 != 0:
+            min_port += 1
+        assert min_port <= max_port, f'min_port={min_port} > max_port={max_port}'
+        self.min_port = min_port
+        self.max_port = max_port
+
+    def __call__(self, ntry: int) -> int:
+        rlen = self.max_port - self.min_port
+        if ntry > (rlen // 2):
+            raise PortAllocationError(f'No free ports available after {ntry} tries')
+        port = self.min_port + (randint(0, rlen // 2) * 2)
+        assert port <= self.max_port, f'port={port} > self.max_port={self.max_port}'
+        return port

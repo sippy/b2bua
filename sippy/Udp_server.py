@@ -32,7 +32,7 @@ except NameError:
         pass
 
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, EWOULDBLOCK, ENOBUFS, EAGAIN, \
-  EINTR, EBADF
+  EINTR, EBADF, EADDRINUSE
 from datetime import datetime
 from time import sleep, time
 from threading import Thread
@@ -41,7 +41,8 @@ import socket
 
 from sippy.Core.EventDispatcher import ED2
 from sippy.Core.Exceptions import dump_exception
-from sippy.Network_server import Network_server_opts, Network_server, Remote_address
+from sippy.Network_server import Network_server_opts, Network_server, Remote_address, \
+  RTP_port_allocator
 from sippy.Time.Timeout import Timeout
 from sippy.Time.MonoTime import MonoTime
 from sippy.SipConf import MyPort
@@ -191,7 +192,19 @@ class Udp_server(Network_server):
                 # TypeError: 'MyPort' object cannot be interpreted as an integer
                 # might be something inside socket.bind?
                 address = (address[0], int(address[1]))
-            self.skt.bind(address)
+            if not callable(address[1]):
+                self.skt.bind(address)
+            else:
+                ntry = -1
+                for ntry in iter(lambda: ntry + 1, -1):
+                    try_address = (address[0], address[1](ntry))
+                    try: self.skt.bind(try_address)
+                    except OSError as ex:
+                        if ex.errno != EADDRINUSE:
+                            raise
+                    else:
+                        self.uopts.laddress = try_address
+                        break
             if self.uopts.laddress[1] == 0:
                 self.uopts.laddress = self.skt.getsockname()
         self.asenders = []
@@ -278,28 +291,27 @@ class self_test(object):
             ED2.breakLoop()
 
     def run(self):
+        palloc = RTP_port_allocator()
         local_host = '127.0.0.1'
         local_host6 = '[::1]'
-        remote_host = local_host
-        remote_host6 = local_host6
         self.ping_laddr = (local_host, 12345)
-        self.pong_laddr = (local_host, 54321)
-        self.ping_laddr6 = (local_host6, 12345)
+        self.pong_laddr = (local_host, palloc)
+        self.ping_laddr6 = (local_host6, 0)
         self.pong_laddr6 = (local_host6, 54321)
-        self.ping_raddr = (remote_host, 12345)
-        self.pong_raddr = (remote_host, 54321)
-        self.ping_raddr6 = (remote_host6, 12345)
-        self.pong_raddr6 = (remote_host6, 54321)
         uopts_ping = Udp_server_opts(self.ping_laddr, self.ping_received)
         uopts_ping6 = Udp_server_opts(self.ping_laddr6, self.ping_received)
         uopts_pong = Udp_server_opts(self.pong_laddr, self.pong_received)
         uopts_pong6 = Udp_server_opts(self.pong_laddr6, self.pong_received)
         udp_server_ping = Udp_server({}, uopts_ping)
         udp_server_pong = Udp_server({}, uopts_pong)
-        udp_server_pong.send_to(self.ping_data, self.ping_laddr)
+        self.ping_raddr = udp_server_ping.getSIPaddr()[0]
+        self.pong_raddr = udp_server_pong.getSIPaddr()[0]
+        udp_server_pong.send_to(self.ping_data, self.ping_raddr)
         udp_server_ping6 = Udp_server({}, uopts_ping6)
         udp_server_pong6 = Udp_server({}, uopts_pong6)
-        udp_server_pong6.send_to(self.ping_data6, self.ping_laddr6)
+        self.ping_raddr6 = udp_server_ping6.getSIPaddr()[0]
+        self.pong_raddr6 = udp_server_pong6.getSIPaddr()[0]
+        udp_server_pong6.send_to(self.ping_data6, self.ping_raddr6)
         ED2.loop()
         udp_server_ping.shutdown()
         udp_server_pong.shutdown()
