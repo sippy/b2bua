@@ -126,10 +126,10 @@ class CallController(object):
     proxied = False
     challenge = None
 
-    def __init__(self, remote_ip, source, vtrans, global_config, pass_headers):
+    def __init__(self, remote_ip, source, trans, global_config, pass_headers):
         self.id = CallController.id
         CallController.id += 1
-        if vtrans == 'WSS': self.rtpps_cls = Rtp_proxy_session_webrtc
+        if trans == 'wss': self.rtpps_cls = Rtp_proxy_session_webrtc
         self.global_config = global_config
         self.uaA = UA(self.global_config, event_cb = self.recvEvent, conn_cbs = (self.aConn,), disc_cbs = (self.aDisc,), \
           fail_cbs = (self.aDisc,), dead_cbs = (self.aDead,))
@@ -433,17 +433,14 @@ class CallMap(object):
                 via = req.getHFBody('via', 1)
             else:
                 via = req.getHFBody('via', 0)
-            source = req.getSource()
-            if not via.transport == 'WSS':
-                remote_ip = via.getTAddr()[0]
-            else:
-                remote_ip = source[0]
+            source, transport = req.getSource(ver=2)
+            remote_ip = via.getTAddr()[0] if transport != 'wss' else source[0]
 
             # First check if request comes from IP that
             # we want to accept our traffic from
             aips = self.global_config.getdefault('_accept_ips', None)
             if aips is not None:
-                req_source = source[0] if via.transport != 'WSS' else 'WSS'
+                req_source = source[0] if transport != 'wss' else 'WSS'
                 if not req_source in aips:
                     resp = req.genResponse(403, 'Forbidden')
                     return (resp, None, None)
@@ -469,7 +466,7 @@ class CallMap(object):
                 hfs = req.getHFs(header)
                 if len(hfs) > 0:
                     pass_headers.extend(hfs)
-            cc = CallController(remote_ip, source, via.transport, self.global_config, pass_headers)
+            cc = CallController(remote_ip, source, transport, self.global_config, pass_headers)
             cc.challenge = challenge
             rval = cc.uaA.recvRequest(req, sip_t)
             self.ccmap.append(cc)

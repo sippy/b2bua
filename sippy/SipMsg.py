@@ -31,6 +31,7 @@ from sippy.MsgBody import MsgBody
 from sippy.ESipHeaderCSV import ESipHeaderCSV
 from sippy.ESipHeaderIgnore import ESipHeaderIgnore
 from sippy.Exceptions.SipParseError import SipParseError
+from sippy.Network_server import Remote_address
 
 class SipMsg(object):
     headers = None
@@ -241,11 +242,13 @@ class SipMsg(object):
     def setTarget(self, address):
         self.target = address
 
-    def getSource(self):
+    def getSource(self, ver=1):
+        if ver == 1:
+            return self.source[0]
         return self.source
 
-    def setSource(self, address):
-        self.source = address
+    def setSource(self, ra:Remote_address):
+        self.source = (ra.address, ra.transport)
 
     def getTId(self, wCSM = False, wBRN = False, wTTG = False):
         headers_dict = dict([(x.name, x) for x in self.headers if x.name in ('cseq', 'call-id', 'from')])

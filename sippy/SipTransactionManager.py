@@ -314,7 +314,7 @@ class SipTransactionManager(object):
                 if not cbody.asterisk:
                     curl = cbody.getUrl()
                     curl.host = ra.received
-            resp.setSource(ra.address)
+            resp.setSource(ra)
             self.incomingResponse(resp, t, checksum)
         else:
             try:
@@ -363,7 +363,7 @@ class SipTransactionManager(object):
                 if not cbody.asterisk:
                     curl = cbody.getUrl()
                     curl.host = ra.received
-            req.setSource(ra.address)
+            req.setSource(ra)
             try:
                 self.incomingRequest(req, checksum, tids, server)
             except RtpProxyError as ex:
