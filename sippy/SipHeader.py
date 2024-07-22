@@ -58,13 +58,14 @@ from sippy.SipRSeq import SipRSeq
 from sippy.SipRAck import SipRAck
 from sippy.SipWarning import SipWarning
 from sippy.SipDiversion import SipDiversion
+from sippy.SipPath import SipPath
 
 _hf_types = (SipCSeq, SipCallId, SipFrom, SipTo, SipMaxForwards, SipVia, SipContentLength, \
              SipContentType, SipExpires, SipRecordRoute, SipRoute, SipContact, SipWWWAuthenticate, \
              SipAuthorization, SipServer, SipUserAgent, SipCiscoGUID, SipAlso, SipReferTo, \
              SipCCDiversion, SipReferredBy, SipProxyAuthenticate, SipProxyAuthorization, \
              SipReplaces, SipPAssertedIdentity, SipReason, SipAllow, SipSupported, SipRSeq, \
-             SipRAck, SipWarning, SipDiversion)
+             SipRAck, SipWarning, SipDiversion, SipPath)
 
 hf_types = {}
 for hf_type in _hf_types:
