@@ -441,10 +441,12 @@ class CallMap(object):
 
             # First check if request comes from IP that
             # we want to accept our traffic from
-            if '_accept_ips' in self.global_config and \
-              not source[0] in self.global_config['_accept_ips']:
-                resp = req.genResponse(403, 'Forbidden')
-                return (resp, None, None)
+            aips = self.global_config.getdefault('_accept_ips', None)
+            if aips is not None:
+                req_source = source[0] if via.transport != 'WSS' else 'WSS'
+                if not req_source in aips:
+                    resp = req.genResponse(403, 'Forbidden')
+                    return (resp, None, None)
 
             challenge = None
             if self.global_config['auth_enable']:
