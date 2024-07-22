@@ -40,6 +40,8 @@ class StatefulProxy:
         via0 = SipVia()
         via0.genBranch()
         via1 = req.getHF('via')
+        if req.getMethod() == 'REGISTER':
+            self.insertPath(req)
         req.insertHeaderBefore(via1, SipHeader(name = 'via', body = via0))
         req.setTarget(self.destination)
         print(req)
@@ -49,3 +51,16 @@ class StatefulProxy:
     def recvResponse(self, resp):
         resp.removeHeader(resp.getHF('via'))
         self.global_config['_sip_tm'].sendResponse(resp)
+
+    def insertPath(self, req):
+        try:
+            supported = req.getHFBody('supported')
+        except IndexError: pass
+        else:
+            if 'path' in supported.caps:
+                mypath = SipHeader(name = 'path')
+                if req.countHFs('path') == 0:
+                    req.appendHeader(mypath)
+                else:
+                    path1 = req.getHF('path')
+                    req.insertHeaderBefore(path1, mypath)
