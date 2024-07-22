@@ -29,6 +29,7 @@ from sippy.SipFrom import SipFrom
 class SipRoute(SipFrom):
     hf_names = ('route',)
     relaxedparser = False
+    default_name = None
 
     def getCanName(self, name, compact = False):
         if name == 'record-route':
