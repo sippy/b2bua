@@ -53,13 +53,13 @@ class update_params():
             return
         ur = update_result()
         if len(self.subcommands) > 0:
-            expected = sum([1 for sc in self.subcommands for _ in sc.commands])
             if len(t0) > 1:
                 subc_ress = [x.strip() for x in t0[1].split('&&')]
                 actual = len(subc_ress)
             else:
                 subc_ress = []
                 actual = 0
+            expected = sum(len(sc.commands) for sc in self.subcommands)
             if actual > expected:
                 ex = RtpProxyError(f'RTPProxy errored: too many results, {actual=}, {expected=}')
                 self.result_callback(None, self.rtpps, ex=ex)
@@ -70,7 +70,7 @@ class update_params():
                     if foff > len(subc.commands):
                         foff -= len(subc.commands)
                         continue
-                    ex = RtpProxyError(f'RTPProxy errored: {subc.commands[foff]}: {subc_ress[-1]}')
+                    ex = RtpProxyError(f'RTPProxy errored: {subc.commands[foff - 1]}: {subc_ress[-1]}')
                     self.result_callback(None, self.rtpps, ex=ex)
                     return None
             if actual < expected:
