@@ -25,10 +25,18 @@
 
 from sippy.Rtp_proxy.session import Rtp_proxy_session
 
-class Rtp_proxy_session_webrtc(Rtp_proxy_session):
+class Rtp_proxy_session_webrtc2sip(Rtp_proxy_session):
     insert_nortpp = False
     def __init__(self, *a, **kwa):
         super().__init__(*a, **kwa)
         self.caller.deice = True
         self.caller.gateway_dtls = 'dtls'
         self.callee.gateway_dtls = 'rtp'
+
+class Rtp_proxy_session_sip2webrtc(Rtp_proxy_session):
+    insert_nortpp = False
+    def __init__(self, *a, **kwa):
+        super().__init__(*a, **kwa)
+        self.callee.deice = True
+        self.callee.gateway_dtls = 'dtls'
+        self.caller.gateway_dtls = 'rtp'

@@ -109,13 +109,13 @@ class UA(object):
 
     def __init__(self, global_config, event_cb = None, username = None, password = None, nh_address = None, credit_time = None, \
       conn_cbs = None, disc_cbs = None, fail_cbs = None, ring_cbs = None, dead_cbs = None, ltag = None, extra_headers = None, \
-      expire_time = None, no_progress_time = None):
+      expire_time = None, no_progress_time = None, nh_transport = SipConf.my_transport):
         self.global_config = global_config
         self.event_cb = event_cb
         self.equeue = []
         self.username = username
         self.password = password
-        self.rAddr = (nh_address, SipConf.my_transport)
+        self.rAddr = (nh_address, nh_transport)
         self.rAddr0 = self.rAddr
         self.credit_time = credit_time
         self.credit_times = {}

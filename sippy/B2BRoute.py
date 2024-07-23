@@ -33,6 +33,11 @@ except ImportError:
     from urllib.parse import unquote
 from socket import getaddrinfo, SOCK_STREAM, AF_INET, AF_INET6
 
+SRC_WSS = '[[WSS]]'
+SRC_PROXY = '[[PROXY]]'
+DST_SIP_UA = 'sip-ua'
+DST_WSS_UA = 'wss-ua'
+
 class B2BRoute(object):
     rnum = None
     addrinfo = None
@@ -107,7 +112,8 @@ class B2BRoute(object):
             port = SipConf.default_port
         else:
             port = int(hostport[1])
-        self.ainfo = getaddrinfo(hostport[0], port, af, SOCK_STREAM)
+        if not hostport[0] in (DST_SIP_UA, DST_WSS_UA):
+            self.ainfo = getaddrinfo(hostport[0], port, af, SOCK_STREAM)
         self.params = {}
         extra_headers = []
         for a, v in [x.split('=', 1) for x in route[1:]]:

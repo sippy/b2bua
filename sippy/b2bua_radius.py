@@ -49,7 +49,8 @@ from sippy.RadiusAccounting import RadiusAccounting
 from sippy.FakeAccounting import FakeAccounting
 from sippy.SipLogger import SipLogger
 from sippy.Rtp_proxy.session import Rtp_proxy_session
-from sippy.Rtp_proxy.Session.webrtc import Rtp_proxy_session_webrtc
+from sippy.Rtp_proxy.Session.webrtc import Rtp_proxy_session_webrtc2sip, \
+ Rtp_proxy_session_sip2webrtc
 from sippy.Rtp_proxy.client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2, SIGTERM
 from sippy.CLIManager import CLIConnectionManager
@@ -57,8 +58,9 @@ from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
 from sippy.misc import daemonize
-from sippy.B2BRoute import B2BRoute
+from sippy.B2BRoute import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
 from sippy.Wss_server import Wss_server, Wss_server_opts
+from sippy.SipURL import SipURL
 
 import gc, getopt, os
 from re import sub
@@ -125,11 +127,14 @@ class CallController(object):
     auth_proc = None
     proxied = False
     challenge = None
+    req_source: str
+    req_target: SipURL
 
-    def __init__(self, remote_ip, source, trans, global_config, pass_headers):
+    def __init__(self, remote_ip, source, req_source, req_target, global_config, pass_headers):
         self.id = CallController.id
         CallController.id += 1
-        if trans == 'wss': self.rtpps_cls = Rtp_proxy_session_webrtc
+        if req_source == SRC_WSS: self.rtpps_cls = Rtp_proxy_session_webrtc2sip
+        elif req_source == SRC_PROXY: self.rtpps_cls = Rtp_proxy_session_sip2webrtc
         self.global_config = global_config
         self.uaA = UA(self.global_config, event_cb = self.recvEvent, conn_cbs = (self.aConn,), disc_cbs = (self.aDisc,), \
           fail_cbs = (self.aDisc,), dead_cbs = (self.aDead,))
@@ -141,6 +146,8 @@ class CallController(object):
         self.remote_ip = remote_ip
         self.source = source
         self.pass_headers = pass_headers
+        self.req_source = req_source
+        self.req_target = req_target
 
     def recvEvent(self, event, ua):
         if ua == self.uaA:
@@ -255,15 +262,17 @@ class CallController(object):
             credit_time = int(credit_time[0][1])
         else:
             credit_time = None
-        if not '_static_route' in self.global_config:
+        if not '_static_routes' in self.global_config:
             routing = [x for x in results[0] if x[0] == 'h323-ivr-in' and x[1].startswith('Routing:')]
             if len(routing) == 0:
                 self.uaA.recvEvent(CCEventFail((500, 'Internal Server Error (2)')))
                 self.state = CCStateDead
                 return
             routing = [B2BRoute(x[1][8:]) for x in routing]
+        elif self.req_source == SRC_PROXY and SRC_PROXY in self.global_config['_static_routes']:
+            routing = [self.global_config['_static_routes'][SRC_PROXY].getCopy(),]
         else:
-            routing = [self.global_config['_static_route'].getCopy(),]
+            routing = [self.global_config['_static_routes'][''].getCopy(),]
         rnum = 0
         for oroute in routing:
             rnum += 1
@@ -287,9 +296,14 @@ class CallController(object):
         self.huntstop_scodes = oroute.params.get('huntstop_scodes', ())
         if 'static_tr_out' in self.global_config:
             cld = re_replace(self.global_config['static_tr_out'], cld)
-        if oroute.hostport == 'sip-ua':
+        UA_kwa = {}
+        if oroute.hostport == DST_SIP_UA:
             host = self.source[0]
             nh_address, same_af = self.source, True
+        if oroute.hostport == DST_WSS_UA:
+            host = self.req_target.host
+            (nh_address, nh_transport), same_af = self.req_target.getTAddr(), True
+            UA_kwa['nh_transport'] = nh_transport
         else:
             host = oroute.hostonly
             nh_address, same_af = oroute.getNHAddr(self.source)
@@ -309,7 +323,7 @@ class CallController(object):
             disc_handlers.append(self.acctO.disc)
         self.uaO = UA(self.global_config, self.recvEvent, oroute.user, oroute.passw, nh_address, oroute.credit_time, tuple(conn_handlers), \
           tuple(disc_handlers), tuple(disc_handlers), dead_cbs = (self.oDead,), expire_time = oroute.expires, \
-          no_progress_time = oroute.no_progress_expires, extra_headers = oroute.extra_headers)
+          no_progress_time = oroute.no_progress_expires, extra_headers = oroute.extra_headers, **UA_kwa)
         self.uaO.pass_auth = oroute.pass_auth
         self.uaO.local_ua = self.global_config['_uaname']
         self.uaO.no_reply_time = oroute.no_reply_expires
@@ -318,7 +332,10 @@ class CallController(object):
         if self.rtp_proxy_session != None and oroute.params.get('rtpp', True):
             self.uaO.on_local_sdp_change = self.rtp_proxy_session.on_caller_sdp_change
             self.uaO.on_remote_sdp_change = self.rtp_proxy_session.on_callee_sdp_change
-            self.rtp_proxy_session.caller.raddress = nh_address
+            if not nh_address[0].endswith('.invalid'):
+                self.rtp_proxy_session.caller.raddress = nh_address
+            elif oroute.hostport == DST_WSS_UA:
+                self.rtp_proxy_session.caller.raddress = self.global_config['_wss_server'].getSIPaddr()[0]
             if body != None:
                 body = body.getCopy()
             self.proxied = True
@@ -418,6 +435,16 @@ class CallMap(object):
         #gc.set_threshold(0)
         #print gc.collect()
 
+    def remoteIPAuth(self, stran):
+        aips = self.global_config.getdefault('_accept_ips', None)
+        if stran[1] == 'wss':
+            req_source = SRC_WSS
+        elif self.proxy is not None and self.proxy.destination == stran:
+            req_source = SRC_PROXY
+        else:
+            req_source = stran[0][0]
+        return req_source if (aips is None or req_source in aips) else None
+
     def recvRequest(self, req, sip_t):
         try:
             to_tag = req.getHFBody('to').getTag()
@@ -433,17 +460,17 @@ class CallMap(object):
                 via = req.getHFBody('via', 1)
             else:
                 via = req.getHFBody('via', 0)
-            source, transport = req.getSource(ver=2)
-            remote_ip = via.getTAddr()[0] if transport != 'wss' else source[0]
+            stran = req.getSource(ver=2)
 
             # First check if request comes from IP that
             # we want to accept our traffic from
-            aips = self.global_config.getdefault('_accept_ips', None)
-            if aips is not None:
-                req_source = source[0] if transport != 'wss' else 'WSS'
-                if not req_source in aips:
-                    resp = req.genResponse(403, 'Forbidden')
-                    return (resp, None, None)
+            req_source = self.remoteIPAuth(stran)
+            if req_source is None:
+                resp = req.genResponse(403, 'Forbidden')
+                return (resp, None, None)
+
+            source, transport = stran
+            remote_ip = via.getTAddr()[0] if req_source != SRC_WSS else source[0]
 
             challenge = None
             if self.global_config['auth_enable']:
@@ -466,7 +493,8 @@ class CallMap(object):
                 hfs = req.getHFs(header)
                 if len(hfs) > 0:
                     pass_headers.extend(hfs)
-            cc = CallController(remote_ip, source, transport, self.global_config, pass_headers)
+            req_target = req.getRURI()
+            cc = CallController(remote_ip, source, req_source, req_target, self.global_config, pass_headers)
             cc.challenge = challenge
             rval = cc.uaA.recvRequest(req, sip_t)
             self.ccmap.append(cc)
@@ -787,7 +815,7 @@ def main_func():
             rtp_proxy_clients.append(a)
 
     if 'static_route' in global_config:
-        global_config['_static_route'] = B2BRoute(global_config['static_route'])
+        global_config['_static_routes'] = {'':B2BRoute(global_config['static_route'])}
     elif not global_config['auth_enable']:
         sys.__stderr__.write('ERROR: static route should be specified when Radius auth is disabled\n')
         usage(global_config, True)
@@ -829,6 +857,8 @@ def main_func():
         wss_keyfile = parts[3]
         wss_opts = Wss_server_opts(wss_laddr, stm.handleIncoming, certfile=wss_certfile, keyfile=wss_keyfile)
         global_config['_wss_server'] = Wss_server(global_config, wss_opts)
+        if 'static_route' in global_config and 'sip_proxy' in global_config:
+            global_config['_static_routes'][SRC_PROXY] = B2BRoute(DST_WSS_UA)
 
     global_config['_sip_tm'] = stm
     global_config['_sip_tm'].nat_traversal = global_config.getdefault('nat_traversal', False)
