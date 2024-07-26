@@ -52,6 +52,6 @@ class SipNumericHF(SipGenericHF):
     def getNum(self):
         return self.number
 
-    def incNum(self):
-        self.number += 1
+    def incNum(self, incr:int = 1):
+        self.number += incr
         return self.number
