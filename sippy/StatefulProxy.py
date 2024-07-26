@@ -37,6 +37,13 @@ class StatefulProxy:
         self.destination = (destination, 'udp')
 
     def recvRequest(self, req):
+        try:
+            max_forwards = req.getHFBody('max-forwards')
+            mfval = max_forwards.incNum(incr=-1)
+            if mfval <= 0:
+                return (req.genResponse(483, 'Too Many Hops'), None, None)
+        except IndexError:
+            req.appendHeader(SipHeader(name = 'max-forwards'))
         via0 = SipVia()
         via0.genBranch()
         via1 = req.getHF('via')
