@@ -174,7 +174,8 @@ class CallController(object):
                         if mbody.transport.lower() not in self.rtpps_cls.AV_TRTYPES:
                             continue
                         old_len = len(mbody.formats)
-                        mbody.formats = [x for x in mbody.formats if x in allowed_pts]
+                        _allowed_pts = [x if isinstance(x, int) else sect.getPTbyName(x) for x in allowed_pts]
+                        mbody.formats = [x for x in mbody.formats if x in _allowed_pts]
                         if len(mbody.formats) == 0:
                             self.uaA.recvEvent(CCEventFail((488, 'Not Acceptable Here')))
                             self.state = CCStateDead
