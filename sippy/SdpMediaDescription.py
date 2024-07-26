@@ -113,6 +113,12 @@ class SdpMediaDescription(object):
         assert(name == 'a')
         self.a_headers.insert(indx, a_header(header))
 
+    def getPTbyName(self, name):
+        for ah in self.a_headers:
+            if ah.name == 'rtpmap' and ah.value.split(' ', 1)[1] == name:
+                return int(ah.value.split(' ', 1)[0])
+        return None
+
     def optimize_a(self):
         for ah in [x for x in self.a_headers if x.name in ('rtpmap', 'fmtp') and \
           x.value is not None]:

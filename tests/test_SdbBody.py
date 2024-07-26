@@ -111,5 +111,10 @@ class TestSdpBodyFunctions(unittest.TestCase):
         want = sdp_single_audio.replace('\n','\r\n')
         self.assertEqual(want, str(got))
 
+    def test_getPTbyName(self):
+        got = SdpBody(sdp_single_audio).sections[0].getPTbyName('G726-40/8000')
+        want = 96
+        self.assertEqual(want, got)
+
 if __name__ == '__main__':
     unittest.main()
