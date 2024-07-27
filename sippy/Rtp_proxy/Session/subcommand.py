@@ -84,9 +84,9 @@ class subcommand_dedtls(subcommand):
     i_mod = subcommand.mod_2_i_mod['dtls_gw']
 
     def __init__(self, sdp_bc, sect):
-        adict = dict([(x.name, x.value) for x in sect.a_headers
-                        if x.name in DTLS_ATTRS])
-        for atr in (ah for ah in sdp_bc.a_headers if ah.name not in adict):
+        adict = {}
+        for atr in (ah for ah in sect.a_headers + sdp_bc.a_headers \
+                    if ah.name in DTLS_ATTRS and ah.name not in adict):
             adict[atr.name] = atr.value
         if 'setup' not in adict:
             raise SdpParseError('Missing DTLS connection mode parameter')
