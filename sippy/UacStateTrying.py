@@ -32,12 +32,14 @@ from sippy.UaStateGeneric import UaStateGeneric
 from sippy.Time.Timeout import TimeoutAbsMono
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
+from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.Exceptions.RtpProxyError import RtpProxyError
 
 class UacStateTrying(UaStateGeneric):
     sname = 'Trying(UAC)'
     triedauth = False
 
-    def recvResponse(self, resp, tr):
+    def _recvResponse(self, resp, tr):
         body = resp.getBody()
         code, reason = resp.getSCode()
         scode = (code, reason, body)
@@ -122,10 +124,7 @@ class UacStateTrying(UaStateGeneric):
                         self.ua.rAddr = self.ua.routes[0].getTAddr()
                 else:
                     self.ua.rAddr = self.ua.rTarget.getTAddr()
-                req = self.ua.genRequest('BYE')
-                self.ua.lCSeq += 1
-                self.ua.global_config['_sip_tm'].newTransaction(req, \
-                  laddress = self.ua.source_address, compact = self.ua.compact_sip)
+                self.genBYE()
                 return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
             if not self.ua.late_media or body is None:
@@ -185,6 +184,28 @@ class UacStateTrying(UaStateGeneric):
             return (UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
         #print 'wrong event %s in the Trying state' % event
         return None
+
+    def genBYE(self):
+        req = self.ua.genRequest('BYE')
+        self.ua.lCSeq += 1
+        self.ua.global_config['_sip_tm'].newTransaction(req, \
+            laddress = self.ua.source_address, compact = self.ua.compact_sip)
+
+    def recvResponse(self, resp, tr):
+        try:
+            return self._recvResponse(resp, tr)
+        except (RtpProxyError, SdpParseError) as ex:
+            scode = (ex.code, ex.msg)
+            event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
+            event.reason = ex.getReason()
+            code = resp.getSCode()[0]
+            if code < 200:
+                self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr, reason = event.reason)
+            elif code >= 200 and code < 300:
+                self.genBYE()
+            self.ua.equeue.append(event)
+            self.ua.disconnect_ts = resp.rtime
+            return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, ex.code)
 
 if not 'UacStateRinging' in globals():
     from sippy.UacStateRinging import UacStateRinging

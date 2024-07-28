@@ -29,6 +29,7 @@
 import sys
 from functools import partial
 from os.path import dirname, join as p_join
+from weakref import ref as weakref_ref
 sys.path.append(p_join(dirname(sys.argv[0]), '..'))
 
 from sippy.Core.EventDispatcher import ED2
@@ -154,13 +155,15 @@ class CallController(object):
             self.uaA.on_remote_sdp_change = self.filter_SDP
 
     def filter_SDP(self, body, done_cb, prev_orc = None):
+        if prev_orc is not None:
+            prev_orc = prev_orc()
         try:
             body.parse()
-        except Exception as ex:
-            exx = SdpParseError(f'{ex}')
-            exx.msg = 'Malformed SDP body'
-            exx.code = 400
-            raise exx from ex
+        except Exception as exception:
+            is_spe = isinstance(exception, SdpParseError)
+            if not is_spe:
+                dump_exception('can\'t parse SDP body', extra = body.content)
+            raise SdpParseError(f'{exception}') from exception if not is_spe else exception
         allowed_pts = self.global_config['_allowed_pts']
         for sect in body.content.sections:
             mbody = sect.m_header
@@ -170,7 +173,7 @@ class CallController(object):
             _allowed_pts = [x if isinstance(x, int) else sect.getPTbyName(x) for x in allowed_pts]
             mbody.formats = [x for x in mbody.formats if x in _allowed_pts]
             if len(mbody.formats) == 0:
-                raise SdpParseError()
+                raise SdpParseError('offered media prohibited by the policy')
             if old_len > len(mbody.formats):
                 sect.optimize_a()
         if prev_orc is not None:
@@ -349,6 +352,8 @@ class CallController(object):
             self.proxied = True
         if '_allowed_pts' in self.global_config:
             prev_orc = self.uaO.on_remote_sdp_change
+            if prev_orc is not None:
+                prev_orc = weakref_ref(prev_orc)
             self.uaO.on_remote_sdp_change = partial(self.filter_SDP, prev_orc=prev_orc)
         self.uaO.kaInterval = self.global_config['keepalive_orig']
         if 'group_timeout' in oroute.params:

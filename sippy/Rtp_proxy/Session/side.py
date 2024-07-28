@@ -146,7 +146,7 @@ class _rtpps_side(object):
         command = 'S %s %s %s' % ('%s-%d' % (rtpps.call_id, index), from_tag, to_tag)
         rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
 
-    def _on_sdp_change(self, rtpps, sdp_body, result_callback, en_excpt):
+    def _on_sdp_change(self, rtpps, sdp_body, result_callback):
         sects = []
         try:
             sdp_body.parse()
@@ -154,8 +154,7 @@ class _rtpps_side(object):
             is_spe = isinstance(exception, SdpParseError)
             if not is_spe:
                 dump_exception('can\'t parse SDP body', extra = sdp_body.content)
-            result_callback(None, ex=exception)
-            return
+            raise SdpParseError(f'{exception}') from exception if not is_spe else exception
         sdp_bc = sdp_body.content
         if isinstance(sdp_bc, strtypes):
             sdp_body.needs_update = False

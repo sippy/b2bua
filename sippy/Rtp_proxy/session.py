@@ -153,11 +153,11 @@ class Rtp_proxy_session(object):
         self.rtp_proxy_client = None
         self.rtpp_seq.delete()
 
-    def on_caller_sdp_change(self, sdp_body, result_callback, en_excpt = False):
-        self.caller._on_sdp_change(self, sdp_body, result_callback, en_excpt)
+    def on_caller_sdp_change(self, sdp_body, result_callback):
+        self.caller._on_sdp_change(self, sdp_body, result_callback)
 
-    def on_callee_sdp_change(self, sdp_body, result_callback, en_excpt = False):
-        self.callee._on_sdp_change(self, sdp_body, result_callback, en_excpt)
+    def on_callee_sdp_change(self, sdp_body, result_callback):
+        self.callee._on_sdp_change(self, sdp_body, result_callback)
 
     def stats(self, result_callback, index = 0, *callback_parameters):
         command = 'Q %s %s %s' % ('%s-%d' % (self.call_id, index), self.from_tag, self.to_tag)

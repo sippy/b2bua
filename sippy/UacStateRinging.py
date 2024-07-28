@@ -29,14 +29,15 @@ from functools import partial
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
+from sippy.UacStateTrying import UacStateTrying
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
 
-class UacStateRinging(UaStateGeneric):
+class UacStateRinging(UacStateTrying):
     sname = 'Ringing(UAC)'
     triedauth = False
 
-    def recvResponse(self, resp, tr):
+    def _recvResponse(self, resp, tr):
         body = resp.getBody()
         code, reason = resp.getSCode()
         scode = (code, reason, body)
@@ -104,10 +105,7 @@ class UacStateRinging(UaStateGeneric):
                         self.ua.rAddr = self.ua.routes[0].getTAddr()
                 else:
                     self.ua.rAddr = self.ua.rTarget.getTAddr()
-                req = self.ua.genRequest('BYE')
-                self.ua.lCSeq += 1
-                self.ua.global_config['_sip_tm'].newTransaction(req, \
-                  laddress = self.ua.source_address, compact = self.ua.compact_sip)
+                self.genBYE()
                 return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
             if not self.ua.late_media or body is None:
