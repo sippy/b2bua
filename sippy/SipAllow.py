@@ -34,7 +34,7 @@ class SipAllow(SipGenericHF):
 
     def __init__(self, body = None, methods = None):
         SipGenericHF.__init__(self, body)
-        if body == None:
+        if body is None:
             self.parsed = True
             self.methods = methods[:]
 

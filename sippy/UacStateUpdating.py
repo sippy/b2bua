@@ -63,7 +63,7 @@ class UacStateUpdating(UaStateGeneric):
             return None
         if code >= 200 and code < 300:
             event = CCEventConnect(scode, rtime = resp.rtime, origin = self.ua.origin)
-            if body != None:
+            if body is not None:
                 if self.ua.on_remote_sdp_change != None:
                     cb_func = partial(self.ua.delayed_remote_sdp_update, event)
                     try:

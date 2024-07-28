@@ -81,7 +81,7 @@ class SipHeader(object):
             name, bodys = [x.strip() for x in s.split(':', 1)]
         if name != None:
             self.name = name.lower()
-        if body == None:
+        if body is None:
             try:
                 try:
                     body = hf_types[self.name](bodys)

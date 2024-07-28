@@ -50,7 +50,7 @@ class SipFrom(SipAddressHF):
 
     def __init__(self, body = None, address = None):
         SipAddressHF.__init__(self, body, address)
-        if body == None and address == None:
+        if body is None and address == None:
             self.address = SipAddress(name = self.default_name, url = SipURL(host = SipConf.my_address, port = SipConf.my_port))
 
     def getTag(self):

@@ -46,7 +46,7 @@ class UacStateIdle(UaStateGeneric):
                 self.ua.setup_ts = event.rtime
             self.ua.origin = 'callee'
             cId, callingID, calledID, body, auth, callingName = event.getData()
-            if body != None:
+            if body is not None:
                 if self.ua.on_local_sdp_change != None and body.needs_update:
                     self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                     return None

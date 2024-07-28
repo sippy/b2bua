@@ -86,7 +86,7 @@ class SipRequest(SipMsg):
             self.appendHeader(SipHeader(name = 'user-agent', bodys = user_agent))
         else:
             self.appendHeader(SipHeader(name = 'user-agent'))
-        if body != None:
+        if body is not None:
             self.setBody(body)
 
     def setSL(self, startline):

@@ -30,7 +30,7 @@ class SipRAck(SipCSeq):
     rseq = None
 
     def __init__(self, body = None, rseq = None, cseq = None, method = None):
-        if body == None:
+        if body is None:
             self.rseq = rseq
             SipCSeq.__init__(self, cseq = cseq, method = method)
             return

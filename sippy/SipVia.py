@@ -41,7 +41,7 @@ class SipVia(SipGenericHF):
     params = None
 
     def __init__(self, body = None, cself = None):
-        if body != None and body.find(',') > -1:
+        if body is not None and body.find(',') > -1:
             raise ESipHeaderCSV(None, body.split(','))
         SipGenericHF.__init__(self, body)
         if body is not None:

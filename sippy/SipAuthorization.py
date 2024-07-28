@@ -69,7 +69,7 @@ class SipAuthorization(SipGenericHF):
     def __init__(self, body = None, username = None, uri = None, realm = None, nonce = None, response = None, \
                  cself = None):
         SipGenericHF.__init__(self, body)
-        if body != None:
+        if body is not None:
             return
         self.parsed = True
         if cself != None:

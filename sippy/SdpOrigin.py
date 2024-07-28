@@ -39,7 +39,7 @@ class SdpOrigin(object):
     session_id = None
 
     def __init__(self, body = None, cself = None):
-        if body != None:
+        if body is not None:
             self.username, self.session_id, self.version, self.network_type, self.address_type, self.address = body.split()
         elif cself == None:
             self.username = '-'

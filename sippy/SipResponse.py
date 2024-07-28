@@ -50,7 +50,7 @@ class SipResponse(SipMsg):
             self.appendHeader(SipHeader(name = 'cseq', body = cseq))
         if server != None:
             self.appendHeader(SipHeader(name = 'server', bodys = server))
-        if body != None:
+        if body is not None:
             self.setBody(body)
 
     def setSL(self, startline):

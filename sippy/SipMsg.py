@@ -153,7 +153,7 @@ class SipMsg(object):
         s = self.getSL() + '\r\n'
         for header in self.headers:
             s += str(header) + '\r\n'
-        if self.body != None:
+        if self.body is not None:
             mbody = str(self.body)
             s += 'Content-Type: %s\r\n' % self.body.mtype
             s += 'Content-Length: %d\r\n\r\n' % len(mbody)
@@ -166,7 +166,7 @@ class SipMsg(object):
         s = self.getSL(local_addr) + '\r\n'
         for header in self.headers:
             s += header.localStr(local_addr, compact) + '\r\n'
-        if self.body != None:
+        if self.body is not None:
             mbody = self.body.localStr(local_addr)
             if compact:
                 s += 'c: %s\r\n' % self.body.mtype
@@ -273,7 +273,7 @@ class SipMsg(object):
         cself = self.__class__()
         for header in self.headers:
             cself.appendHeader(header.getCopy())
-        if self.body != None:
+        if self.body is not None:
             cself.body = self.body.getCopy()
         cself.startline = self.startline
         cself.target = self.target

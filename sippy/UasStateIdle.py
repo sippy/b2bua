@@ -98,7 +98,7 @@ class UasStateIdle(UaStateGeneric):
             self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_mtime)
         elif self.ua.expire_time != None:
             self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
-        if body != None:
+        if body is not None:
             if self.ua.on_remote_sdp_change != None:
                 self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                 self.ua.setup_ts = req.rtime

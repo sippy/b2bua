@@ -35,7 +35,7 @@ class SipCiscoGUID(SipGenericHF):
 
     def __init__(self, body = None, ciscoGUID = None):
         SipGenericHF.__init__(self, body)
-        if body != None:
+        if body is not None:
             return
         self.parsed = True
         if ciscoGUID != None:

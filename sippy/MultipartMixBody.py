@@ -30,7 +30,7 @@ class MultipartMixBody():
     boundary = None
 
     def __init__(self, body = None, ctype = None):
-        if body == None:
+        if body is None:
             return
         sep = f'--{ctype.params["boundary"]}'
         bparts = body.split(sep)

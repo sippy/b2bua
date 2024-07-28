@@ -51,7 +51,7 @@ class SipCallId(SipGenericHF):
     def __init__(self, body = None):
         SipGenericHF.__init__(self, body)
         self.parsed = True
-        if body == None:
+        if body is None:
             salt = str((random() * 1000000000) + time())
             self.body = md5(salt.encode()).hexdigest() + '@' + str(SipConf.my_address)
 

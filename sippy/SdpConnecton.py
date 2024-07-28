@@ -31,7 +31,7 @@ class SdpConnecton(object):
     addr = None
 
     def __init__(self, body = None, cself = None):
-        if body != None:
+        if body is not None:
             self.ntype, self.atype, self.addr = body.split()[:3]
         else:
             self.ntype = cself.ntype

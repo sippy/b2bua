@@ -62,7 +62,7 @@ class UacStateTrying(UaStateGeneric):
                 self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if code < 200:
             event = CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin)
-            if body != None:
+            if body is not None:
                 if self.ua.on_remote_sdp_change != None:
                     self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                     self.ua.p1xx_ts = resp.rtime
@@ -128,7 +128,7 @@ class UacStateTrying(UaStateGeneric):
                   laddress = self.ua.source_address, compact = self.ua.compact_sip)
                 return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
-            if not self.ua.late_media or body == None:
+            if not self.ua.late_media or body is None:
                 self.ua.late_media = False
                 event = CCEventConnect(scode, rtime = resp.rtime, origin = self.ua.origin)
                 self.ua.startCreditTimer(resp.rtime)
@@ -139,7 +139,7 @@ class UacStateTrying(UaStateGeneric):
                 tr.uack = True
                 self.ua.pending_tr = tr
                 rval = (UaStateConnected,)
-            if body != None:
+            if body is not None:
                 if self.ua.on_remote_sdp_change != None:
                     self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                     return rval

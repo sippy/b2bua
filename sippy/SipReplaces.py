@@ -37,7 +37,7 @@ class SipReplaces(SipGenericHF):
     def __init__(self, body = None, call_id = None, from_tag = None, to_tag = None, \
       early_only = False, params = None):
         SipGenericHF.__init__(self, body)
-        if body != None:
+        if body is not None:
             return
         self.parsed = True
         self.params = []

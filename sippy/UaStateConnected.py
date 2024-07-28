@@ -65,7 +65,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.uasResp = req.genResponse(100, 'Trying', server = self.ua.local_ua)
             self.ua.global_config['_sip_tm'].sendResponse(self.ua.uasResp)
             body = req.getBody()
-            if body == None:
+            if body is None:
                 # Some brain-damaged stacks use body-less re-INVITE as a means
                 # for putting session on hold. Quick and dirty hack to make this
                 # scenario working.
@@ -85,7 +85,7 @@ class UaStateConnected(UaStateGeneric):
                 event.max_forwards = req.getHFBody('max-forwards').getNum()
             except:
                 pass
-            if body != None:
+            if body is not None:
                 if self.ua.on_remote_sdp_change != None:
                     self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                     return (UasStateUpdating,)
@@ -137,7 +137,7 @@ class UaStateConnected(UaStateGeneric):
         self.ua.connect_ts = req.rtime
         for callback in self.ua.conn_cbs:
             callback(self.ua, req.rtime, self.ua.origin)
-        if body != None:
+        if body is not None:
             if self.ua.on_remote_sdp_change != None:
                 self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                 return None
@@ -189,7 +189,7 @@ class UaStateConnected(UaStateGeneric):
                     self.ua.equeue.append(CCEventConnect((200, 'OK', None), rtime = event.rtime, \
                       origin = event.origin))
                 return None
-            if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
+            if body is not None and self.ua.on_local_sdp_change != None and body.needs_update:
                 try:
                     self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 except Exception as e:
@@ -224,7 +224,7 @@ class UaStateConnected(UaStateGeneric):
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
             code, reason, body = event.getData()
-            if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
+            if body is not None and self.ua.on_local_sdp_change != None and body.needs_update:
                 self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             self.ua.startCreditTimer(event.rtime)

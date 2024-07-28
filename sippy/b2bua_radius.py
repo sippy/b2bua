@@ -184,7 +184,7 @@ class CallController(object):
                             sect.optimize_a()
                 if self.cld.startswith('nat-'):
                     self.cld = self.cld[4:]
-                    if body != None:
+                    if body is not None:
                         body.content += 'a=nated:yes\r\n'
                     event.data = (self.cId, self.cli, self.cld, body, auth, self.caller_name)
                 if 'static_tr_in' in self.global_config:
@@ -337,7 +337,7 @@ class CallController(object):
                 self.rtp_proxy_session.caller.raddress = nh_address
             elif oroute.hostport == DST_WSS_UA:
                 self.rtp_proxy_session.caller.raddress = self.global_config['_wss_server'].getSIPaddr()[0]
-            if body != None:
+            if body is not None:
                 body = body.getCopy()
             self.proxied = True
         self.uaO.kaInterval = self.global_config['keepalive_orig']

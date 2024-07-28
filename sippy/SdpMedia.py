@@ -41,7 +41,7 @@ class SdpMedia(object):
     formats = None
 
     def __init__(self, body = None, cself = None):
-        if body != None:
+        if body is not None:
             params = body.split()
             self.stype = params[0]
             lstype = self.stype.lower()

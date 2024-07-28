@@ -34,7 +34,7 @@ class SipAddressHF(SipGenericHF):
 
     def __init__(self, body = None, address = None):
         SipGenericHF.__init__(self, body)
-        if body != None:
+        if body is not None:
             csvs = []
             pidx = 0
             while 1:

@@ -34,7 +34,7 @@ class SipServer(SipGenericHF):
     def __init__(self, body = None, name = None):
         SipGenericHF.__init__(self, body)
         self.parsed = True
-        if body != None:
+        if body is not None:
             self.name = body
         elif name != None:
             self.name = name

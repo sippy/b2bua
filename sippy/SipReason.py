@@ -37,7 +37,7 @@ class SipReason(SipGenericHF):
 
     def __init__(self, body = None, protocol = None, cause = None, reason = None):
         SipGenericHF.__init__(self, body)
-        if body == None:
+        if body is None:
             self.parsed = True
             self.protocol = protocol
             self.cause = cause

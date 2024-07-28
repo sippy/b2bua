@@ -36,7 +36,7 @@ class SipWarning(SipGenericHF):
 
     def __init__(self, body = None, cself = None, code = None, text = None):
         SipGenericHF.__init__(self, body)
-        if body != None:
+        if body is not None:
             return
         self.parsed = True
         if cself != None:

@@ -33,7 +33,7 @@ class SipCSeq(SipGenericHF):
 
     def __init__(self, body = None, cseq = None, method = None):
         SipGenericHF.__init__(self, body)
-        if body == None:
+        if body is None:
             self.parsed = True
             self.method = method
             if cseq != None:

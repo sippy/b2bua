@@ -54,7 +54,7 @@ class SipWWWAuthenticate(SipGenericHF):
       algorithm = None):
         self.otherparams = []
         SipGenericHF.__init__(self, body)
-        if body != None:
+        if body is not None:
             return
         self.parsed = True
         if algorithm != None:

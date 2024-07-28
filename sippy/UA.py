@@ -288,7 +288,7 @@ class UA(object):
                          user_agent = self.local_ua, maxforwards = max_forwards_hf)
         if cqop != None:
             challenge, qop = cqop
-            if body != None and qop == 'auth-int':
+            if body is not None and qop == 'auth-int':
                 sbody = str(body)
                 #print(len(sbody), sbody)
             else:
@@ -296,7 +296,7 @@ class UA(object):
             auth = challenge.genAuthHF(self.username, self.password, method, \
               str(self.rTarget), sbody, qop)
             req.appendHeader(SipHeader(body = auth))
-        if body != None:
+        if body is not None:
             req.setBody(body)
         if self.extra_headers != None:
             req.appendHeaders(self.extra_headers)

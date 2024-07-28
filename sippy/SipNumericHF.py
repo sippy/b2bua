@@ -31,7 +31,7 @@ class SipNumericHF(SipGenericHF):
 
     def __init__(self, body = None, number = 0):
         SipGenericHF.__init__(self, body)
-        if body == None:
+        if body is None:
             self.parsed = True
             self.number = number
 
