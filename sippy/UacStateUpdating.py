@@ -67,7 +67,7 @@ class UacStateUpdating(UaStateGeneric):
                 if self.ua.on_remote_sdp_change != None:
                     cb_func = partial(self.ua.delayed_remote_sdp_update, event)
                     try:
-                        self.ua.on_remote_sdp_change(body, cb_func, en_excpt = True)
+                        self.ua.on_remote_sdp_change(body, cb_func)
                     except Exception as e:
                         event = CCEventFail((502, 'Bad Gateway'), rtime = event.rtime)
                         event.setWarning('Malformed SDP Body received from ' \

@@ -154,10 +154,8 @@ class _rtpps_side(object):
             is_spe = isinstance(exception, SdpParseError)
             if not is_spe:
                 dump_exception('can\'t parse SDP body', extra = sdp_body.content)
-            if is_spe or en_excpt:
-                raise exception
-            else:
-                return
+            result_callback(None, ex=exception)
+            return
         sdp_bc = sdp_body.content
         if isinstance(sdp_bc, strtypes):
             sdp_body.needs_update = False

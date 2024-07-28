@@ -191,7 +191,7 @@ class UaStateConnected(UaStateGeneric):
                 return None
             if body != None and self.ua.on_local_sdp_change != None and body.needs_update:
                 try:
-                    self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event), en_excpt = True)
+                    self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 except Exception as e:
                     event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
                     event.setWarning(str(e))
