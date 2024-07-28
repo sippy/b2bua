@@ -87,10 +87,10 @@ class UaStateConnected(UaStateGeneric):
                 pass
             if body is not None:
                 if self.ua.on_remote_sdp_change != None:
-                    self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
-                    return (UasStateUpdating,)
-                else:
-                    self.ua.rSDP = body.getCopy()
+                    body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
+                    if body is None:
+                        return (UasStateUpdating,)
+                self.ua.rSDP = body.getCopy()
             else:
                 self.ua.rSDP = None
             self.ua.equeue.append(event)
@@ -139,10 +139,10 @@ class UaStateConnected(UaStateGeneric):
             callback(self.ua, req.rtime, self.ua.origin)
         if body is not None:
             if self.ua.on_remote_sdp_change != None:
-                self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
-                return None
-            else:
-                self.ua.rSDP = body.getCopy()
+                body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
+                if body is None:
+                    return None
+            self.ua.rSDP = body.getCopy()
         else:
             self.ua.rSDP = None
         self.ua.equeue.append(event)

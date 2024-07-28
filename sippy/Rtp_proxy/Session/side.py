@@ -159,16 +159,14 @@ class _rtpps_side(object):
         sdp_bc = sdp_body.content
         if isinstance(sdp_bc, strtypes):
             sdp_body.needs_update = False
-            result_callback(sdp_body)
-            return
+            return sdp_body
         for i, sect in enumerate(sdp_bc.sections):
             if sect.m_header.transport.lower() not in rtpps.SUPPORTED_TRTYPES:
                 continue
             sects.append(sect)
         if len(sects) == 0:
             sdp_body.needs_update = False
-            result_callback(sdp_body)
-            return
+            return sdp_body
         formats = sects[0].m_header.formats
         self.codecs = ','.join([ str(x) for x in formats ])
         if self.repacketize is not None and not self.soft_repacketize:
