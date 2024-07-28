@@ -27,6 +27,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import sys
+from functools import partial
 from os.path import dirname, join as p_join
 sys.path.append(p_join(dirname(sys.argv[0]), '..'))
 
@@ -61,6 +62,7 @@ from sippy.misc import daemonize
 from sippy.B2BRoute import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
 from sippy.Wss_server import Wss_server, Wss_server_opts
 from sippy.SipURL import SipURL
+from sippy.Exceptions.SipParseError import SdpParseError
 
 import gc, getopt, os
 from re import sub
@@ -148,6 +150,32 @@ class CallController(object):
         self.pass_headers = pass_headers
         self.req_source = req_source
         self.req_target = req_target
+        if '_allowed_pts' in self.global_config:
+            self.uaA.on_remote_sdp_change = self.filter_SDP
+
+    def filter_SDP(self, body, done_cb, prev_orc = None):
+        try:
+            body.parse()
+        except Exception as ex:
+            exx = SdpParseError(f'{ex}')
+            exx.msg = 'Malformed SDP body'
+            exx.code = 400
+            raise exx from ex
+        allowed_pts = self.global_config['_allowed_pts']
+        for sect in body.content.sections:
+            mbody = sect.m_header
+            if mbody.transport.lower() not in self.rtpps_cls.AV_TRTYPES:
+                continue
+            old_len = len(mbody.formats)
+            _allowed_pts = [x if isinstance(x, int) else sect.getPTbyName(x) for x in allowed_pts]
+            mbody.formats = [x for x in mbody.formats if x in _allowed_pts]
+            if len(mbody.formats) == 0:
+                raise SdpParseError()
+            if old_len > len(mbody.formats):
+                sect.optimize_a()
+        if prev_orc is not None:
+            return prev_orc(body, done_cb)
+        return body
 
     def recvEvent(self, event, ua):
         if ua == self.uaA:
@@ -161,27 +189,6 @@ class CallController(object):
                     self.uaA.recvEvent(CCEventFail((500, 'Internal Server Error (1)'), rtime = event.rtime))
                     self.state = CCStateDead
                     return
-                if body != None and '_allowed_pts' in self.global_config:
-                    try:
-                        body.parse()
-                    except:
-                        self.uaA.recvEvent(CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime))
-                        self.state = CCStateDead
-                        return
-                    allowed_pts = self.global_config['_allowed_pts']
-                    for sect in body.content.sections:
-                        mbody = sect.m_header
-                        if mbody.transport.lower() not in self.rtpps_cls.AV_TRTYPES:
-                            continue
-                        old_len = len(mbody.formats)
-                        _allowed_pts = [x if isinstance(x, int) else sect.getPTbyName(x) for x in allowed_pts]
-                        mbody.formats = [x for x in mbody.formats if x in _allowed_pts]
-                        if len(mbody.formats) == 0:
-                            self.uaA.recvEvent(CCEventFail((488, 'Not Acceptable Here')))
-                            self.state = CCStateDead
-                            return
-                        if old_len > len(mbody.formats):
-                            sect.optimize_a()
                 if self.cld.startswith('nat-'):
                     self.cld = self.cld[4:]
                     if body is not None:
@@ -340,6 +347,9 @@ class CallController(object):
             if body is not None:
                 body = body.getCopy()
             self.proxied = True
+        if '_allowed_pts' in self.global_config:
+            prev_orc = self.uaO.on_remote_sdp_change
+            self.uaO.on_remote_sdp_change = partial(self.filter_SDP, prev_orc=prev_orc)
         self.uaO.kaInterval = self.global_config['keepalive_orig']
         if 'group_timeout' in oroute.params:
             timeout, skipto = oroute.params['group_timeout']
