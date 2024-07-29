@@ -80,50 +80,13 @@ class UacStateTrying(UaStateGeneric):
             self.ua.expire_timer.cancel()
             self.ua.expire_timer = None
         if code >= 200 and code < 300:
-            if resp.countHFs('contact') > 0:
-                self.ua.rTarget = resp.getHFBody('contact').getUrl().getCopy()
-            self.ua.routes = [x.getCopy() for x in resp.getHFBodys('record-route')]
-            self.ua.routes.reverse()
-            if len(self.ua.routes) > 0:
-                if not self.ua.routes[0].getUrl().lr:
-                    self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                    self.ua.rTarget = self.ua.routes.pop(0).getUrl()
-                    self.ua.rAddr = self.ua.rTarget.getTAddr()
-                elif self.ua.outbound_proxy != None:
-                    self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                    self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
-                    self.ua.rTarget.lr = False
-                    self.ua.rTarget.other = tuple()
-                    self.ua.rTarget.headers = tuple()
-                else:
-                    self.ua.rAddr = self.ua.routes[0].getTAddr()
-            else:
-                self.ua.rAddr = self.ua.rTarget.getTAddr()
+            self.updateRoutes(resp)
             tag = resp.getHFBody('to').getTag()
             if tag == None:
                 print('tag-less 200 OK, disconnecting')
                 scode = (502, 'Bad Gateway')
                 self.ua.equeue.append(CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin))
                 # Generate and send BYE
-                if resp.countHFs('contact') > 0:
-                    self.ua.rTarget = resp.getHFBody('contact').getUrl().getCopy()
-                self.ua.routes = [x.getCopy() for x in resp.getHFBodys('record-route')]
-                self.ua.routes.reverse()
-                if len(self.ua.routes) > 0:
-                    if not self.ua.routes[0].getUrl().lr:
-                        self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                        self.ua.rTarget = self.ua.routes.pop(0).getUrl()
-                        self.ua.rAddr = self.ua.rTarget.getTAddr()
-                    elif self.ua.outbound_proxy != None:
-                        self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
-                        self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
-                        self.ua.rTarget.lr = False
-                        self.ua.rTarget.other = tuple()
-                        self.ua.rTarget.headers = tuple()
-                    else:
-                        self.ua.rAddr = self.ua.routes[0].getTAddr()
-                else:
-                    self.ua.rAddr = self.ua.rTarget.getTAddr()
                 self.genBYE()
                 return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
@@ -184,6 +147,27 @@ class UacStateTrying(UaStateGeneric):
             return (UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
         #print 'wrong event %s in the Trying state' % event
         return None
+
+    def updateRoutes(self, resp):
+        if resp.countHFs('contact') > 0:
+            self.ua.rTarget = resp.getHFBody('contact').getUrl().getCopy()
+        self.ua.routes = [x.getCopy() for x in resp.getHFBodys('record-route')]
+        self.ua.routes.reverse()
+        if len(self.ua.routes) > 0:
+            if not self.ua.routes[0].getUrl().lr:
+                self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
+                self.ua.rTarget = self.ua.routes.pop(0).getUrl()
+                self.ua.rAddr = self.ua.rTarget.getTAddr()
+            elif self.ua.outbound_proxy != None:
+                self.ua.routes.append(SipRoute(address = SipAddress(url = self.ua.rTarget)))
+                self.ua.rTarget = self.ua.routes[0].getUrl().getCopy()
+                self.ua.rTarget.lr = False
+                self.ua.rTarget.other = tuple()
+                self.ua.rTarget.headers = tuple()
+            else:
+                self.ua.rAddr = self.ua.routes[0].getTAddr()
+        else:
+            self.ua.rAddr = self.ua.rTarget.getTAddr()
 
     def genBYE(self):
         req = self.ua.genRequest('BYE')
