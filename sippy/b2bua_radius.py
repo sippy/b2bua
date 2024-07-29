@@ -29,7 +29,7 @@
 import sys
 from functools import partial
 from os.path import dirname, join as p_join
-from weakref import ref as weakref_ref
+from weakref import WeakMethod
 sys.path.append(p_join(dirname(sys.argv[0]), '..'))
 
 from sippy.Core.EventDispatcher import ED2
@@ -353,7 +353,7 @@ class CallController(object):
         if '_allowed_pts' in self.global_config:
             prev_orc = self.uaO.on_remote_sdp_change
             if prev_orc is not None:
-                prev_orc = weakref_ref(prev_orc)
+                prev_orc = WeakMethod(prev_orc)
             self.uaO.on_remote_sdp_change = partial(self.filter_SDP, prev_orc=prev_orc)
         self.uaO.kaInterval = self.global_config['keepalive_orig']
         if 'group_timeout' in oroute.params:
