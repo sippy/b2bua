@@ -26,6 +26,7 @@
 import sys
 
 from sippy.SipRequest import SipRequest
+from sippy.CCEvents import CCEventTry
 
 class HDR2Xattrs():
     # Source: https://github.com/sippy/b2bua/pull/38
@@ -55,9 +56,33 @@ class HDR2Xattrs():
         else:
             cc.extra_attributes.extend(extra_attributes)
 
+class VAL2Xattrs():
+    # Source: https://github.com/sippy/b2bua/pull/39
+    # Author: @twmobius
+    doO: bool = True
+    doA: bool = True
+    radius_parameters: list
+    def __init__(self, v:str):
+        radius_parameters = []
+        pairs = v.split(';')
+        for pair in pairs:
+            [key, _, value] = pair.partition("=")
+            if value == '': continue
+            radius_parameters.append((key, value))
+        self.radius_parameters = radius_parameters
+
+    def __call__(self, cc:'CallController', _:CCEventTry):
+        if self.doO and cc.acctO is not None:
+            cc.acctO.addAttributes(self.radius_parameters)
+        if self.doA and cc.acctA is not None:
+            cc.acctA.addAttributes(self.radius_parameters)
+
 class Nop():
     def __init__(self, v:str): pass
     def __call__(self, *a, **kwa): pass
+
+class VAL2XattrsA(VAL2Xattrs): doO = False
+class VAL2XattrsO(VAL2Xattrs): doA = False
 
 def getTransProc(value:str):
     rparts = value.split('[', 1)
@@ -70,5 +95,5 @@ def getTransProc(value:str):
     return fclass(farg)
 
 if __name__ == '__main__':
-    for t in ('HDR2Xattrs[X-foo-hdr]',):
+    for t in ('HDR2Xattrs[X-foo-hdr]', 'VAL2Xattrs[foo=bar;baz=xxx]', 'VAL2XattrsA[foo=bar;baz=xxx]', 'VAL2XattrsO[foo=bar;baz=xxx]'):
         p = getTransProc(t)

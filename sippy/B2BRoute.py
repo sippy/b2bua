@@ -26,6 +26,7 @@
 
 from sippy.SipHeader import SipHeader
 from sippy.SipConf import SipConf
+from sippy.B2BTransforms import getTransProc
 
 try:
     from urllib import unquote
@@ -163,6 +164,8 @@ class B2BRoute(object):
                     self.params['outbound_proxy'] = (v, 5060)
                 else:
                     self.params['outbound_proxy'] = (host_port[0], int(host_port[1]))
+            elif a == 'po_proc':
+                self.params['po_proc'] = getTransProc(v)
             else:
                 self.params[a] = v
         if len(extra_headers) > 0:

@@ -19,6 +19,9 @@ class TestB2BTransforms(unittest.TestCase):
     def test_getTransProc(self):
         transformations = [
             ('HDR2Xattrs[X-foo-hdr]', (FakeCC(), FakeRequest(self))),
+            ('VAL2Xattrs[foo=bar;baz=xxx]', (FakeCC(), FakeEvent())),
+            ('VAL2XattrsA[foo=bar;baz=xxx]', (FakeCC(), FakeEvent())),
+            ('VAL2XattrsO[foo=bar;baz=xxx]', (FakeCC(), FakeEvent())),
             ('Nop[]', (None, None)),
         ]
 

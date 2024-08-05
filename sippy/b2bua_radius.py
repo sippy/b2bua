@@ -374,6 +374,9 @@ class CallController(object):
                 self.state = CCStateDead
                 return
         event.reason = self.eTry.reason
+        po_proc = oroute.params.get('po_proc', None)
+        if po_proc is not None:
+            po_proc(self, event)
         self.uaO.recvEvent(event)
 
     def disconnect(self, rtime = None):

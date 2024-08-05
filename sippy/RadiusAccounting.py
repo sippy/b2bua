@@ -188,3 +188,7 @@ class RadiusAccounting(object):
         else:
             message = 'Error sending Acct/%s request (delay is %.3f)\n' % (self.origin, delay)
         self.global_config['_sip_logger'].write(message, call_id = sip_cid)
+
+    def addAttributes(self, attributes):
+        self._attributes.extend(tuple(x) for x in attributes \
+                                if tuple(x) not in self._attributes)
