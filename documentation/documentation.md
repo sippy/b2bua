@@ -23,7 +23,7 @@ The B2BUA consists of the following three main logical components:
 The following diagram illustrates the B2BUA architecture and the primary
 components.
 
-![Figure 1 — B2BUA High Level Architecture.png](Fig1_B2BUA_Architecture.png)
+![Figure 1 - B2BUA High Level Architecture.png](Fig1_B2BUA_Architecture.png)
 
 
 The components interact with each other using abstract events. Each User Agent
@@ -52,7 +52,7 @@ Answering SIP UA generates a Try event (2) and passes it to the Call Control
 Logic, as illustrated in the following diagram.
 
 
-![Figure 2 — Try Event (2) passed to Call Control Logic.png](Fig2_Try_Event.png)
+![Figure 2 - Try Event (2) passed to Call Control Logic.png](Fig2_Try_Event.png)
 
 The Call Control Logic receives the Try event, performs authentication and
 authorization, creates the Originating SIP UA, modifies the Try event to
@@ -62,7 +62,7 @@ receives the Try event and generates INVITE message (4) as shown in the
 following diagram.
 
 
-![Figure 3 — Originating SIP UA generating INVITE Message (4).png](Fig3_Orig_SIP_UA_generating_INVITE_message_4.png)
+![Figure 3 - Originating SIP UA generating INVITE Message (4).png](Fig3_Orig_SIP_UA_generating_INVITE_message_4.png)
 
 After the Answering SIP endpoint receives the INVITE message, it starts ringing
 and sends back an 18x SIP provisional response (5). The Originating SIP UA
@@ -72,7 +72,7 @@ passes it to the Answering SIP UA (7), and in response, the Answering SIP UA
 sends an 18x SIP provisional response to the Originating SIP endpoint (8).
 
 
-![Figure 4 — Answering SIP UA sending response to Originating SIP endpoint.png](Fig4_Answering_SIP_UA_sending_response_to_originating_end_point.png)
+![Figure 4 - Answering SIP UA sending response to Originating SIP endpoint.png](Fig4_Answering_SIP_UA_sending_response_to_originating_end_point.png)
 
 When the user at the Answering SIP endpoint picks up the phone, the endpoint
 generates a 200 OK SIP response and sends it back to the Originating SIP UA
@@ -83,7 +83,7 @@ endpoint (12). At this point, the session is established and endpoints start
 exchanging RTP media (13).
 
 
-![Figure 5 — BYE message sent to Originating SIP endpoint.png](Fig5_Endpoints_receiving_RTP_media.png)
+![Figure 5 - BYE message sent to Originating SIP endpoint.png](Fig5_Endpoints_receiving_RTP_media.png)
 
 When either party hangs up, the respective SIP endpoint generates a SIP BYE
 message and sends the message to the associated SIP UA (14). The UA generates
@@ -92,7 +92,7 @@ Call Control Logic (15), (16) and results in a BYE message, which is sent to
 the other endpoint (17).
 
 
-![Figure 6 — Endpoints receiving RTP Media.png](Fig6_BYE_message_sent_to_originating_SIP_endpoint.png)
+![Figure 6 - Endpoints receiving RTP Media.png](Fig6_BYE_message_sent_to_originating_SIP_endpoint.png)
 
 The session ends.
 
@@ -179,7 +179,7 @@ secure digest method proposed in RADIUS Extension for Digest Authentication
 IEFT draft.
 
 #### Depends on:
-- Python 3.4 or later
+- Python 3.9 or later
 - radiusclient-ng 0.5.0 or later (Note, see [#12](https://github.com/sippy/b2bua/issues/12)
 )
 
@@ -250,6 +250,12 @@ available:
 - `-h header1[,...[,headerN]]` list of SIP header field names that the B2BUA
   should pass verbatim from ingress to egress call leg
 - `-c cmd_path` path to the control socket.
+- `--wss_socket host:port:cert_file:key_file` create a WSS socket in addition to
+  the SIP socket using the configuration. Parameters are as follows:
+  - `host`: The local hostname or IP address to listen on.
+  - `port`: The local port number to listen on.
+  - `cert_file`: The path to the TLS certificate file in X.509 PEM format.
+  - `key_file`: The path to the TLS key file in X.509 PEM format.
 
 
 ## Call Routing
