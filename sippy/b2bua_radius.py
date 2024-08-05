@@ -515,7 +515,7 @@ class CallMap(object):
             cc = CallController(remote_ip, source, req_source, req_target, self.global_config, pass_headers)
 
             if '_pre_auth_proc' in self.global_config:
-                self.global_config['_pre_auth_proc'](req, cc)
+                self.global_config['_pre_auth_proc'](cc, req)
 
             cc.challenge = challenge
             rval = cc.uaA.recvRequest(req, sip_t)

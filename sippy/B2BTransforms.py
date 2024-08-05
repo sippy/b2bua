@@ -23,6 +23,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import sys
+
 from sippy.SipRequest import SipRequest
 
 class HDR2Xattrs():
@@ -32,7 +34,7 @@ class HDR2Xattrs():
     def __init__(self, hdr_name:str):
         self.hdr_name = hdr_name
 
-    def __call__(req:SipRequest, cc:'CallController'):
+    def __call__(self, cc:'CallController', req:SipRequest):
         hfs = req.getHFs(self.hdr_name)
 
         if len(hfs) == 0:
@@ -52,3 +54,21 @@ class HDR2Xattrs():
             cc.extra_attributes = extra_attributes
         else:
             cc.extra_attributes.extend(extra_attributes)
+
+class Nop():
+    def __init__(self, v:str): pass
+    def __call__(self, *a, **kwa): pass
+
+def getTransProc(value:str):
+    rparts = value.split('[', 1)
+    if not len(rparts) == 2 or not value.endswith(']'):
+        raise ValueError(f'getTransProc: `{value}` should be in the format `function[argument]`')
+    fname = rparts[0]
+    bts = sys.modules[__name__]
+    fclass = getattr(bts, fname)
+    farg = rparts[1][:-1]
+    return fclass(farg)
+
+if __name__ == '__main__':
+    for t in ('HDR2Xattrs[X-foo-hdr]',):
+        p = getTransProc(t)

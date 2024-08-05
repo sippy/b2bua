@@ -33,7 +33,7 @@ except ImportError:
     from configparser import RawConfigParser
     _boolean_states = RawConfigParser.BOOLEAN_STATES
 from sippy.SipConf import SipConf
-import sippy.B2BTransforms as bts
+from sippy.B2BTransforms import getTransProc
 
 SUPPORTED_OPTIONS = { \
  'acct_enable':       ('B', 'enable or disable Radius accounting'), \
@@ -220,13 +220,7 @@ class MyConfigParser(RawConfigParser):
                 raise ValueError('sip_port should be in the range 1-65535')
             self['_sip_port'] = _value
         elif key == 'pre_auth_proc':
-            rparts = value.split('[', 1)
-            if not len(rparts) == 2 or not value.endswith(']'):
-                raise ValueError('pre_auth_proc should be in the format `function(argument)`')
-            fname = rparts[0]
-            fclass = getattr(bts, fname)
-            farg = rparts[1][:-1]
-            self['_pre_auth_proc'] = fclass(farg)
+            self['_pre_auth_proc'] = getTransProc(value)
         self[key] = value
 
     def options_help(self):
