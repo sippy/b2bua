@@ -250,12 +250,15 @@ available:
 - `-h header1[,...[,headerN]]` list of SIP header field names that the B2BUA
   should pass verbatim from ingress to egress call leg
 - `-c cmd_path` path to the control socket.
-- `--wss_socket host:port:cert_file:key_file` create a WSS socket in addition to
+- `--wss_socket=host:port:cert_file:key_file` create a WSS socket in addition to
   the SIP socket using the configuration. Parameters are as follows:
   - `host`: The local hostname or IP address to listen on.
   - `port`: The local port number to listen on.
   - `cert_file`: The path to the TLS certificate file in X.509 PEM format.
   - `key_file`: The path to the TLS key file in X.509 PEM format.
+- `--pre_auth_proc=PROCSPEC` use specified routine upon receiving a new session.
+  The `PROCSPEC` consists of the routine name with a string parameter enclosed into
+  square brackers, e.g. `--pre_auth_proc=HDR2Xattrs[X-foo-hdr]`.
 
 
 ## Call Routing
@@ -297,6 +300,9 @@ parameters are available:
   (whichever happens first). If this time has been exceeded, the B2BUA proceeds
   to processing the next route if one or more routes is available, or reports a
   failure condition to the caller if not available.
+- `po_proc=PROCSPEC` use specified routine before initiating each outbound
+  call leg. The `PROCSPEC` consists of the routine name with a string parameter
+  enclosed into square brackers, e.g. `po_proc=VAL2Xattrs[x-attr=val1,y-attr=val2]`.
 
 The following is an example of a routing string in the RADIUS attribute:
 
