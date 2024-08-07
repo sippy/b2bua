@@ -64,10 +64,10 @@ class VAL2Xattrs():
     radius_parameters: list
     def __init__(self, v:str):
         radius_parameters = []
-        pairs = v.split(';')
+        pairs = v.split(',')
         for pair in pairs:
             [key, _, value] = pair.partition("=")
-            if value == '': continue
+            if value == '': raise ValueError(f'{v}: comma-separated list of key=value pairs is expected')
             radius_parameters.append((key, value))
         self.radius_parameters = radius_parameters
 
@@ -95,5 +95,5 @@ def getTransProc(value:str):
     return fclass(farg)
 
 if __name__ == '__main__':
-    for t in ('HDR2Xattrs[X-foo-hdr]', 'VAL2Xattrs[foo=bar;baz=xxx]', 'VAL2XattrsA[foo=bar;baz=xxx]', 'VAL2XattrsO[foo=bar;baz=xxx]'):
+    for t in ('HDR2Xattrs[X-foo-hdr]', 'VAL2Xattrs[foo=bar,baz=xxx]', 'VAL2XattrsA[foo=bar,baz=xxx]', 'VAL2XattrsO[foo=bar,baz=xxx]'):
         p = getTransProc(t)
