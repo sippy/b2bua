@@ -49,12 +49,13 @@ jobs:
           pip install --upgrade setuptools wheel
           pip install -r requirements.txt
 
-      - name: script
+      - name: Build, Install & Test
         run: |
           ${PYTHON_CMD} setup.py build
           ${PYTHON_CMD} setup.py sdist
           sudo "`which ${PYTHON_CMD}`" setup.py install
           pip install dist/sippy*.gz
+          ${PYTHON_CMD} -m unittest
 
   publish_wheels:
     needs: build
