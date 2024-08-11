@@ -242,6 +242,8 @@ class Udp_server(Network_server):
         if self.close_on_shutdown:
             self.skt.close()
         for worker in self.areceivers: worker.join()
+        if not self.close_on_shutdown:
+            self.skt.close()
         self.asenders = None
         self.areceivers = None
 
@@ -313,10 +315,8 @@ class self_test(object):
         self.pong_raddr6 = udp_server_pong6.getSIPaddr()[0]
         udp_server_pong6.send_to(self.ping_data6, self.ping_raddr6)
         ED2.loop()
-        udp_server_ping.shutdown()
-        udp_server_pong.shutdown()
-        udp_server_ping6.shutdown()
-        udp_server_pong6.shutdown()
+        for us in (udp_server_ping, udp_server_pong, udp_server_ping6, udp_server_pong6):
+            us.shutdown()
 
 if __name__ == '__main__':
     self_test().run()
