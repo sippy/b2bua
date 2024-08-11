@@ -40,6 +40,7 @@ SIPLOG_ERR = 3
 SIPLOG_CRIT = 4
 
 class AsyncLogger(Thread):
+    daemon = True
     log = None
     app = None
     master = None
@@ -48,7 +49,6 @@ class AsyncLogger(Thread):
         Thread.__init__(self)
         self.master = master
         self.app = app
-        self.setDaemon(True)
         self.start()
 
     def run(self):

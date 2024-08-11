@@ -42,13 +42,13 @@ from sippy.Core.EventDispatcher import ED2
 _MAX_RECURSE = 10
 
 class _RTPPLWorker(Thread):
+    daemon = True
     userv = None
     s = None
 
     def __init__(self, userv):
         Thread.__init__(self)
         self.userv = userv
-        self.setDaemon(True)
         self.start()
 
     def connect(self):

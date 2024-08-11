@@ -103,6 +103,7 @@ if __name__ == '__main__':
     from threading import Thread
 
     class TestExpiration(Thread):
+        daemon = True
         nonce = None
         ho = HashOracle()
         excpt = None
@@ -110,7 +111,6 @@ if __name__ == '__main__':
         def __init__(self, nonce):
             Thread.__init__(self)
             self.nonce = nonce
-            self.setDaemon(True)
             self.start()
 
         def run(self):

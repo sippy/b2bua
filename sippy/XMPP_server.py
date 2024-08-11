@@ -45,9 +45,9 @@ class Worker(iksemel.Stream):
         self.__reconnect_count = 0
         iksemel.Stream.__init__(self)
         rx_thr = threading.Thread(target = self.run_rx)
-        rx_thr.setDaemon(True)
+        rx_thr.daemon = True
         tx_thr = threading.Thread(target = self.run_tx)
-        tx_thr.setDaemon(True)
+        tx_thr.daemon = True
         rx_thr.start()
         tx_thr.start()
 

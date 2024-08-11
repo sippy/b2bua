@@ -43,6 +43,7 @@ except NameError:
     _uobj = bytes
 
 class _Acceptor(Thread):
+    daemon = True
     clicm = None
     pollobj = None
     fileno = None
@@ -53,7 +54,6 @@ class _Acceptor(Thread):
         self.pollobj = poll()
         self.fileno = self.clicm.serversock.fileno()
         self.pollobj.register(self.fileno, POLLIN)
-        self.setDaemon(True)
         self.start()
 
     def run(self):
@@ -137,6 +137,7 @@ class CLIConnectionManager(object):
         self.atr.join()
 
 class _CLIManager_w(Thread):
+    daemon = True
     clim = None
     wbuffer = None
     w_available = None
@@ -149,7 +150,6 @@ class _CLIManager_w(Thread):
         self.clim = clim
         self.w_available = Condition()
         self.wbuffer = bytes()
-        self.setDaemon(True)
         self.start()
 
     def run(self):
@@ -196,6 +196,7 @@ class _CLIManager_w(Thread):
         self.w_available.release()
 
 class _CLIManager_r(Thread):
+    daemon = True
     clim = None
 
     def __init__(self, clientsock, clim):
@@ -203,7 +204,6 @@ class _CLIManager_r(Thread):
         Thread.__init__(self)
         self.clientsock = clientsock
         self.clim = clim
-        self.setDaemon(True)
         self.start()
 
     def run(self):

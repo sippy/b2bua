@@ -43,6 +43,7 @@ RTPGenSuspend = 2
 RTPGenStop = 3
 
 class RTPGen(Thread):
+    daemon = True
     ptime = 0.030
     elp = None
     rsth = None
@@ -55,7 +56,6 @@ class RTPGen(Thread):
 
     def __init__(self):
         Thread.__init__(self)
-        self.setDaemon(True)
         self.pl_queue = []
 
     def start(self, userv, target):

@@ -32,6 +32,7 @@ from time import time, sleep
 from sippy.Core.EventDispatcher import ED2
 
 class PELIO(Thread):
+    daemon = True
     default_timeout = 60.0
     sdev = '/dev/cuau0'
     brate = 9600
@@ -44,7 +45,6 @@ class PELIO(Thread):
 
     def __init__(self, lfile):
         Thread.__init__(self)
-        self.setDaemon(True)
         self.lfile = lfile
         self.prequeue = []
 

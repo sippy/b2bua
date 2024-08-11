@@ -36,6 +36,7 @@ from sippy.Core.EventDispatcher import ED2
 _MAX_WORKERS = 20
 
 class _Worker(Thread):
+    daemon = True
     command = None
     master = None
 
@@ -43,7 +44,6 @@ class _Worker(Thread):
         Thread.__init__(self)
         self.command = command
         self.master = master
-        self.setDaemon(True)
         self.start()
 
     def run(self):
