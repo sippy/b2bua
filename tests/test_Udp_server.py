@@ -1,7 +1,7 @@
 import unittest
 from sippy.Udp_server import self_test
 
-class TestSelfTest(unittest.TestCase):
+class TestUdp_server(unittest.TestCase):
     def test_run(self):
         # Create an instance of the self_test class
         test_instance = self_test()
