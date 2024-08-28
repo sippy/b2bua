@@ -81,6 +81,9 @@ class subcommand_deice(subcommand):
             pts = cand.split(None, 4)
             if pts[2].lower() != 'udp':
                 continue
+            if pts[4].startswith('192.') and not pts[4].startswith('192.168.'):
+                # Carrier-grade NAT garbage
+                continue
             self.append(f'{self.i_mod} C {cand}')
 
     def handle_results(self, results, ur):
