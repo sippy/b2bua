@@ -33,6 +33,7 @@ from sippy.SipURL import SipURL
 from sippy.SipAddress import SipAddress
 from sippy.SipExpires import SipExpires
 from sippy.Exceptions.SipParseError import SipParseError
+from sippy.SipReason import SipReason
 
 class SipRequest(SipMsg):
     method = None
@@ -105,16 +106,24 @@ class SipRequest(SipMsg):
     def setRURI(self, ruri):
         self.ruri = ruri
 
-    def genResponse(self, scode, reason, body = None, server = None):
+    def genResponse(self, scode, reason, body = None, server = None, ext_reason = None):
         # Should be done at the transaction level
         # to = self.getHF('to').getBody().getCopy()
         # if code > 100 and to.getTag() == None:
         #    to.genTag()
-        return SipResponse(scode = scode, reason = reason, sipver = self.sipver, fr0m = self.getHFBCopy('from'), \
+        resp = SipResponse(scode = scode, reason = reason, sipver = self.sipver, fr0m = self.getHFBCopy('from'), \
                            callid = self.getHFBCopy('call-id'), vias = self.getHFBCopys('via'), \
                            to = self.getHFBCopy('to'), cseq = self.getHFBCopy('cseq'), \
                            rrs = self.getHFBCopys('record-route'), body = body, \
                            server = server)
+        if ext_reason is not None:
+            if isinstance(ext_reason, str):
+                reason_hf = SipReason(protocol='SIP', cause=scode, reason=ext_reason)
+            else:
+                assert isinstance(ext_reason, SipReason)
+                reason_hf = ext_reason
+            resp.appendHeader(SipHeader(body = reason_hf))
+        return resp
 
     def genACK(self, to = None):
         if to == None:
