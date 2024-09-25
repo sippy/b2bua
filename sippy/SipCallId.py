@@ -52,15 +52,14 @@ class SipCallId(SipGenericHF):
         SipGenericHF.__init__(self, body)
         self.parsed = True
         if body is None:
-            salt = str((random() * 1000000000) + time())
-            self.body = md5(salt.encode()).hexdigest() + '@' + str(SipConf.my_address)
+            self.genCallId()
 
     def __add__(self, other):
         return SipCallId(self.body + str(other))
 
     def genCallId(self):
         salt = str((random() * 1000000000) + time())
-        self.body = md5(salt.encode()).hexdigest() + '@' + str(SipConf.my_address)
+        self.body = md5(salt.encode()).hexdigest()
 
     def getCanName(self, name, compact = False):
         if compact:
