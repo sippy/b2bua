@@ -25,7 +25,7 @@ ecall_part0 = (
 
 
 class TestMultipart(unittest.TestCase):
-    def test_run(self):
+    def test_multipart_unsorted_headers(self):
         ct = SipContentType("multipart/mixed;boundary=boundaryZZZ")
         ct.parse()
         got = MsgBody(ecall_body1, mtype=ct)
