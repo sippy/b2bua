@@ -31,3 +31,6 @@ class TestMultipart(unittest.TestCase):
         self.assertEqual(MsgBody, type(p0))
         print(p0.mtype)
         self.assertEqual("application/EmergencyCallData.Control+xml", p0.mtype.localStr())
+        h0 = mp.part_headers[0]
+        self.assertEqual("content-disposition", h0[0].name)
+        self.assertEqual("content-id", h0[1].name)
