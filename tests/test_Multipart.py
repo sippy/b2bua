@@ -16,6 +16,12 @@ ecall_body1 = (
     "</EmergencyCallData.Control>\r\n"
     "--boundaryZZZ--\r\n"
 )
+ecall_part0 = (
+    '<?xml version="1.0" encoding="UTF-8"?>\r\n'
+    '<EmergencyCallData.Control xmlns="urn:ietf:params:xml:ns:EmergencyCallData:control">\r\n'
+    '<request action="send-data" datatype="eCall.MSD"/>\r\n'
+    "</EmergencyCallData.Control>\r\n"
+)
 
 
 class TestMultipart(unittest.TestCase):
@@ -29,8 +35,11 @@ class TestMultipart(unittest.TestCase):
         self.assertEqual(1, len(mp.parts))
         p0 = mp.parts[0]
         self.assertEqual(MsgBody, type(p0))
-        print(p0.mtype)
-        self.assertEqual("application/EmergencyCallData.Control+xml", p0.mtype.localStr())
+        #print(p0.mtype)
+        self.assertEqual(
+            "application/EmergencyCallData.Control+xml", p0.mtype.localStr())
         h0 = mp.part_headers[0]
         self.assertEqual("content-disposition", h0[0].name)
         self.assertEqual("content-id", h0[1].name)
+        # check that part body is without headers
+        self.assertEqual(ecall_part0, p0.content)
