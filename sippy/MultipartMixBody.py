@@ -40,7 +40,8 @@ class MultipartMixBody():
         parts = [p.lstrip() for p in bparts[1:-1]]
         self.parts = []
         for sect in parts:
-            ct, sect = sect.split('\r\n', 1)
+            headers, sect = sect.split('\r\n\r\n', 1) # do hots wos
+            ct = [line for line in  headers.split('\r\n') if "Content-Type" in line][0]
             ct = SipHeader(ct).getBody()
             sect = MsgBody(sect, ct)
             self.parts.append(sect)
