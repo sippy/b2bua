@@ -29,7 +29,6 @@ from sippy.Security.SipNonce import HashOracle, DGST_MD5, DGST_MD5SESS, \
   DGST_SHA256, DGST_SHA256SESS, DGST_SHA512, DGST_SHA512SESS
 
 from hashlib import md5, sha256
-from time import time
 
 from Crypto.Hash import SHA512
 

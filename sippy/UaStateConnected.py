@@ -78,7 +78,7 @@ class UaStateConnected(UaStateGeneric):
                 return None
             event = CCEventUpdate(body, rtime = req.rtime, origin = self.ua.origin)
             try:
-                event.reason = req.getHFBody('reason')
+                event.reason_rfc3326 = req.getHFBody('reason')
             except:
                 pass
             try:
@@ -104,7 +104,7 @@ class UaStateConnected(UaStateGeneric):
                 also = None
             event = CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin)
             try:
-                event.reason = req.getHFBody('reason')
+                event.reason_rfc3326 = req.getHFBody('reason')
             except:
                 pass
             self.ua.equeue.append(event)
@@ -115,7 +115,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', server = self.ua.local_ua))
             event = CCEventInfo(req.getBody(), rtime = req.rtime, origin = self.ua.origin)
             try:
-                event.reason = req.getHFBody('reason')
+                event.reason_rfc3326 = req.getHFBody('reason')
             except:
                 pass
             self.ua.equeue.append(event)
@@ -149,6 +149,7 @@ class UaStateConnected(UaStateGeneric):
         return None
 
     def recvEvent(self, event):
+        eh = event.getExtraHeaders()
         if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
             #print('event', event, 'received in the Connected state sending BYE')
             redirect = None
@@ -159,7 +160,7 @@ class UaStateConnected(UaStateGeneric):
                 if redirects != None:
                     redirect = redirects[0]
             if redirect != None and self.ua.useRefer:
-                req = self.ua.genRequest('REFER', reason = event.reason)
+                req = self.ua.genRequest('REFER', extra_headers = eh)
                 self.ua.lCSeq += 1
                 also = SipReferTo(address = redirect)
                 req.appendHeader(SipHeader(name = 'refer-to', body = also))
@@ -168,7 +169,7 @@ class UaStateConnected(UaStateGeneric):
                 self.ua.global_config['_sip_tm'].newTransaction(req, self.rComplete, \
                   laddress = self.ua.source_address, compact = self.ua.compact_sip)
             else:
-                req = self.ua.genRequest('BYE', reason = event.reason)
+                req = self.ua.genRequest('BYE', extra_headers = eh)
                 self.ua.lCSeq += 1
                 if redirect != None:
                     also = SipAlso(address = redirect)
@@ -204,7 +205,7 @@ class UaStateConnected(UaStateGeneric):
                 max_forwards_hf = SipMaxForwards(number = event.max_forwards - 1)
             else:
                 max_forwards_hf = None
-            req = self.ua.genRequest('INVITE', body, reason = event.reason, \
+            req = self.ua.genRequest('INVITE', body, extra_headers = eh, \
               max_forwards = max_forwards_hf)
             self.ua.lCSeq += 1
             self.ua.lSDP = body
@@ -213,7 +214,7 @@ class UaStateConnected(UaStateGeneric):
             return (UacStateUpdating,)
         if isinstance(event, CCEventInfo):
             body = event.getData()
-            req = self.ua.genRequest('INFO', reason = event.reason)
+            req = self.ua.genRequest('INFO', extra_headers = eh)
             req.setBody(body)
             self.ua.lCSeq += 1
             self.ua.global_config['_sip_tm'].newTransaction(req, None, \

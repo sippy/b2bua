@@ -46,7 +46,7 @@ class UasStateUpdating(UaStateGeneric):
             #print('BYE received in the Updating state, going to the Disconnected state')
             event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
             try:
-                event.reason = req.getHFBody('reason')
+                event.reason_rfc3326 = req.getHFBody('reason')
             except:
                 pass
             self.ua.equeue.append(event)
@@ -70,6 +70,7 @@ class UasStateUpdating(UaStateGeneric):
         return None
 
     def recvEvent(self, event):
+        eh = event.getExtraHeaders()
         if isinstance(event, CCEventRing):
             scode = event.getData()
             if scode == None:
@@ -79,7 +80,7 @@ class UasStateUpdating(UaStateGeneric):
                 self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             self.ua.lSDP = body
-            self.ua.sendUasResponse(scode[0], scode[1], body)
+            self.ua.sendUasResponse(scode[0], scode[1], body, extra_headers = eh)
             return None
         elif isinstance(event, CCEventConnect):
             code, reason, body = event.getData()
@@ -87,7 +88,8 @@ class UasStateUpdating(UaStateGeneric):
                 self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
             self.ua.lSDP = body
-            self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,))
+            self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), \
+              extra_headers = eh)
             return (UaStateConnected,)
         elif isinstance(event, CCEventRedirect):
             scode = event.getData()
@@ -96,23 +98,18 @@ class UasStateUpdating(UaStateGeneric):
                 scode = (500, 'Failed', None, None)
             elif scode[3] != None:
                 contacts = tuple(SipContact(address = x) for x in scode[3])
-            self.ua.sendUasResponse(scode[0], scode[1], scode[2], contacts)
-            return (UaStateConnected,)
+            self.ua.sendUasResponse(scode[0], scode[1], scode[2], contacts, \
+              extra_headers = eh)
         elif isinstance(event, CCEventFail):
             scode = event.getData()
             if scode == None:
                 scode = (500, 'Failed')
             self.ua.rSDP = None
-            if event.warning != None:
-                extra_headers = (event.warning,)
-            else:
-                extra_headers = None
-            self.ua.sendUasResponse(scode[0], scode[1], reason_rfc3326 = event.reason, \
-              extra_headers = extra_headers)
+            self.ua.sendUasResponse(scode[0], scode[1], extra_headers = eh)
             return (UaStateConnected,)
         elif isinstance(event, CCEventDisconnect):
-            self.ua.sendUasResponse(487, 'Request Terminated', reason_rfc3326 = event.reason)
-            req = self.ua.genRequest('BYE', reason = event.reason)
+            self.ua.sendUasResponse(487, 'Request Terminated', extra_headers = eh)
+            req = self.ua.genRequest('BYE', extra_headers = eh)
             self.ua.lCSeq += 1
             self.ua.global_config['_sip_tm'].newTransaction(req, \
               laddress = self.ua.source_address, compact = self.ua.compact_sip)
@@ -122,7 +119,7 @@ class UasStateUpdating(UaStateGeneric):
         #print('wrong event %s in the Updating state' % event)
         return None
 
-    def cancel(self, rtime, req):
+    def cancel(self, rtime, inreq):
         req = self.ua.genRequest('BYE')
         self.ua.lCSeq += 1
         self.ua.global_config['_sip_tm'].newTransaction(req, \
@@ -131,9 +128,9 @@ class UasStateUpdating(UaStateGeneric):
         self.ua.disconnect_ts = rtime
         self.ua.changeState((UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
         event = CCEventDisconnect(rtime = rtime, origin = self.ua.origin)
-        if req != None:
+        if inreq is not None:
             try:
-                event.reason = req.getHFBody('reason')     
+                event.reason_rfc3326 = inreq.getHFBody('reason')
             except:
                 pass
         self.ua.emitEvent(event)

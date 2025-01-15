@@ -36,6 +36,7 @@ class UasStateTrying(UaStateGeneric):
     sname = 'Trying(UAS)'
 
     def recvEvent(self, event):
+        eh = event.getExtraHeaders()
         if isinstance(event, CCEventRing):
             scode = event.getData()
             if scode == None:
@@ -48,7 +49,7 @@ class UasStateTrying(UaStateGeneric):
                     self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                     return None
             self.ua.lSDP = body
-            self.ua.sendUasResponse(code, reason, body)
+            self.ua.sendUasResponse(code, reason, body, extra_headers = eh)
             if self.ua.no_progress_timer != None:
                 self.ua.no_progress_timer.cancel()
                 self.ua.no_progress_timer = None
@@ -62,17 +63,13 @@ class UasStateTrying(UaStateGeneric):
             if body is not None and self.ua.on_local_sdp_change != None and body.needs_update:
                 self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                 return None
-            if event.extra_headers != None:
-                extra_headers = tuple(event.extra_headers)
-            else:
-                extra_headers = None
             self.ua.lSDP = body
             if self.ua.no_progress_timer != None:
                 self.ua.no_progress_timer.cancel()
                 self.ua.no_progress_timer = None
             if isinstance(event, CCEventConnect):
                 self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), ack_wait = False, \
-                  extra_headers = extra_headers)
+                  extra_headers = eh)
                 if self.ua.expire_timer != None:
                     self.ua.expire_timer.cancel()
                     self.ua.expire_timer = None
@@ -81,7 +78,7 @@ class UasStateTrying(UaStateGeneric):
                 return (UaStateConnected, self.ua.conn_cbs, event.rtime, event.origin)
             else:
                 self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), ack_wait = True, \
-                  extra_headers = extra_headers)
+                  extra_headers = eh)
                 return (UaStateConnected,)
         elif isinstance(event, CCEventRedirect):
             scode = event.getData()
@@ -90,7 +87,8 @@ class UasStateTrying(UaStateGeneric):
                 scode = (500, 'Failed', None, None)
             elif scode[3] != None:
                 contacts = tuple(SipContact(address = x) for x in scode[3])
-            self.ua.sendUasResponse(scode[0], scode[1], scode[2], contacts)
+            self.ua.sendUasResponse(scode[0], scode[1], scode[2], contacts, \
+              extra_headers = eh)
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
@@ -103,17 +101,7 @@ class UasStateTrying(UaStateGeneric):
             scode = event.getData()
             if scode == None:
                 scode = (500, 'Failed')
-            extra_headers = []
-            if event.extra_headers != None:
-                extra_headers.extend(event.extra_headers)
-            if event.challenges != None:
-                extra_headers.extend(event.challenges)
-            if len(extra_headers) == 0:
-                extra_headers = None
-            else:
-                extra_headers = tuple(extra_headers)
-            self.ua.sendUasResponse(scode[0], scode[1], reason_rfc3326 = event.reason, \
-              extra_headers = extra_headers)
+            self.ua.sendUasResponse(scode[0], scode[1], extra_headers = eh)
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
@@ -125,7 +113,7 @@ class UasStateTrying(UaStateGeneric):
         elif isinstance(event, CCEventDisconnect):
             #import sys, traceback
             #traceback.print_stack(file = sys.stdout)
-            self.ua.sendUasResponse(500, 'Disconnected', reason_rfc3326 = event.reason)
+            self.ua.sendUasResponse(500, 'Disconnected', extra_headers = eh)
             if self.ua.expire_timer != None:
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
@@ -138,14 +126,14 @@ class UasStateTrying(UaStateGeneric):
         return None
 
     def cancel(self, rtime, req):
-        self.ua.disconnect_ts = rtime
-        self.ua.changeState((UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
         event = CCEventDisconnect(rtime = rtime, origin = self.ua.origin)
         if req != None:
             try:
-                event.reason = req.getHFBody('reason')
+                event.reason_rfc3326 = req.getHFBody('reason')
             except:
                 pass
+        self.ua.disconnect_ts = rtime
+        self.ua.changeState((UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
         self.ua.emitEvent(event)
 
 if 'UasStateRinging' not in globals():

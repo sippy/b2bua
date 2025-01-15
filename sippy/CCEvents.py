@@ -25,13 +25,15 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.Time.MonoTime import MonoTime
+from sippy.SipHeader import SipHeader
+from sippy.SipWarning import SipWarning
 
 class CCEventGeneric(object):
     data = None
     name = None
     rtime = None
     origin = None
-    reason = None
+    reason_rfc3326 = None
     extra_headers = None
     seq = 1
 
@@ -50,11 +52,19 @@ class CCEventGeneric(object):
 
     def getCopy(self):
         cself = self.__class__(self.data, self.rtime, self.origin)
-        if self.reason != None:
-            cself.reason = self.reason.getCopy()
-        if self.extra_headers != None:
-            cself.extra_headers = tuple([x.getCopy() for x in self.extra_headers])
+        if self.extra_headers is not None:
+            cself.extra_headers = tuple(x.getCopy() for x in self.extra_headers)
+        if self.reason_rfc3326 is not None:
+            cself.reason_rfc3326 = self.reason_rfc3326.getCopy()
         return cself
+
+    def getExtraHeaders(self):
+        extra_headers = []
+        if self.extra_headers is not None:
+            extra_headers.extend(self.extra_headers)
+        if self.reason_rfc3326 is not None:
+            extra_headers.append(SipHeader(body = self.reason_rfc3326))
+        return tuple(extra_headers) if len(extra_headers) > 0 else None
 
     def __str__(self):
         return self.name
@@ -64,7 +74,7 @@ class CCEventTry(CCEventGeneric):
     max_forwards = None
 
     def getCopy(self):
-        cself = CCEventGeneric.getCopy(self)
+        cself = super().getCopy()
         cself.max_forwards = self.max_forwards
         return cself
 
@@ -75,35 +85,27 @@ class CCEventTry(CCEventGeneric):
 
 class CCEventRing(CCEventGeneric):
     name = 'CCEventRing'
-    pass
 
 class CCEventPreConnect(CCEventGeneric):
     name = 'CCEventPreConnect'
-    pass
 
 class CCEventConnect(CCEventGeneric):
     name = 'CCEventConnect'
-    pass
 
 class CCEventUpdate(CCEventGeneric):
     name = 'CCEventUpdate'
     max_forwards = None
 
     def getCopy(self):
-        cself = CCEventGeneric.getCopy(self)
+        cself = super().getCopy()
         cself.max_forwards = self.max_forwards
         return cself
 
 class CCEventInfo(CCEventGeneric):
     name = 'CCEventInfo'
-    pass
 
 class CCEventDisconnect(CCEventGeneric):
     name = 'CCEventDisconnect'
-    pass
-
-from sippy.SipHeader import SipHeader
-from sippy.SipWarning import SipWarning
 
 class CCEventFail(CCEventGeneric):
     name = 'CCEventFail'
@@ -111,14 +113,25 @@ class CCEventFail(CCEventGeneric):
     warning = None
 
     def getCopy(self):
-        cself = CCEventGeneric.getCopy(self)
-        if self.challenges != None:
+        cself = super().getCopy()
+        if self.challenges is not None:
             cself.challenges = [x.getCopy() for x in self.challenges]
+        if self.warning is not None:
+            cself.warning = self.warning.getCopy()
         return cself
+
+    def getExtraHeaders(self):
+        extra_headers = []
+        if (eh := super().getExtraHeaders()) is not None:
+            extra_headers.extend(eh)
+        if self.challenges is not None:
+            extra_headers.extend(self.challenges)
+        if self.warning is not None:
+            extra_headers.append(self.warning)
+        return tuple(extra_headers) if len(extra_headers) > 0 else None
 
     def setWarning(self, eistr):
         self.warning = SipHeader(body = SipWarning(text = eistr))
 
 class CCEventRedirect(CCEventGeneric):
     name = 'CCEventRedirect'
-    pass

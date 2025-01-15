@@ -44,7 +44,7 @@ class UacStateUpdating(UaStateGeneric):
             #print('BYE received in the Updating state, going to the Disconnected state')
             event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
             try:
-                event.reason = req.getHFBody('reason')
+                event.reason_rfc3326 = req.getHFBody('reason')
             except:
                 pass
             self.ua.equeue.append(event)
@@ -81,6 +81,10 @@ class UacStateUpdating(UaStateGeneric):
                 self.ua.rSDP = None
             self.ua.equeue.append(event)
             return (UaStateConnected,)
+        try:
+            reason_rfc3326 = resp.getHFBody('reason')
+        except:
+            reason_rfc3326 = None
         if code in (301, 302) and resp.countHFs('contact') > 0:
             scode = (code, reason, body, (resp.getHFBody('contact').getUri().getCopy(),))
             event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
@@ -91,10 +95,7 @@ class UacStateUpdating(UaStateGeneric):
         else:
             self.ua.lSDP = None
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
-            try:
-                event.reason = resp.getHFBody('reason')
-            except:
-                pass
+        event.reason_rfc3326 = reason_rfc3326
 
         if code in (408, 481):
             # If the response for a request within a dialog is a 481
@@ -109,7 +110,7 @@ class UacStateUpdating(UaStateGeneric):
 
     def updateFailed(self, event):
         self.ua.equeue.append(event)
-        req = self.ua.genRequest('BYE', reason = event.reason)
+        req = self.ua.genRequest('BYE', extra_headers = event.getExtraHeaders())
         self.ua.lCSeq += 1
         self.ua.global_config['_sip_tm'].newTransaction(req, \
           laddress = self.ua.source_address, compact = self.ua.compact_sip)
@@ -122,7 +123,7 @@ class UacStateUpdating(UaStateGeneric):
     def recvEvent(self, event):
         if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
             self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr)
-            req = self.ua.genRequest('BYE', reason = event.reason)
+            req = self.ua.genRequest('BYE', extra_headers = event.getExtraHeaders())
             self.ua.lCSeq += 1
             self.ua.global_config['_sip_tm'].newTransaction(req, \
               laddress = self.ua.source_address, compact = self.ua.compact_sip)

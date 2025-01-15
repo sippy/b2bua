@@ -73,7 +73,7 @@ class UacStateIdle(UaStateGeneric):
             self.ua.routes = []
             self.ua.lSDP = body
             event.onUacSetupComplete(self.ua)
-            req = self.ua.genRequest('INVITE', body, reason = event.reason, \
+            req = self.ua.genRequest('INVITE', body, extra_headers = event.getExtraHeaders(), \
               max_forwards = event.max_forwards)
             if auth != None and self.ua.pass_auth:
                 req.appendHeader(SipHeader(body = auth))

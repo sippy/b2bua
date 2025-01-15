@@ -174,7 +174,7 @@ class UA(object):
         else:
             return None
 
-    def processChallenge(self, resp, cseq, ch_hfname, auth_hfname):
+    def processChallenge(self, resp, cseq, ch_hfname, auth_hfname, extra_headers):
         if self.username == None or self.password == None or \
           self.reqs[cseq].countHFs(auth_hfname) != 0:
             return False
@@ -187,10 +187,11 @@ class UA(object):
                 break
         else:
             return False
-        req = self.genRequest('INVITE', self.lSDP, (challenge, qop))
+        req = self.genRequest('INVITE', self.lSDP, (challenge, qop), extra_headers = extra_headers)
         self.lCSeq += 1
         self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
           laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
+        self.tr.req_extra_headers = extra_headers
         del self.reqs[cseq]
         return True
 
@@ -202,10 +203,10 @@ class UA(object):
         cseq, method = resp.getHFBody('cseq').getCSeq()
         if method == 'INVITE' and not self.pass_auth and cseq in self.reqs:
             if code == 401 and self.processChallenge(resp, cseq, \
-              'www-authenticate', 'authorization'):
+              'www-authenticate', 'authorization', tr.req_extra_headers):
                 return None
             if code == 407 and self.processChallenge(resp, cseq, \
-              'proxy-authenticate', 'proxy-authorization'):
+              'proxy-authenticate', 'proxy-authorization', tr.req_extra_headers):
                 return None
         if code >= 200 and cseq in self.reqs:
             del self.reqs[cseq]
@@ -274,7 +275,7 @@ class UA(object):
             self.event_cb(event, self)
 
     def genRequest(self, method, body = None, cqop = None, \
-      reason = None, max_forwards = None):
+      extra_headers = None, max_forwards = None):
         if self.outbound_proxy != None:
             target = (self.outbound_proxy, SipConf.my_transport)
         else:
@@ -299,24 +300,22 @@ class UA(object):
             req.appendHeader(SipHeader(body = auth))
         if body is not None:
             req.setBody(body)
-        if self.extra_headers != None:
+        if self.extra_headers is not None:
             req.appendHeaders(self.extra_headers)
-        if reason != None:
-            req.appendHeader(SipHeader(body = reason))
+        if extra_headers is not None:
+            req.appendHeaders(extra_headers)
         self.reqs[self.lCSeq] = req
         return req
 
     def sendUasResponse(self, scode, reason, body = None, contacts = None, \
-      reason_rfc3326 = None, extra_headers = None, ack_wait = False):
+      extra_headers = None, ack_wait = False):
         uasResp = self.uasResp.getCopy()
         uasResp.setSCode(scode, reason)
         uasResp.setBody(body)
         if contacts != None:
             for contact in contacts:
                 uasResp.appendHeader(SipHeader(name = 'contact', body = contact))
-        if reason_rfc3326 != None:
-            uasResp.appendHeader(SipHeader(body = reason_rfc3326))
-        if extra_headers != None:
+        if extra_headers is not None:
             uasResp.appendHeaders(extra_headers)
         if ack_wait:
             ack_cb = self.recvACK
@@ -395,7 +394,7 @@ class UA(object):
         if ex is not None:
             if not isinstance(ex, (RtpProxyError, SdpParseError)): raise ex
             event = CCEventFail((ex.code, ex.msg))
-            event.reason = ex.getReason()
+            event.reason_rfc3326 = ex.getReason()
         else:
             self.rSDP = remote_sdp_body.getCopy()
         self.equeue.append(event)
@@ -407,7 +406,7 @@ class UA(object):
         if ex is not None:
             if not isinstance(ex, (RtpProxyError, SdpParseError)): raise ex
             event = CCEventFail((ex.code, ex.msg))
-            event.reason = ex.getReason()
+            event.reason_rfc3326 = ex.getReason()
             self.equeue.append(event)
             self.emitPendingEvents()
         self.recvEvent(event)

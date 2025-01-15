@@ -81,7 +81,7 @@ class UasStateIdle(UaStateGeneric):
         event = CCEventTry((self.ua.cId, self.ua.rUri.getUrl().username, req.getRURI().username, body, auth, \
           self.ua.rUri.getUri().name), rtime = req.rtime, origin = self.ua.origin)
         try:
-            event.reason = req.getHFBody('reason')
+            event.reason_rfc3326 = req.getHFBody('reason')
         except:
             pass
         try:

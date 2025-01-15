@@ -67,7 +67,8 @@ class UacStateRinging(UacStateTrying):
             if tag == None:
                 print('tag-less 200 OK, disconnecting')
                 scode = (502, 'Bad Gateway')
-                self.ua.equeue.append(CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin))
+                event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
+                self.ua.equeue.append(event)
                 self.genBYE()
                 return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
@@ -94,18 +95,18 @@ class UacStateRinging(UacStateTrying):
             return rval
         if code in (301, 302) and resp.countHFs('contact') > 0:
             scode = (code, reason, body, (resp.getHFBody('contact').getUri().getCopy(),))
-            self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
+            event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
         elif code == 300 and resp.countHFs('contact') > 0:
             redirects = tuple(x.getUri().getCopy() for x in resp.getHFBodys('contact'))
             scode = (code, reason, body, redirects)
-            self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
+            event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
         else:
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
-            try:
-                event.reason = resp.getHFBody('reason')
-            except:
-                pass
-            self.ua.equeue.append(event)
+        try:
+            event.reason_rfc3326 = resp.getHFBody('reason')
+        except:
+            pass
+        self.ua.equeue.append(event)
         self.ua.disconnect_ts = resp.rtime
         return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, code)
 

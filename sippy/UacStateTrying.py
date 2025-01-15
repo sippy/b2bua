@@ -113,11 +113,11 @@ class UacStateTrying(UaStateGeneric):
             return rval
         if code in (301, 302) and resp.countHFs('contact') > 0:
             scode = (code, reason, body, (resp.getHFBody('contact').getUri().getCopy(),))
-            self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
+            event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
         elif code == 300 and resp.countHFs('contact') > 0:
             redirects = tuple(x.getUri().getCopy() for x in resp.getHFBodys('contact'))
             scode = (code, reason, body, redirects)
-            self.ua.equeue.append(CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin))
+            event = CCEventRedirect(scode, rtime = resp.rtime, origin = self.ua.origin)
         else:
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
             if self.ua.pass_auth:
@@ -125,9 +125,11 @@ class UacStateTrying(UaStateGeneric):
                     event.challenges = [x.getCopy() for x in resp.getHFs('www-authenticate')]
                 elif code == 407 and resp.countHFs('proxy-authenticate') != 0:
                     event.challenges = [x.getCopy() for x in resp.getHF('proxy-authenticate')]
-            if resp.countHFs('reason') != 0:
-                event.reason = resp.getHFBody('reason').getCopy()
-            self.ua.equeue.append(event)
+        try:
+            event.reason_rfc3326 = resp.getHFBody('reason')
+        except:
+            pass
+        self.ua.equeue.append(event)
         self.ua.disconnect_ts = resp.rtime
         return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, code)
 
@@ -181,7 +183,7 @@ class UacStateTrying(UaStateGeneric):
         except (RtpProxyError, SdpParseError) as ex:
             scode = (ex.code, ex.msg)
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
-            event.reason = ex.getReason()
+            event.reason_rfc3326 = ex.getReason()
             code = resp.getSCode()[0]
             if code < 200:
                 self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr,

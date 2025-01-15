@@ -373,7 +373,7 @@ class CallController(object):
                 self.uaA.recvEvent(CCEventFail((483, 'Too Many Hops')))
                 self.state = CCStateDead
                 return
-        event.reason = self.eTry.reason
+        event.reason_rfc3326 = self.eTry.reason_rfc3326
         po_proc = oroute.params.get('po_proc', None)
         if po_proc is not None:
             po_proc(self, event)
