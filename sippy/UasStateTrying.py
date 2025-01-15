@@ -49,7 +49,7 @@ class UasStateTrying(UaStateGeneric):
                     self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                     return None
             self.ua.lSDP = body
-            self.ua.sendUasResponse(code, reason, body, extra_headers = eh)
+            self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), extra_headers = eh)
             if self.ua.no_progress_timer != None:
                 self.ua.no_progress_timer.cancel()
                 self.ua.no_progress_timer = None

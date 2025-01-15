@@ -51,7 +51,7 @@ class UasStateRinging(UaStateGeneric):
             self.ua.lSDP = body
             if self.ua.p1xx_ts == None:
                 self.ua.p1xx_ts = event.rtime
-            self.ua.sendUasResponse(code, reason, body, extra_headers = eh)
+            self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), extra_headers = eh)
             for ring_cb in self.ua.ring_cbs:
                 ring_cb(self.ua, event.rtime, event.origin, code)
             return None
