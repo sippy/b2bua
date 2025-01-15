@@ -153,11 +153,11 @@ class SipWWWAuthenticate(SipGenericHF):
         if self.qop is not None:
             qops = [x for x in self.qop if x in ('auth', 'auth-int')]
             if len(qops) == 0:
-                return False
+                return False, None
             qop = qops[0]
         elif self.algorithm is not None and (self.algorithm.endswith('-sess') or self.algorithm != 'MD5'):
             # -sess variants and RFC8760 algorithms mandate qop
-            return False
+            return False, None
         else:
             qop = None
         return (IsDigestAlgSupported(self.algorithm), qop)
