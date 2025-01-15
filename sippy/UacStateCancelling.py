@@ -33,7 +33,7 @@ class UacStateCancelling(UaStateGeneric):
     sname = 'Cancelling(UAC)'
 
     def __init__(self, ua):
-        UaStateGeneric.__init__(self, ua)
+        super().__init__(ua)
         ua.on_local_sdp_change = None
         ua.on_remote_sdp_change = None
         # 300 provides good estimate on the amount of time during which

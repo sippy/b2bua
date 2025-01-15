@@ -31,7 +31,7 @@ class UaStateDisconnected(UaStateGeneric):
     sname = 'Disconnected'
 
     def __init__(self, ua):
-        UaStateGeneric.__init__(self, ua)
+        super().__init__(ua)
         ua.on_local_sdp_change = None
         ua.on_remote_sdp_change = None
         Timeout(self.goDead, ua.godead_timeout)

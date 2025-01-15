@@ -46,7 +46,7 @@ class UaStateConnected(UaStateGeneric):
     def __init__(self, ua):
         self.keepalives = 0
         self.ka_tr = None
-        UaStateGeneric.__init__(self, ua)
+        super().__init__(ua)
         self.ua.branch = None
         if self.ua.kaInterval > 0:
             Timeout(self.keepAlive, self.ua.kaInterval)
