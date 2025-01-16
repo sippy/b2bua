@@ -81,7 +81,7 @@ class Wss_server(Thread, Network_server):
             item = await queue.get()
             await websocket.send(item)
 
-    async def ws_to_sip(self, websocket, path):
+    async def ws_to_sip(self, websocket):
         print(f'New connection {websocket.id=}')
         queue = AsyncQueue()
         sender = create_task(self.sip_to_ws(queue, websocket))
