@@ -113,8 +113,7 @@ class UasStateRinging(UaStateGeneric):
     def recvRequest(self, req):
         if req.getMethod() == 'BYE':
             self.ua.sendUasResponse(487, 'Request Terminated')
-            self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK',
-              server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
+            req.sendResponse(200, 'OK')
             #print('BYE received in the Ringing state, going to the Disconnected state')
             if req.countHFs('also') > 0:
                 also = req.getHFBody('also').getCopy()

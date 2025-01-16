@@ -153,6 +153,10 @@ class UA(object):
     def recvRequest(self, req, sip_t):
         #print('Received request %s in state %s instance %s' % (req.getMethod(), self.state, self))
         #print(self.rCSeq, req.getHFBody('cseq').getCSeqNum())
+        def sendResponse(*rcode):
+            resp = req.genResponse(*rcode, server = self.local_ua)
+            self.global_config['_sip_tm'].sendResponse(resp, lossemul = self.uas_lossemul)
+        req.sendResponse = sendResponse
         sip_t.compact = self.compact_sip
         if self.remote_ua == None:
             self.update_ua(req)
@@ -188,9 +192,7 @@ class UA(object):
         else:
             return False
         req = self.genRequest('INVITE', self.lSDP, (challenge, qop), extra_headers = extra_headers)
-        self.lCSeq += 1
-        self.tr = self.global_config['_sip_tm'].newTransaction(req, self.recvResponse, \
-          laddress = self.source_address, cb_ifver = 2, compact = self.compact_sip)
+        self.newUacTransaction(req)
         self.tr.req_extra_headers = extra_headers
         del self.reqs[cseq]
         return True
@@ -305,6 +307,7 @@ class UA(object):
         if extra_headers is not None:
             req.appendHeaders(extra_headers)
         self.reqs[self.lCSeq] = req
+        self.lCSeq += 1
         return req
 
     def sendUasResponse(self, scode, reason, body = None, contacts = None, \
@@ -452,3 +455,11 @@ class UA(object):
 
     def cleanup(self):
         pass
+
+    def newTransaction(self, req, **kwa):
+        return self.global_config['_sip_tm'].newTransaction(req, \
+          laddress = self.source_address, compact = self.compact_sip, **kwa)
+
+    def newUacTransaction(self, req, **kwa):
+        self.tr = self.newTransaction(req, resp_cb = self.recvResponse, \
+          cb_ifver = 2, **kwa)

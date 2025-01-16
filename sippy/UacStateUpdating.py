@@ -36,11 +36,11 @@ class UacStateUpdating(UaStateGeneric):
 
     def recvRequest(self, req):
         if req.getMethod() == 'INVITE':
-            self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(491, 'Request Pending', server = self.ua.local_ua))
+            req.sendResponse(491, 'Request Pending')
             return None
         elif req.getMethod() == 'BYE':
             self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr)
-            self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', server = self.ua.local_ua))
+            req.sendResponse(200, 'OK')
             #print('BYE received in the Updating state, going to the Disconnected state')
             event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
             try:
@@ -111,9 +111,7 @@ class UacStateUpdating(UaStateGeneric):
     def updateFailed(self, event):
         self.ua.equeue.append(event)
         req = self.ua.genRequest('BYE', extra_headers = event.getExtraHeaders())
-        self.ua.lCSeq += 1
-        self.ua.global_config['_sip_tm'].newTransaction(req, \
-          laddress = self.ua.source_address, compact = self.ua.compact_sip)
+        self.ua.newTransaction(req)
         self.ua.cancelCreditTimer()
         self.ua.disconnect_ts = event.rtime
         self.ua.equeue.append(CCEventDisconnect(rtime = event.rtime, \
@@ -124,9 +122,7 @@ class UacStateUpdating(UaStateGeneric):
         if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
             self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr)
             req = self.ua.genRequest('BYE', extra_headers = event.getExtraHeaders())
-            self.ua.lCSeq += 1
-            self.ua.global_config['_sip_tm'].newTransaction(req, \
-              laddress = self.ua.source_address, compact = self.ua.compact_sip)
+            self.ua.newTransaction(req)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = event.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)

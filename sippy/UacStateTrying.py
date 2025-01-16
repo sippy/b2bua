@@ -184,9 +184,7 @@ class UacStateTrying(UaStateGeneric):
 
     def genBYE(self):
         req = self.ua.genRequest('BYE')
-        self.ua.lCSeq += 1
-        self.ua.global_config['_sip_tm'].newTransaction(req, \
-            laddress = self.ua.source_address, compact = self.ua.compact_sip)
+        self.ua.newTransaction(req)
 
     def recvResponse(self, resp, tr):
         try:

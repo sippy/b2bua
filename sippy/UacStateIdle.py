@@ -78,9 +78,7 @@ class UacStateIdle(UaStateGeneric):
               max_forwards = event.max_forwards)
             if auth != None and self.ua.pass_auth:
                 req.appendHeader(SipHeader(body = auth))
-            self.ua.lCSeq += 1
-            self.ua.tr = self.ua.global_config['_sip_tm'].newTransaction(req, self.ua.recvResponse, \
-              laddress = self.ua.source_address, cb_ifver = 2, compact = self.ua.compact_sip)
+            self.ua.newUacTransaction(req)
             self.ua.auth = None
             if self.ua.expire_time != None:
                 self.ua.expire_mtime = event.rtime.getOffsetCopy(self.ua.expire_time)

@@ -36,13 +36,11 @@ class UasStateUpdating(UaStateGeneric):
 
     def recvRequest(self, req):
         if req.getMethod() == 'INVITE':
-            self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(491, \
-              'Request Pending', server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
+            req.sendResponse(491, 'Request Pending')
             return None
         elif req.getMethod() == 'BYE':
             self.ua.sendUasResponse(487, 'Request Terminated')
-            self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(200, 'OK', \
-              server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
+            req.sendResponse(200, 'OK')
             #print('BYE received in the Updating state, going to the Disconnected state')
             event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
             try:
@@ -55,12 +53,10 @@ class UasStateUpdating(UaStateGeneric):
             return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
         elif req.getMethod() == 'REFER':
             if req.countHFs('refer-to') == 0:
-                self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(400, 'Bad Request',
-                  server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
+                req.sendResponse(400, 'Bad Request')
                 return None
             self.ua.sendUasResponse(487, 'Request Terminated')
-            self.ua.global_config['_sip_tm'].sendResponse(req.genResponse(202, 'Accepted', \
-              server = self.ua.local_ua), lossemul = self.ua.uas_lossemul)
+            req.sendResponse(202, 'Accepted')
             also = req.getHFBody('refer-to').getCopy()
             self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
             self.ua.cancelCreditTimer()
@@ -110,9 +106,7 @@ class UasStateUpdating(UaStateGeneric):
         elif isinstance(event, CCEventDisconnect):
             self.ua.sendUasResponse(487, 'Request Terminated', extra_headers = eh)
             req = self.ua.genRequest('BYE', extra_headers = eh)
-            self.ua.lCSeq += 1
-            self.ua.global_config['_sip_tm'].newTransaction(req, \
-              laddress = self.ua.source_address, compact = self.ua.compact_sip)
+            self.ua.newTransaction(req)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = event.rtime
             return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
@@ -121,9 +115,7 @@ class UasStateUpdating(UaStateGeneric):
 
     def cancel(self, rtime, inreq):
         req = self.ua.genRequest('BYE')
-        self.ua.lCSeq += 1
-        self.ua.global_config['_sip_tm'].newTransaction(req, \
-          laddress = self.ua.source_address, compact = self.ua.compact_sip)
+        self.ua.newTransaction(req)
         self.ua.cancelCreditTimer()
         self.ua.disconnect_ts = rtime
         self.ua.changeState((UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
