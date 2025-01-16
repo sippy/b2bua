@@ -51,7 +51,7 @@ class UacStateUpdating(UaStateGeneric):
             self.ua.equeue.append(event)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
         #print('wrong request %s in the state Updating' % req.getMethod())
         return None
 
@@ -80,12 +80,12 @@ class UacStateUpdating(UaStateGeneric):
                           'downstream: "%s"' % str(e))
                         return self.updateFailed(event)
                     if body is None:
-                        return (UaStateConnected,)
+                        return (self.ua.UaStateConnected,)
                 self.ua.rSDP = body.getCopy()
             else:
                 self.ua.rSDP = None
             self.ua.equeue.append(event)
-            return (UaStateConnected,)
+            return (self.ua.UaStateConnected,)
         try:
             reason_rfc3326 = resp.getHFBody('reason')
         except:
@@ -111,7 +111,7 @@ class UacStateUpdating(UaStateGeneric):
             return self.updateFailed(event)
 
         self.ua.equeue.append(event)
-        return (UaStateConnected,)
+        return (self.ua.UaStateConnected,)
 
     def updateFailed(self, event):
         self.ua.equeue.append(event)
@@ -121,7 +121,7 @@ class UacStateUpdating(UaStateGeneric):
         self.ua.disconnect_ts = event.rtime
         self.ua.equeue.append(CCEventDisconnect(rtime = event.rtime, \
           origin = self.ua.origin))
-        return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
+        return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
 
     def recvEvent(self, event):
         if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
@@ -130,11 +130,6 @@ class UacStateUpdating(UaStateGeneric):
             self.ua.newTransaction(req)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = event.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
         #print('wrong event %s in the Updating state' % event)
         return None
-
-if 'UaStateConnected' not in globals():
-    from sippy.UaStateConnected import UaStateConnected
-if 'UaStateDisconnected' not in globals():
-    from sippy.UaStateDisconnected import UaStateDisconnected

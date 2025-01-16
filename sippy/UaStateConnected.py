@@ -90,12 +90,12 @@ class UaStateConnected(UaStateGeneric):
                 if self.ua.on_remote_sdp_change != None:
                     body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                     if body is None:
-                        return (UasStateUpdating,)
+                        return (self.ua.UasStateUpdating,)
                 self.ua.rSDP = body.getCopy()
             else:
                 self.ua.rSDP = None
             self.ua.equeue.append(event)
-            return (UasStateUpdating,)
+            return (self.ua.UasStateUpdating,)
         if req.getMethod() == 'BYE':
             req.sendResponse(200, 'OK')
             #print('BYE received in the Connected state, going to the Disconnected state')
@@ -111,7 +111,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.equeue.append(event)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
         if req.getMethod() == 'INFO':
             req.sendResponse(200, 'OK')
             event = CCEventInfo(req.getBody(), rtime = req.rtime, origin = self.ua.origin)
@@ -176,7 +176,7 @@ class UaStateConnected(UaStateGeneric):
                 self.ua.newTransaction(req)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = event.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
         if isinstance(event, CCEventUpdate):
             body = event.getData()
             fake_laddr = (('127.0.0.1', None), None)
@@ -211,7 +211,7 @@ class UaStateConnected(UaStateGeneric):
               max_forwards = max_forwards_hf)
             self.ua.lSDP = body
             self.ua.newUacTransaction(req)
-            return (UacStateUpdating,)
+            return (self.ua.UacStateUpdating,)
         if isinstance(event, CCEventInfo):
             body = event.getData()
             req = self.ua.genRequest('INFO', body, extra_headers = eh)
@@ -294,10 +294,3 @@ class UaStateConnected(UaStateGeneric):
     def rComplete(self, resp):
         req = self.ua.genRequest('BYE')
         self.ua.newTransaction(req)
-
-if 'UaStateDisconnected' not in globals():
-    from sippy.UaStateDisconnected import UaStateDisconnected
-if 'UasStateUpdating' not in globals():
-    from sippy.UasStateUpdating import UasStateUpdating
-if 'UacStateUpdating' not in globals():
-    from sippy.UacStateUpdating import UacStateUpdating

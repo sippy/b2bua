@@ -44,7 +44,7 @@ class UacStateCancelling(UaStateGeneric):
     def goIdle(self):
         #print('Time in Cancelling state expired, going to the Dead state')
         self.te = None
-        self.ua.changeState((UaStateDead,))
+        self.ua.changeState((self.ua.UaStateDead,))
 
     def recvResponse(self, resp, tr):
         code, reason = resp.getSCode()
@@ -91,14 +91,9 @@ class UacStateCancelling(UaStateGeneric):
             self.ua.rUri.setTag(resp.getHFBody('to').getTag())
             req = self.ua.genRequest('BYE')
             self.ua.newTransaction(req)
-            return (UaStateDisconnected,)
-        return (UaStateDead,)
+            return (self.ua.UaStateDisconnected,)
+        return (self.ua.UaStateDead,)
 
     def recvEvent(self, event):
         #print('wrong event %s in the Cancelling state' % event)
         return None
-
-if 'UaStateDead' not in globals():
-    from sippy.UaStateDead import UaStateDead
-if 'UaStateDisconnected' not in globals():
-    from sippy.UaStateDisconnected import UaStateDisconnected

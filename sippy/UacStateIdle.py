@@ -101,16 +101,11 @@ class UacStateIdle(UaStateGeneric):
                 self.ua.no_progress_timer = TimeoutAbsMono(self.ua.no_progress_expires, self.ua.no_progress_mtime)
             elif self.ua.expire_time != None:
                 self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
-            return (UacStateTrying,)
+            return (self.ua.UacStateTrying,)
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
             if self.ua.setup_ts is None or event.rtime >= self.ua.setup_ts:
                 self.ua.disconnect_ts = event.rtime
             else:
                 self.ua.disconnect_ts = MonoTime()
-            return (UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)
+            return (self.ua.UaStateDead, self.ua.disc_cbs, event.rtime, event.origin)
         return None
-
-if 'UacStateTrying' not in globals():
-    from sippy.UacStateTrying import UacStateTrying
-if 'UaStateDead' not in globals():
-    from sippy.UaStateDead import UaStateDead

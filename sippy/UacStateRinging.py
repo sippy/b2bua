@@ -75,19 +75,19 @@ class UacStateRinging(UacStateTrying):
                     self.ua.disconnect_ts = resp.rtime
                 else:
                     self.ua.disconnect_ts = MonoTime()
-                return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
+                return (self.ua.UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, scode[0])
             self.ua.rUri.setTag(tag)
             if not self.ua.late_media or body is None:
                 self.ua.late_media = False
                 event = CCEventConnect(scode, rtime = resp.rtime, origin = self.ua.origin)
                 self.ua.startCreditTimer(resp.rtime)
                 self.ua.connect_ts = resp.rtime
-                rval = (UaStateConnected, self.ua.conn_cbs, resp.rtime, self.ua.origin)
+                rval = (self.ua.UaStateConnected, self.ua.conn_cbs, resp.rtime, self.ua.origin)
             else:
                 event = CCEventPreConnect(scode, rtime = resp.rtime, origin = self.ua.origin)
                 tr.uack = True
                 self.ua.pending_tr = tr
-                rval = (UaStateConnected,)
+                rval = (self.ua.UaStateConnected,)
             if body is not None:
                 if self.ua.on_remote_sdp_change != None:
                     body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
@@ -116,7 +116,7 @@ class UacStateRinging(UacStateTrying):
             self.ua.disconnect_ts = resp.rtime
         else:
             self.ua.disconnect_ts = MonoTime()
-        return (UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, code)
+        return (self.ua.UaStateFailed, self.ua.fail_cbs, resp.rtime, self.ua.origin, code)
 
     def recvEvent(self, event):
         if isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect) or isinstance(event, CCEventDisconnect):
@@ -128,13 +128,6 @@ class UacStateRinging(UacStateTrying):
                 self.ua.disconnect_ts = event.rtime
             else:
                 self.ua.disconnect_ts = MonoTime()
-            return (UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
+            return (self.ua.UacStateCancelling, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
         #print('wrong event %s in the Ringing state' % event)
         return None
-
-if 'UaStateFailed' not in globals():
-    from sippy.UaStateFailed import UaStateFailed
-if 'UaStateConnected' not in globals():
-    from sippy.UaStateConnected import UaStateConnected
-if 'UacStateCancelling' not in globals():
-    from sippy.UacStateCancelling import UacStateCancelling

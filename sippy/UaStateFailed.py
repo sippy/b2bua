@@ -38,7 +38,4 @@ class UaStateFailed(UaStateGeneric):
 
     def goDead(self):
         #print('Time in Failed state expired, going to the Dead state')
-        self.ua.changeState((UaStateDead,))
-
-if 'UaStateDead' not in globals():
-    from sippy.UaStateDead import UaStateDead
+        self.ua.changeState((self.ua.UaStateDead,))

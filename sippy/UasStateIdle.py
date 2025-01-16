@@ -103,13 +103,10 @@ class UasStateIdle(UaStateGeneric):
                 body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
                 if body is None:
                     self.ua.setup_ts = req.rtime
-                    return (UasStateTrying,)
+                    return (self.ua.UasStateTrying,)
             self.ua.rSDP = body.getCopy()
         else:
             self.ua.rSDP = None
         self.ua.equeue.append(event)
         self.ua.setup_ts = req.rtime
-        return (UasStateTrying,)
-
-if 'UasStateTrying' not in globals():
-    from sippy.UasStateTrying import UasStateTrying
+        return (self.ua.UasStateTrying,)

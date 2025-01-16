@@ -69,11 +69,11 @@ class UasStateRinging(UaStateGeneric):
                     self.ua.expire_timer = None
                 self.ua.startCreditTimer(event.rtime)
                 self.ua.connect_ts = event.rtime
-                return (UaStateConnected, self.ua.conn_cbs, event.rtime, event.origin)
+                return (self.ua.UaStateConnected, self.ua.conn_cbs, event.rtime, event.origin)
             else:
                 self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), ack_wait = True, \
                   extra_headers = eh)
-                return (UaStateConnected,)
+                return (self.ua.UaStateConnected,)
         elif isinstance(event, CCEventRedirect):
             scode = event.getData()
             contacts = None
@@ -87,7 +87,7 @@ class UasStateRinging(UaStateGeneric):
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
             self.ua.disconnect_ts = event.rtime
-            return (UaStateFailed, self.ua.fail_cbs, event.rtime, event.origin, scode[0])
+            return (self.ua.UaStateFailed, self.ua.fail_cbs, event.rtime, event.origin, scode[0])
         elif isinstance(event, CCEventFail):
             scode = event.getData()
             if scode == None:
@@ -97,7 +97,7 @@ class UasStateRinging(UaStateGeneric):
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
             self.ua.disconnect_ts = event.rtime
-            return (UaStateFailed, self.ua.fail_cbs, event.rtime, event.origin, scode[0])
+            return (self.ua.UaStateFailed, self.ua.fail_cbs, event.rtime, event.origin, scode[0])
         elif isinstance(event, CCEventDisconnect):
             #import sys, traceback
             #traceback.print_stack(file = sys.stdout)
@@ -106,7 +106,7 @@ class UasStateRinging(UaStateGeneric):
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
             self.ua.disconnect_ts = event.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin, self.ua.last_scode)
         #print('wrong event %s in the Ringing state' % event)
         return None
 
@@ -129,7 +129,7 @@ class UasStateRinging(UaStateGeneric):
                 self.ua.expire_timer.cancel()
                 self.ua.expire_timer = None
             self.ua.disconnect_ts = req.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
         return None
 
     def cancel(self, rtime, req):
@@ -140,12 +140,5 @@ class UasStateRinging(UaStateGeneric):
             except:
                 pass
         self.ua.disconnect_ts = rtime
-        self.ua.changeState((UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
+        self.ua.changeState((self.ua.UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
         self.ua.emitEvent(event)
-
-if 'UaStateFailed' not in globals():
-    from sippy.UaStateFailed import UaStateFailed
-if 'UaStateConnected' not in globals():
-    from sippy.UaStateConnected import UaStateConnected
-if 'UaStateDisconnected' not in globals():
-    from sippy.UaStateDisconnected import UaStateDisconnected

@@ -41,9 +41,6 @@ from sippy.SipFrom import SipFrom
 from sippy.SipTo import SipTo
 from sippy.UA import UA
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventDisconnect, CCEventTry, CCEventUpdate, CCEventFail
-from sippy.UasStateTrying import UasStateTrying
-from sippy.UasStateRinging import UasStateRinging
-from sippy.UaStateDead import UaStateDead
 from sippy.SipConf import SipConf
 from sippy.SipHeader import SipHeader
 from sippy.RadiusAuthorisation import RadiusAuthorisation
@@ -226,7 +223,7 @@ class CallController(object):
             self.uaO.recvEvent(event)
         else:
             if (isinstance(event, CCEventFail) or isinstance(event, CCEventDisconnect)) and self.state == CCStateARComplete and \
-              (isinstance(self.uaA.state, UasStateTrying) or isinstance(self.uaA.state, UasStateRinging)) and len(self.routes) > 0:
+              (isinstance(self.uaA.state, self.uaA.UasStateTrying) or isinstance(self.uaA.state, self.uaA.UasStateRinging)) and len(self.routes) > 0:
                 if isinstance(event, CCEventFail):
                     code = event.getData()[0]
                 else:
@@ -239,7 +236,7 @@ class CallController(object):
     def rDone(self, results):
         # Check that we got necessary result from Radius
         if len(results) != 2 or results[1] != 0:
-            if isinstance(self.uaA.state, UasStateTrying):
+            if isinstance(self.uaA.state, self.uaA.UasStateTrying):
                 if self.challenge != None:
                     event = CCEventFail((401, 'Unauthorized'))
                     event.extra_header = self.challenge
@@ -257,7 +254,7 @@ class CallController(object):
         else:
             self.acctA = FakeAccounting()
         # Check that uaA is still in a valid state, send acct stop
-        if not isinstance(self.uaA.state, UasStateTrying):
+        if not isinstance(self.uaA.state, self.uaA.UasStateTrying):
             self.acctA.disc(self.uaA, MonoTime(), 'caller')
             return
         cli = [x[1][4:] for x in results[0] if x[0] == 'h323-ivr-in' and x[1].startswith('CLI:')]
@@ -403,7 +400,7 @@ class CallController(object):
         self.rtp_proxy_session = None
 
     def aDead(self, ua):
-        if (self.uaO == None or isinstance(self.uaO.state, UaStateDead)):
+        if (self.uaO == None or isinstance(self.uaO.state, self.uaA.UaStateDead)):
             if self.global_config['_cmap'].debug_mode:
                 print('garbadge collecting', self)
             self.acctA = None
@@ -411,7 +408,7 @@ class CallController(object):
             self.global_config['_cmap'].ccmap.remove(self)
 
     def oDead(self, ua):
-        if ua == self.uaO and isinstance(self.uaA.state, UaStateDead):
+        if ua == self.uaO and isinstance(self.uaA.state, self.uaA.UaStateDead):
             if self.global_config['_cmap'].debug_mode:
                 print('garbadge collecting', self)
             self.acctA = None
@@ -420,7 +417,7 @@ class CallController(object):
 
     def group_expires(self, skipto):
         if self.state != CCStateARComplete or len(self.routes) == 0 or self.routes[0][0] > skipto or \
-          (not isinstance(self.uaA.state, UasStateTrying) and not isinstance(self.uaA.state, UasStateRinging)):
+          (not isinstance(self.uaA.state, self.uaA.UasStateTrying) and not isinstance(self.uaA.state, self.uaA.UasStateRinging)):
             return
         # When the last group in the list has timeouted don't disconnect
         # the current attempt forcefully. Instead, make sure that if the

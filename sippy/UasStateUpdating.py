@@ -50,7 +50,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.equeue.append(event)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
         elif req.getMethod() == 'REFER':
             if req.countHFs('refer-to') == 0:
                 req.sendResponse(400, 'Bad Request')
@@ -61,7 +61,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = req.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
         #print('wrong request %s in the state Updating' % req.getMethod())
         return None
 
@@ -86,7 +86,7 @@ class UasStateUpdating(UaStateGeneric):
             self.ua.lSDP = body
             self.ua.sendUasResponse(code, reason, body, (self.ua.lContact,), \
               extra_headers = eh)
-            return (UaStateConnected,)
+            return (self.ua.UaStateConnected,)
         elif isinstance(event, CCEventRedirect):
             scode = event.getData()
             contacts = None
@@ -102,14 +102,14 @@ class UasStateUpdating(UaStateGeneric):
                 scode = (500, 'Failed')
             self.ua.rSDP = None
             self.ua.sendUasResponse(scode[0], scode[1], extra_headers = eh)
-            return (UaStateConnected,)
+            return (self.ua.UaStateConnected,)
         elif isinstance(event, CCEventDisconnect):
             self.ua.sendUasResponse(487, 'Request Terminated', extra_headers = eh)
             req = self.ua.genRequest('BYE', extra_headers = eh)
             self.ua.newTransaction(req)
             self.ua.cancelCreditTimer()
             self.ua.disconnect_ts = event.rtime
-            return (UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
+            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
         #print('wrong event %s in the Updating state' % event)
         return None
 
@@ -118,7 +118,7 @@ class UasStateUpdating(UaStateGeneric):
         self.ua.newTransaction(req)
         self.ua.cancelCreditTimer()
         self.ua.disconnect_ts = rtime
-        self.ua.changeState((UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
+        self.ua.changeState((self.ua.UaStateDisconnected, self.ua.disc_cbs, rtime, self.ua.origin))
         event = CCEventDisconnect(rtime = rtime, origin = self.ua.origin)
         if inreq is not None:
             try:
@@ -126,8 +126,3 @@ class UasStateUpdating(UaStateGeneric):
             except:
                 pass
         self.ua.emitEvent(event)
-
-if 'UaStateConnected' not in globals():
-    from sippy.UaStateConnected import UaStateConnected
-if 'UaStateDisconnected' not in globals():
-    from sippy.UaStateDisconnected import UaStateDisconnected
