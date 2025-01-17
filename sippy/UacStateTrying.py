@@ -33,8 +33,7 @@ from sippy.Time.Timeout import TimeoutAbsMono
 from sippy.Time.MonoTime import MonoTime
 from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect, \
   CCEventDisconnect, CCEventPreConnect
-from sippy.Exceptions.SipParseError import SdpParseError
-from sippy.Exceptions.RtpProxyError import RtpProxyError
+from sippy.Exceptions.SdpParseError import SdpHandlingErrors
 
 class UacStateTrying(UaStateGeneric):
     sname = 'Trying(UAC)'
@@ -189,7 +188,7 @@ class UacStateTrying(UaStateGeneric):
     def recvResponse(self, resp, tr):
         try:
             return self._recvResponse(resp, tr)
-        except (RtpProxyError, SdpParseError) as ex:
+        except SdpHandlingErrors as ex:
             scode = (ex.code, ex.msg)
             event = CCEventFail(scode, rtime = resp.rtime, origin = self.ua.origin)
             event.reason_rfc3326 = ex.getReason()

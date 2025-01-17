@@ -28,6 +28,7 @@ from sippy.SdpMediaDescription import SdpMediaDescription, a_header
 from sippy.SdpGeneric import SdpGeneric
 from sippy.SdpOrigin import SdpOrigin
 from sippy.SdpConnecton import SdpConnecton
+from sippy.Exceptions.SdpParseError import SdpParseError
 
 f_types = {'v':SdpGeneric, 'o':SdpOrigin, 's':SdpGeneric, 'i':SdpGeneric, \
   'u':SdpGeneric, 'e':SdpGeneric, 'p':SdpGeneric, 'c':SdpConnecton, \
@@ -96,11 +97,11 @@ class SdpBody(object):
         # Do some sanity checking, RFC4566
         for header_name in [x + '_header' for x in self.top_hdrs_req]:
             if getattr(self, header_name) == None:
-                raise Exception('Mandatory "%s=" session header is missing' % header_name[0])
+                raise SdpParseError('Mandatory "%s=" session header is missing' % header_name[0])
         for section in self.sections:
             for header_name in [x + '_header' for x in self.sect_hdrs_req]:
                 if getattr(section, header_name) == None:
-                    raise Exception('Mandatory "%s=" media header is missing' % header_name[0])
+                    raise SdpParseError('Mandatory "%s=" media header is missing' % header_name[0])
 
     def __str__(self):
         s = ''

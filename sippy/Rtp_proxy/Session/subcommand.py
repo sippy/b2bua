@@ -25,7 +25,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.Exceptions.RtpProxyError import RtpProxyError
-from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.Exceptions.SdpParseError import SdpParseError
 
 DTLS_TRANSPORTS = ('UDP/TLS/RTP/SAVP', 'UDP/TLS/RTP/SAVPF')
 DTLS_ATTRS = ('setup', 'fingerprint', 'rtcp', 'ssrc')

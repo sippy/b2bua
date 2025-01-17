@@ -35,6 +35,7 @@ from sippy.SipReferTo import SipReferTo
 from sippy.SipReferredBy import SipReferredBy
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventDisconnect, CCEventFail, CCEventRedirect, CCEventUpdate, CCEventInfo, CCEventConnect
+from sippy.Exceptions.SdpParseError import SdpHandlingErrors
 
 class UaStateConnected(UaStateGeneric):
     sname = 'Connected'
@@ -190,6 +191,10 @@ class UaStateConnected(UaStateGeneric):
             if body is not None and self.ua.on_local_sdp_change != None and body.needs_update:
                 try:
                     self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
+                except SdpHandlingErrors as e:
+                    event = CCEventFail((e.code, e.msg), rtime = event.rtime)
+                    event.reason_rfc3326 = e.getReason()
+                    self.ua.equeue.append(event)
                 except Exception as e:
                     event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
                     event.setWarning(str(e))

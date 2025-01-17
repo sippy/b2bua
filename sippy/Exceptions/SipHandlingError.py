@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Sippy Software, Inc. All rights reserved.
+# Copyright (c) 20012-2023 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
 #
@@ -23,8 +23,28 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from .SipHandlingError import SipHandlingError
+from sippy.SipReason import SipReason
 
-class RtpProxyError(SipHandlingError):
-    code = 502
-    msg = 'Bad Gateway'
+class SipHandlingError(Exception):
+    code: int
+    msg: str
+    sip_response = None
+    arg = None
+
+    def __init__(self, arg):
+        super().__init__()
+        self.arg = arg
+
+    def __str__(self):
+        return str(self.arg)
+
+    def getResponse(self, req):
+        reason = self.getReason()
+        resp = req.genResponse(self.code, self.msg, ext_reason = reason)
+        return resp
+
+    def getReason(self):
+        if self.arg is not None and len(self.arg) > 0:
+            return SipReason(protocol='SIP', cause=self.code,
+                             reason=self.arg)
+        return None

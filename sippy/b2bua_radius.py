@@ -63,7 +63,7 @@ from sippy.misc import daemonize
 from sippy.B2BRoute import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
 from sippy.Wss_server import Wss_server, Wss_server_opts
 from sippy.SipURL import SipURL
-from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.Exceptions.SdpParseError import SdpParseError
 
 import gc, getopt, os
 from re import sub

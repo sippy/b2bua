@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Sippy Software, Inc. All rights reserved.
+# Copyright (c) 20012-2023 Sippy Software, Inc. All rights reserved.
 #
 # All rights reserved.
 #
@@ -24,7 +24,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from .SipHandlingError import SipHandlingError
+from .RtpProxyError import RtpProxyError
 
-class RtpProxyError(SipHandlingError):
-    code = 502
-    msg = 'Bad Gateway'
+class SdpParseError(SipHandlingError):
+    code = 488
+    msg = 'Not Acceptable Here'
+
+SdpHandlingErrors = (SdpParseError, RtpProxyError)

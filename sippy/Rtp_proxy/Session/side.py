@@ -29,7 +29,7 @@ from functools import partial
 from sippy.SdpOrigin import SdpOrigin
 from sippy.Core.Exceptions import dump_exception
 from sippy.Core.EventDispatcher import ED2
-from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.Exceptions.SdpParseError import SdpParseError
 from sippy.Exceptions.RtpProxyError import RtpProxyError
 from sippy.Rtp_proxy.Session.update import update_params
 from sippy.Rtp_proxy.Session.subcommand import subcommand_dtls, \

@@ -23,36 +23,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from sippy.SipReason import SipReason
-from sippy.SipHeader import SipHeader
+from .SipHandlingError import SipHandlingError
 
-class SipParseError(Exception):
+class SipParseError(SipHandlingError):
     sip_response = None
-    arg = None
 
     def __init__(self, arg, sip_response = None):
-        super().__init__()
-        self.arg = arg
+        super().__init__(arg)
         self.sip_response = sip_response
 
-    def __str__(self):
-        return str(self.arg)
-
-    def getResponse(self, req=None):
-        return self.sip_response
-
-class SdpParseError(SipParseError):
-    code = 488
-    msg = 'Not Acceptable Here'
     def getResponse(self, req):
         if self.sip_response is not None:
             return self.sip_response
-        reason = self.getReason()
-        resp = req.genResponse(self.code, self.msg, ext_reason = reason)
-        return resp
-
-    def getReason(self):
-        if self.arg is not None and len(self.arg) > 0:
-            return SipReason(protocol='SIP', cause=self.code,
-                             reason=self.arg)
-        return None
+        return super().getResponse(req)

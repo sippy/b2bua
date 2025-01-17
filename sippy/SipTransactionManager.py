@@ -33,7 +33,8 @@ from sippy.SipRequest import SipRequest
 from sippy.SipAddress import SipAddress
 from sippy.SipRoute import SipRoute
 from sippy.SipHeader import SipHeader
-from sippy.Exceptions.SipParseError import SipParseError, SdpParseError
+from sippy.Exceptions.SipParseError import SipParseError
+from sippy.Exceptions.SdpParseError import SdpParseError
 from sippy.Exceptions.RtpProxyError import RtpProxyError
 from sippy.Udp_server import Udp_server, Udp_server_opts
 from sippy.Network_server import Remote_address

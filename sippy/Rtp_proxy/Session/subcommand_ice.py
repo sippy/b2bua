@@ -26,7 +26,7 @@
 from urllib.parse import unquote
 
 from sippy.Exceptions.RtpProxyError import RtpProxyError
-from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.Exceptions.SdpParseError import SdpParseError
 from sippy.Rtp_proxy.Session.subcommand import subcommand
 
 ICE_ATTRS = ('ice-ufrag', 'ice-pwd')

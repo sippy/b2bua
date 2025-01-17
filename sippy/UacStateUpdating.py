@@ -28,6 +28,7 @@ from functools import partial
 
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
+from sippy.Exceptions.SdpParseError import SdpHandlingErrors
 
 class UacStateUpdating(UaStateGeneric):
     sname = 'Updating(UAC)'
@@ -69,6 +70,10 @@ class UacStateUpdating(UaStateGeneric):
                     cb_func = partial(self.ua.delayed_remote_sdp_update, event)
                     try:
                         body = self.ua.on_remote_sdp_change(body, cb_func)
+                    except SdpHandlingErrors as e:
+                        event = CCEventFail((e.code, e.msg), rtime = resp.rtime)
+                        event.reason_rfc3326 = e.getReason()
+                        return self.updateFailed(event)
                     except Exception as e:
                         event = CCEventFail((502, 'Bad Gateway'), rtime = resp.rtime)
                         event.setWarning('Malformed SDP Body received from ' \

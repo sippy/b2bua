@@ -38,8 +38,7 @@ from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventIn
 from sippy.MsgBody import MsgBody
 from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import TimeoutAbsMono
-from sippy.Exceptions.RtpProxyError import RtpProxyError
-from sippy.Exceptions.SipParseError import SdpParseError
+from sippy.Exceptions.SdpParseError import SdpHandlingErrors
 from sippy.SipConf import SipConf
 
 class UA(object):
@@ -395,7 +394,7 @@ class UA(object):
 
     def delayed_remote_sdp_update(self, event, remote_sdp_body, ex=None):
         if ex is not None:
-            if not isinstance(ex, (RtpProxyError, SdpParseError)): raise ex
+            if not isinstance(ex, SdpHandlingErrors): raise ex
             event = CCEventFail((ex.code, ex.msg))
             event.reason_rfc3326 = ex.getReason()
         else:
@@ -407,7 +406,7 @@ class UA(object):
 
     def delayed_local_sdp_update(self, event, local_sdp_body, ex=None):
         if ex is not None:
-            if not isinstance(ex, (RtpProxyError, SdpParseError)): raise ex
+            if not isinstance(ex, SdpHandlingErrors): raise ex
             event = CCEventFail((ex.code, ex.msg))
             event.reason_rfc3326 = ex.getReason()
             self.equeue.append(event)
