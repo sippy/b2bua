@@ -255,8 +255,7 @@ class EventDispatcher2(Singleton):
             self.bands.insert(0, fb)
         self.endloop = False
         self.last_ts = MonoTime()
-        if timeout != None:
-            etime = self.last_ts.getOffsetCopy(timeout)
+        etime = None if timeout is None else self.last_ts.getOffsetCopy(timeout)
         while True:
             if len(self.signals_pending) > 0:
                 self.dispatchSignals()

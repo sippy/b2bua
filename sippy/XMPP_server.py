@@ -113,7 +113,7 @@ class Worker(iksemel.Stream):
             if self.__reconnect:
                 buf = '' # throw away unsent data
             if len(buf) == 0:
-                data, addr = None, None
+                data, addr, laddress = None, None, None
                 if not self.__reconnect:
                     self.__owner._wi_available.acquire()
                     while len(self.__owner._wi) == 0 and not self.__reconnect:

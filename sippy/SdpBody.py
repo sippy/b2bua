@@ -122,7 +122,7 @@ class SdpBody(object):
         # Special code to optimize for the cases when there are many media streams pointing to
         # the same IP. Only include c= header into the top section of the SDP and remove it from
         # the streams that match.
-        optimize_c_headers = False
+        optimize_c_headers, sections_0_str = False, None
         if len(self.sections) > 1 and self.c_header == None and self.sections[0].c_header != None and \
           str(self.sections[0].c_header) == str(self.sections[1].c_header):
             # Special code to optimize for the cases when there are many media streams pointing to
@@ -174,7 +174,7 @@ class SdpBody(object):
         # Special code to optimize for the cases when there are many media streams pointing to
         # the same IP. Only include c= header into the top section of the SDP and remove it from
         # the streams that match.
-        optimize_c_headers = False
+        optimize_c_headers, sections_0_str = False, None
         if len(self.sections) > 1 and self.c_header == None and self.sections[0].c_header != None and \
           self.sections[0].c_header.localStr(local_addr) == self.sections[1].c_header.localStr(local_addr):
             # Special code to optimize for the cases when there are many media streams pointing to
