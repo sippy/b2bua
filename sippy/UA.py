@@ -106,17 +106,17 @@ class UA(object):
     compact_sip = False
     uas_lossemul = 0
 
-    if 'UasStateTrying' not in globals(): from UasStateTrying import UasStateTrying
-    if 'UacStateTrying' not in globals(): from UacStateTrying import UacStateTrying
-    if 'UacStateRinging' not in globals(): from UacStateRinging import UacStateRinging
-    if 'UasStateRinging' not in globals(): from UasStateRinging import UasStateRinging
-    if 'UaStateFailed' not in globals(): from UaStateFailed import UaStateFailed
-    if 'UaStateConnected' not in globals(): from UaStateConnected import UaStateConnected
-    if 'UacStateCancelling' not in globals(): from UacStateCancelling import UacStateCancelling
-    if 'UasStateUpdating' not in globals(): from UasStateUpdating import UasStateUpdating
-    if 'UacStateUpdating' not in globals(): from UacStateUpdating import UacStateUpdating
-    if 'UaStateDisconnected' not in globals(): from UaStateDisconnected import UaStateDisconnected
-    if 'UaStateDead' not in globals(): from UaStateDead import UaStateDead
+    if 'UasStateTrying' not in globals(): from sippy.UasStateTrying import UasStateTrying
+    if 'UacStateTrying' not in globals(): from sippy.UacStateTrying import UacStateTrying
+    if 'UacStateRinging' not in globals(): from sippy.UacStateRinging import UacStateRinging
+    if 'UasStateRinging' not in globals(): from sippy.UasStateRinging import UasStateRinging
+    if 'UaStateFailed' not in globals(): from sippy.UaStateFailed import UaStateFailed
+    if 'UaStateConnected' not in globals(): from sippy.UaStateConnected import UaStateConnected
+    if 'UacStateCancelling' not in globals(): from sippy.UacStateCancelling import UacStateCancelling
+    if 'UasStateUpdating' not in globals(): from sippy.UasStateUpdating import UasStateUpdating
+    if 'UacStateUpdating' not in globals(): from sippy.UacStateUpdating import UacStateUpdating
+    if 'UaStateDisconnected' not in globals(): from sippy.UaStateDisconnected import UaStateDisconnected
+    if 'UaStateDead' not in globals(): from sippy.UaStateDead import UaStateDead
 
     def __init__(self, global_config, event_cb = None, username = None, password = None, nh_address = None, credit_time = None, \
       conn_cbs = None, disc_cbs = None, fail_cbs = None, ring_cbs = None, dead_cbs = None, ltag = None, extra_headers = None, \
