@@ -69,7 +69,7 @@ class _Worker(Thread):
                 wi.result_callback = None
                 wi.callback_parameters = None
                 continue
-            batch = [x + b'\n' for x in wi.data]
+            batch = [x.encode() + b'\n' for x in wi.data]
             batch.append(b'\n')
             pipe.stdin.writelines(batch)
             pipe.stdin.flush()

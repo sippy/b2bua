@@ -68,7 +68,7 @@ class Radius_client(External_command):
             return
         nav = []
         for av in result[:-1]:
-            a, v = [x.strip() for x in av.split(' = ', 1)]
+            a, v = [x.strip() for x in av.decode().split(' = ', 1)]
             v = v.strip('\'')
             if (a == 'Cisco-AVPair' or a in self._cisco_vsa_names):
                 t = v.split('=', 1)
