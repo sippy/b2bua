@@ -28,7 +28,7 @@ from sippy.SipHeader import SipHeader
 class MultipartMixBody():
     parts = None
     boundary = None
-
+    
     def __init__(self, body = None, ctype = None):
         if body is None:
             return
@@ -39,11 +39,22 @@ class MultipartMixBody():
         assert bparts[-1].strip() == '--'
         parts = [p.lstrip() for p in bparts[1:-1]]
         self.parts = []
+        self.part_headers = []
         for sect in parts:
-            ct, sect = sect.split('\r\n', 1)
-            ct = SipHeader(ct).getBody()
+            headers = []
+            ct = None
+            headersect, sect = sect.split('\r\n\r\n', 1)
+            # parse sub headers
+            for hl in headersect.split('\r\n'):
+                h = SipHeader(hl)
+                if h.name == "content-type":
+                    ct = h.getBody()
+                else:
+                    headers.append(h)
+            # add part
             sect = MsgBody(sect, ct)
             self.parts.append(sect)
+            self.part_headers.append(headers)
         self.boundary = ctype.params["boundary"]
 
     def __str__(self):
