@@ -329,6 +329,7 @@ class SipTransactionManager(object):
                 dump_exception(f'can\'t parse SIP request from {ra}', extra = data)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
+            call_id = tids[0][0]
             req.rtime = rtime
             via0 = req.getHFBody('via')
             ahost, aport = via0.getAddr()
@@ -365,6 +366,8 @@ class SipTransactionManager(object):
                     curl = cbody.getUrl()
                     curl.host = ra.received
             req.setSource(ra)
+            def ex_sendResponse(r):
+                self.transmitMsg(server, r, r.getHFBody('via').getTAddr(), checksum, call_id)
             try:
                 self.incomingRequest(req, checksum, tids, server)
             except RtpProxyError as ex:
@@ -378,7 +381,7 @@ class SipTransactionManager(object):
                 resp = ex.getResponse(req)
                 if resp is None:
                     raise ex
-                self.sendResponse(resp)
+                ex_sendResponse(resp)
 
     # 1. Client transaction methods
     def newTransaction(self, msg, resp_cb = None, laddress = None, userv = None, \
