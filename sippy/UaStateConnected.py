@@ -210,7 +210,7 @@ class UaStateConnected(UaStateGeneric):
             req = self.ua.genRequest('INVITE', body, extra_headers = eh, \
               max_forwards = max_forwards_hf)
             self.ua.lSDP = body
-            self.ua.newUacTransaction(req)
+            self.ua.newUacTransaction(req, req_extra_headers = eh)
             return (self.ua.UacStateUpdating,)
         if isinstance(event, CCEventInfo):
             body = event.getData()

@@ -203,8 +203,7 @@ class UA(object):
         else:
             return False
         req = self.genRequest('INVITE', self.lSDP, (challenge, qop), extra_headers = extra_headers)
-        self.newUacTransaction(req)
-        self.tr.req_extra_headers = extra_headers
+        self.newUacTransaction(req, req_extra_headers = extra_headers)
         del self.reqs[cseq]
         return True
 
@@ -467,9 +466,11 @@ class UA(object):
     def cleanup(self):
         pass
 
-    def newTransaction(self, req, **kwa):
-        return self.global_config['_sip_tm'].newTransaction(req, \
+    def newTransaction(self, req, req_extra_headers = None, **kwa):
+        tr = self.global_config['_sip_tm'].newTransaction(req, \
           laddress = self.source_address, compact = self.compact_sip, **kwa)
+        tr.req_extra_headers = req_extra_headers
+        return tr
 
     def newUacTransaction(self, req, **kwa):
         self.tr = self.newTransaction(req, resp_cb = self.recvResponse, \

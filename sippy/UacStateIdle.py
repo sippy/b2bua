@@ -74,11 +74,12 @@ class UacStateIdle(UaStateGeneric):
             self.ua.routes = []
             self.ua.lSDP = body
             event.onUacSetupComplete(self.ua)
-            req = self.ua.genRequest('INVITE', body, extra_headers = event.getExtraHeaders(), \
+            extra_headers = event.getExtraHeaders()
+            req = self.ua.genRequest('INVITE', body, extra_headers = extra_headers, \
               max_forwards = event.max_forwards)
             if auth != None and self.ua.pass_auth:
                 req.appendHeader(SipHeader(body = auth))
-            self.ua.newUacTransaction(req)
+            self.ua.newUacTransaction(req, req_extra_headers = extra_headers)
             self.ua.auth = None
             if self.ua.expire_time != None:
                 self.ua.expire_mtime = event.rtime.getOffsetCopy(self.ua.expire_time)
