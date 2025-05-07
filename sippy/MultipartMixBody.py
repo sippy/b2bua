@@ -28,7 +28,7 @@ from sippy.SipHeader import SipHeader
 class MultipartMixBody():
     parts = None
     boundary = None
-    
+
     def __init__(self, body = None, ctype = None):
         if body is None:
             return
