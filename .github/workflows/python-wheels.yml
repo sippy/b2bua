@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
   release:
-    types: [created]
+    types: [published]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -59,7 +59,6 @@ jobs:
 
   publish_wheels:
     needs: build
-    if: github.event_name == 'release' && github.event.action == 'created'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -84,4 +83,11 @@ jobs:
         run: python setup.py build sdist
 
       - name: Publish package distributions to PyPI
+        if: github.event_name == 'release' && github.event.action == 'published'
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  roll_release:
+    needs: [publish_wheels]
+    permissions:
+      contents: write
+    uses: sippy/cimagic/.github/workflows/RollReleaseDraft.yml@v1
