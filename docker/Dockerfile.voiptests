@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1.7-labs
+
+ARG BASE_IMAGE="sippylabs/rtpproxy:latest"
+FROM $BASE_IMAGE AS test
+LABEL maintainer="Maksym Sobolyev <sobomax@sippysoft.com>"
+
+USER root
+
+ENV DEBIAN_FRONTEND noninteractive
+
+WORKDIR /tmp
+
+COPY docker/set_env.sh docker/install_depends.sh docker/
+
+ARG TARGETPLATFORM
+ENV SET_ENV="sh /tmp/docker/set_env.sh platformopts"
+
+RUN env `${SET_ENV}` sh -x docker/install_depends.sh
+
+COPY --exclude=.git --exclude=.github . .
+
+ENV PYTHON_CMD=python3
+
+RUN ${PYTHON_CMD} setup.py sdist
+RUN ${PYTHON_CMD} -m pip install dist/sippy*.gz
+
+ENV MM_TYPE=b2bua
+ENV MM_BRANCH=master
+ENV MM_ROOT=../..
+ENV RTPP_BRANCH=DOCKER
+ENV RTPPROXY_DIST=../../dist/rtpproxy
+WORKDIR dist/voiptests
+
+RUN env RTPPC_TYPE=unix `${SET_ENV}` sh -x ./test_run.sh
+RUN env RTPPC_TYPE=cunix `${SET_ENV}` sh -x ./test_run.sh
+RUN env RTPPC_TYPE=udp `${SET_ENV}` sh -x ./test_run.sh
+RUN env RTPPC_TYPE=tcp `${SET_ENV}` sh -x ./test_run.sh
