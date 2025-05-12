@@ -186,7 +186,7 @@ IEFT draft.
 #### Synopsis
 
 ```
-python b2bua_radius.py [-fDu] [-l local_ip] [-p local_port] [-P pidfile] [-L logfile]
+python b2bua.py [-fDu] [-l local_ip] [-p local_port] [-P pidfile] [-L logfile]
   [-s static_route] [-a ip1[,..[,ipN]]] [-k 0-3] [-m max_ctime] [-A 0-2]
   [-r rtp_proxy_contact1] [-r rtp_proxy_contact2] ... [-r rtp_proxy_contactN]
 ```
@@ -311,7 +311,7 @@ The following is an example of a routing string in the RADIUS attribute:
 
 The same as the static route in the command line would be:
 
-`b2bua_radius.py ... -s
+`b2bua.py ... -s
 '200110508667@b2bua.org;cli=16046288900;rid=-1;expires=30;np_expires=5;ash=Name%3AValue'
 ...`
 

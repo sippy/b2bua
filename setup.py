@@ -20,7 +20,8 @@ setup(
     entry_points = {
         'console_scripts': [
             'b2bua_simple = sippy.b2bua_simple:main_func',
-            'b2bua_radius = sippy.b2bua_radius:main_func',
+            'b2bua_radius = sippy.b2bua:main_func',
+            'b2bua = sippy.b2bua:main_func',
             ],
         },
 
