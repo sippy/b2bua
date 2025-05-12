@@ -134,7 +134,7 @@ class AsyncReceiver(Thread):
 _DEFAULT_FLAGS = socket.SO_REUSEADDR
 if hasattr(socket, 'SO_REUSEPORT'):
     _DEFAULT_FLAGS |= socket.SO_REUSEPORT
-_DEFAULT_NWORKERS = 30
+_DEFAULT_NWORKERS = 3
 
 class Udp_server_opts(Network_server_opts):
     family = None

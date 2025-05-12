@@ -86,8 +86,7 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
         self.uopts.flags = 0
         self.uopts.ploss_out_rate = self.ploss_out_rate
         self.uopts.pdelay_out_max = self.pdelay_out_max
-        if nworkers != None:
-            self.uopts.nworkers = nworkers
+        self.uopts.nworkers = 1 if nworkers is None else nworkers
         self.worker = Udp_server(global_config, self.uopts)
         self.pending_requests = {}
         self.global_config = global_config
