@@ -1,4 +1,4 @@
-[![Build Status@GitHub](https://github.com/sippy/b2bua/workflows/Check%20Python%20Wheels/badge.svg?branch=master)](https://github.com/sippy/b2bua/actions?query=branch%3Amaster++)
+[![Build Status@GitHub](https://github.com/sippy/b2bua/actions/workflows/python-wheels.yml/badge.svg?branch=master)](https://github.com/sippy/b2bua/actions/workflows/python-wheels.yml?query=branch%3Amaster++)
 
 # Sippy B2BUA
 
