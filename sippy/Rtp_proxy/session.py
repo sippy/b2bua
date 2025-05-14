@@ -57,7 +57,7 @@ class Rtp_proxy_session(object):
     insert_nortpp = False
 
     def __init__(self, global_config, call_id = None, from_tag = None, to_tag = None,
-      notify_socket = None, notify_tag = None):
+      notify_tag = None):
         self.global_config = global_config
         self.my_ident = get_ident()
         if '_rtp_proxy_clients' in global_config:
@@ -86,7 +86,7 @@ class Rtp_proxy_session(object):
         else:
             salt = str(random()) + str(time())
             self.to_tag = md5(salt.encode()).hexdigest()
-        self.notify_socket = notify_socket
+        self.notify_socket = self.rtp_proxy_client.notify_socket
         self.notify_tag = notify_tag
         self.caller = _rtpps_side('caller')
         self.callee = _rtpps_side('callee')

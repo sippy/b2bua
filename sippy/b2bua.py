@@ -52,7 +52,7 @@ from sippy.Rtp_proxy.Session.webrtc import Rtp_proxy_session_webrtc2sip, \
  Rtp_proxy_session_sip2webrtc
 from sippy.Rtp_proxy.client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2, SIGTERM
-from sippy.CLIManager import CLIConnectionManager
+from sippy.CLIManager import CLIConnectionManager, CLIManager
 from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
@@ -200,7 +200,6 @@ class CallController(object):
                     event.data = (self.cId, self.cli, self.cld, body, auth, self.caller_name)
                 if '_rtp_proxy_clients' in self.global_config:
                     self.rtp_proxy_session = self.rtpps_cls(self.global_config, call_id = self.cId, \
-                      notify_socket = self.global_config['b2bua_socket'], \
                       notify_tag = quote('r %s' % str(self.id)))
                     self.rtp_proxy_session.callee.raddress = (self.remote_ip, 5060)
                 self.eTry = event
@@ -856,16 +855,23 @@ def main_func():
 
     global_config['_sip_logger'] = SipLogger('b2bua')
 
-    if len(rtp_proxy_clients) > 0:
-        global_config['_rtp_proxy_clients'] = []
-        for address in rtp_proxy_clients:
-            global_config['_rtp_proxy_clients'].append(Rtp_proxy_client(global_config, spath = address))
-
     if global_config['auth_enable'] or global_config['acct_enable']:
         global_config['_radius_client'] = RadiusAuthorisation(global_config)
     global_config['_uaname'] = 'Sippy B2BUA (RADIUS)'
 
     global_config['_cmap'] = CallMap(global_config)
+
+    if len(rtp_proxy_clients) > 0:
+        def set_b2bua_socket(rtpp_nsock, rtpp_nsock_spec):
+            CLIManager(rtpp_nsock, global_config['_cmap'].recvCommand)
+        global_config['_rtp_proxy_clients'] = []
+        for address in rtp_proxy_clients:
+            kwa = {'nsetup_f': set_b2bua_socket} if address.startswith('rtp.io:') else {}
+            rtpc = Rtp_proxy_client(global_config, spath = address, **kwa)
+            if not address.startswith('rtp.io:'):
+                rtpc.notify_socket = global_config['b2bua_socket']
+            global_config['_rtp_proxy_clients'].append(rtpc)
+
     if 'sip_proxy' in global_config:
         host_port = global_config['sip_proxy'].split(':', 1)
         if len(host_port) == 1:

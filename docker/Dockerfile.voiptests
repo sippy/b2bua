@@ -15,7 +15,7 @@ COPY docker/set_env.sh docker/install_depends.sh docker/
 ARG TARGETPLATFORM
 ENV SET_ENV="sh /tmp/docker/set_env.sh platformopts"
 
-RUN env `${SET_ENV}` sh -x docker/install_depends.sh
+RUN env -S "`${SET_ENV}`" sh -x docker/install_depends.sh
 
 COPY --exclude=.git --exclude=.github . .
 
@@ -23,6 +23,8 @@ ENV PYTHON_CMD=python3
 
 RUN ${PYTHON_CMD} setup.py sdist
 RUN ${PYTHON_CMD} -m pip install dist/sippy*.gz
+RUN env -S "`${SET_ENV}`" \
+  ${PYTHON_CMD} -m pip install git+https://github.com/sippy/py-rtpproxy.git@wip
 
 ENV MM_TYPE=b2bua
 ENV MM_BRANCH=master
@@ -31,7 +33,21 @@ ENV RTPP_BRANCH=DOCKER
 ENV RTPPROXY_DIST=../../dist/rtpproxy
 WORKDIR dist/voiptests
 
-RUN env RTPPC_TYPE=unix `${SET_ENV}` sh -x ./test_run.sh
-RUN env RTPPC_TYPE=cunix `${SET_ENV}` sh -x ./test_run.sh
-RUN env RTPPC_TYPE=udp `${SET_ENV}` sh -x ./test_run.sh
-RUN env RTPPC_TYPE=tcp `${SET_ENV}` sh -x ./test_run.sh
+ENV RTPPC_TYPE=unix
+RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
+
+ENV RTPPC_TYPE=cunix
+RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
+
+ENV RTPPC_TYPE=udp
+RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
+
+ENV RTPPC_TYPE=tcp
+RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
+
+ENV RTPPC_TYPE=rtp.io
+RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh

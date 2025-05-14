@@ -1,20 +1,25 @@
 #!/bin/sh
 
 set -e
+set -x
 
 platformopts() {
   case "${TARGETPLATFORM}" in
-  linux/s390x | linux/arm/v7)
+  linux/arm/v7)
+    echo "RTPP_VERSION=production"
+    echo "OPENSSL_CONFIGURE_ARGS=linux-armv4"
+    ;;
+  linux/s390x)
     echo "RTPP_VERSION=production"
     ;;
   linux/arm64)
     echo "QEMU_CPU=cortex-a53"
     ;;
   esac
-  if [ "${TARGETPLATFORM}" != "linux/amd64" -a "${TARGETPLATFORM}" != "linux/arm64" ]
-  then
-    echo "EXTRA_PACKAGES=build-essential"
-  fi
+#  if [ "${TARGETPLATFORM}" != "linux/amd64" -a "${TARGETPLATFORM}" != "linux/arm64" ]
+#  then
+    echo 'EXTRA_PACKAGES="build-essential git python3-dev"'
+#  fi
 
 }
 
