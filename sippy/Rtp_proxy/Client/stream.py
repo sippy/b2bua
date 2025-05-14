@@ -84,7 +84,7 @@ class _RTPPLWorker(Thread):
                 rval = self.s.recv(1024)
                 if len(rval) == 0:
                     self.s = None
-                    return self.send_raw(command, _recurse, stime, why)
+                    return self.send_raw(command, _recurse, stime)
                 rval = rval.decode('ascii').strip()
                 break
             except socket.error as why:
