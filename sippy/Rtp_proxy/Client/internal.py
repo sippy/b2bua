@@ -25,17 +25,39 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import socket
+from functools import partial
+
+from sippy.CLIManager import CLIManager
 
 from .stream import Rtp_proxy_client_stream, test
+from .Worker.internal import RTPPLWorker_internal as _RTPPLWorker
 
-class Rtp_proxy_client_local(Rtp_proxy_client_stream):
-    is_local = True
+try: from rtpproxy import rtpproxy
+except ModuleNotFoundError as ex: rtpproxy = ex
 
-    def __init__(self, global_config, address = '/var/run/rtpproxy.sock', \
-      bind_address = None, nworkers = 1):
+class Rtp_proxy_client_internal(Rtp_proxy_client_stream):
+    failed = None if not isinstance(rtpproxy, Exception) else rtpproxy
+    def __init__(self, global_config, nworkers = 1, nsetup_f = None, **kwargs):
+        if Rtp_proxy_client_internal.failed is not None:
+            raise Rtp_proxy_client_internal.failed
+        self.is_local = True
+        self.worker_class = _RTPPLWorker
+        self.rtpp = rtpproxy(**kwargs)
+        if nsetup_f is not None:
+            nsetup_f(self.rtpp.rtpp_nsock, self.rtpp.rtpp_nsock_spec)
+            self.notify_socket = self.rtpp.rtpp_nsock_spec
         Rtp_proxy_client_stream.__init__(self, global_config = global_config, \
-          address = address, bind_address = bind_address, nworkers = nworkers, \
+          address = self.rtpp.rtpp_sock, bind_address = None, nworkers = nworkers, \
           family = socket.AF_UNIX)
 
+    def _reconnect(self, *args, **kwargs):
+        raise RuntimeError('Rtp_proxy_client_internal does not support reconnecting')
+
+    def shutdown(self):
+        Rtp_proxy_client_stream.shutdown(self)
+        if self.rtpp:
+            del self.rtpp
+            self.rtpp = None
+
 if __name__ == '__main__':
-    test(Rtp_proxy_client_local)
+    test(Rtp_proxy_client_internal)

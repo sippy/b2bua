@@ -24,11 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from sippy.Time.Timeout import TimeoutInact
-from sippy.Rtp_proxy.Client.udp import Rtp_proxy_client_udp
-from sippy.Rtp_proxy.Client.stream import Rtp_proxy_client_stream
-
 import socket
+
+from sippy.Time.Timeout import TimeoutInact
+
+from .Client.udp import Rtp_proxy_client_udp
+from .Client.stream import Rtp_proxy_client_stream
+from .Client.internal import Rtp_proxy_client_internal
 
 CAPSTABLE = {'20071218':'copy_supported', '20080403':'stat_supported', \
   '20081224':'tnot_supported', '20090810':'sbind_supported', \
@@ -78,6 +80,84 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
     hrtb_ival = 1.0
     hrtb_retr_ival = 60.0
     rtpp_class = None
+    notify_socket = None
+
+    def __init_udp(self, global_config, a, kwargs):
+        a = a.split(':', 2)
+        if len(a) == 2:
+            rtppa = (a[1], 22222)
+        else:
+            rtppa = (a[1], int(a[2]))
+        self.proxy_address = rtppa[0]
+        kwargs['family'] = socket.AF_INET
+        kwargs['address'] = rtppa
+        self.rtpp_class = Rtp_proxy_client_udp
+
+    def __init_udp6(self, global_config, a, kwargs):
+        proto, a = a.split(':', 1)
+        if not a.endswith(']'):
+            a = a.rsplit(':', 1)
+            if len(a) == 1:
+                rtp_proxy_host, rtp_proxy_port = a[0], 22222
+            else:
+                rtp_proxy_host, rtp_proxy_port = (a[0], int(a[1]))
+        else:
+            rtp_proxy_host, rtp_proxy_port = a, 22222
+        if not rtp_proxy_host.startswith('['):
+            rtp_proxy_host = '[%s]' % rtp_proxy_host
+        rtppa = (rtp_proxy_host, rtp_proxy_port)
+        self.proxy_address = rtppa[0]
+        kwargs['family'] = socket.AF_INET6
+        kwargs['address'] = rtppa
+        self.rtpp_class = Rtp_proxy_client_udp
+
+    def __init_tcp(self, global_config, a, kwargs):
+        a = a.split(':', 2)
+        if len(a) == 2:
+            rtppa = (a[1], 22222)
+        else:
+            rtppa = (a[1], int(a[2]))
+        self.proxy_address = rtppa[0]
+        kwargs['family'] = socket.AF_INET
+        kwargs['address'] = rtppa
+        self.rtpp_class = Rtp_proxy_client_stream
+
+    def __init_tcp6(self, global_config, a, kwargs):
+        proto, a = a.split(':', 1)
+        if not a.endswith(']'):
+            a = a.rsplit(':', 1)
+            if len(a) == 1:
+                rtp_proxy_host, rtp_proxy_port = a[0], 22222
+            else:
+                rtp_proxy_host, rtp_proxy_port = (a[0], int(a[1]))
+        else:
+            rtp_proxy_host, rtp_proxy_port = a, 22222
+        if not rtp_proxy_host.startswith('['):
+            rtp_proxy_host = '[%s]' % rtp_proxy_host
+        rtppa = (rtp_proxy_host, rtp_proxy_port)
+        self.proxy_address = rtppa[0]
+        kwargs['family'] = socket.AF_INET6
+        kwargs['address'] = rtppa
+        self.rtpp_class = Rtp_proxy_client_stream
+
+    def __init_unix(self, global_config, a, kwargs):
+        if a.startswith('unix:'):
+            rtppa = a[5:]
+        elif a.startswith('cunix:'):
+            rtppa = a[6:]
+        else:
+            rtppa = a
+        self.proxy_address = global_config['_sip_address']
+        kwargs['family'] = socket.AF_UNIX
+        kwargs['address'] = rtppa
+        self.rtpp_class = Rtp_proxy_client_stream
+
+    def __init_internal(self, global_config, a, kwargs):
+        proto, a = a.split(':', 1)
+        if a:
+            kwargs['extra_args'] = a.split(';')
+        self.proxy_address = global_config['_sip_address']
+        self.rtpp_class = Rtp_proxy_client_internal
 
     def __init__(self, global_config, *address, **kwargs):
         #print('Rtp_proxy_client', address)
@@ -89,75 +169,28 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
             a = kwargs['spath']
             del kwargs['spath']
             if a.startswith('udp:'):
-                a = a.split(':', 2)
-                if len(a) == 2:
-                    rtppa = (a[1], 22222)
-                else:
-                    rtppa = (a[1], int(a[2]))
-                self.proxy_address = rtppa[0]
-                kwargs['family'] = socket.AF_INET
-                self.rtpp_class = Rtp_proxy_client_udp
+                proto__init = self.__init_udp
             elif a.startswith('udp6:'):
-                proto, a = a.split(':', 1)
-                if not a.endswith(']'):
-                    a = a.rsplit(':', 1)
-                    if len(a) == 1:
-                        rtp_proxy_host, rtp_proxy_port = a[0], 22222
-                    else:
-                        rtp_proxy_host, rtp_proxy_port = (a[0], int(a[1]))
-                else:
-                    rtp_proxy_host, rtp_proxy_port = a, 22222
-                if not rtp_proxy_host.startswith('['):
-                    rtp_proxy_host = '[%s]' % rtp_proxy_host
-                rtppa = (rtp_proxy_host, rtp_proxy_port)
-                self.proxy_address = rtppa[0]
-                kwargs['family'] = socket.AF_INET6
-                self.rtpp_class = Rtp_proxy_client_udp
+                proto__init = self.__init_udp6
             elif a.startswith('tcp:'):
-                a = a.split(':', 2)
-                if len(a) == 2:
-                    rtppa = (a[1], 22222)
-                else:
-                    rtppa = (a[1], int(a[2]))
-                self.proxy_address = rtppa[0]
-                kwargs['family'] = socket.AF_INET
-                self.rtpp_class = Rtp_proxy_client_stream
+                proto__init = self.__init_tcp
             elif a.startswith('tcp6:'):
-                proto, a = a.split(':', 1)
-                if not a.endswith(']'):
-                    a = a.rsplit(':', 1)
-                    if len(a) == 1:
-                        rtp_proxy_host, rtp_proxy_port = a[0], 22222
-                    else:
-                        rtp_proxy_host, rtp_proxy_port = (a[0], int(a[1]))
-                else:
-                    rtp_proxy_host, rtp_proxy_port = a, 22222
-                if not rtp_proxy_host.startswith('['):
-                    rtp_proxy_host = '[%s]' % rtp_proxy_host
-                rtppa = (rtp_proxy_host, rtp_proxy_port)
-                self.proxy_address = rtppa[0]
-                kwargs['family'] = socket.AF_INET6
-                self.rtpp_class = Rtp_proxy_client_stream
+                proto__init = self.__init_tcp6
+            elif a.startswith('rtp.io:'):
+                proto__init = self.__init_internal
             else:
-                if a.startswith('unix:'):
-                    rtppa = a[5:]
-                elif a.startswith('cunix:'):
-                    rtppa = a[6:]
-                else:
-                    rtppa = a
-                self.proxy_address = global_config['_sip_address']
-                kwargs['family'] = socket.AF_UNIX
-                self.rtpp_class = Rtp_proxy_client_stream
-            self.rtpp_class.__init__(self, global_config, rtppa, **kwargs)
+                proto__init = self.__init_unix
+            proto__init(global_config, a, kwargs)
+            self.rtpp_class.__init__(self, global_config, **kwargs)
         elif len(address) > 0 and type(address[0]) in (tuple, list):
             self.rtpp_class = Rtp_proxy_client_udp
             self.proxy_address = address[0][0]
-            Rtp_proxy_client_udp.__init__(self, global_config, *address, \
+            self.rtpp_class.__init__(self, global_config, *address, \
               **kwargs)
         else:
             self.rtpp_class = Rtp_proxy_client_stream
             self.proxy_address = global_config['_sip_address']
-            Rtp_proxy_client_stream.__init__(self, global_config, *address, \
+            self.rtpp_class.__init__(self, global_config, *address, \
               **kwargs)
         if not no_version_check:
             self.version_check()
@@ -259,7 +292,7 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
     def get_rtpc_delay(self):
         return self.rtpp_class.get_rtpc_delay(self)
 
-if __name__ == '__main__':
+def test(cmd = 'VF 123456', **kwargs):
     from sippy.Core.EventDispatcher import ED2
     from sippy.Time.Timeout import Timeout
     def display(*args):
@@ -268,12 +301,15 @@ if __name__ == '__main__':
     def waitonline(rpc):
         if rpc.online:
             ED2.breakLoop()
-    r = Rtp_proxy_client({'_sip_address':'1.2.3.4'})
+    r = Rtp_proxy_client({'_sip_address':'1.2.3.4'}, **kwargs)
     t = Timeout(waitonline, 0.1, 10, r)
     ED2.loop(2.0)
     assert(r.online)
     t.cancel()
-    r.send_command('VF 123456', display, 'abcd')
+    r.send_command(cmd, display, 'abcd')
     ED2.loop()
     r.shutdown()
     print('passed')
+
+if __name__ == '__main__':
+    test()
