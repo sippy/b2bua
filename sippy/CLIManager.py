@@ -125,7 +125,7 @@ class CLIConnectionManager(object):
                 conn.close()
                 return
         try:
-            cm = CLIManager(conn, self.command_cb, address)
+            cm = CLIManager(conn, self.command_cb)
         except Exception as e:
             dump_exception('CLIConnectionManager: unhandled exception when setting up incoming connection handler')
             conn.close()
@@ -239,14 +239,12 @@ class CLIManager(object):
     clientsock = None
     command_cb = None
     close_pendind = False
-    raddr = None
     wthr = None
     rthr = None
 
-    def __init__(self, clientsock, command_cb, raddr):
+    def __init__(self, clientsock, command_cb):
         self.clientsock = clientsock
         self.command_cb = command_cb
-        self.raddr = raddr
         self.wthr = _CLIManager_w(clientsock, self)
         self.rthr = _CLIManager_r(clientsock, self)
 
