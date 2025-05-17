@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2003-2005 Maxim Sobolev. All rights reserved.
-# Copyright (c) 2006-2014 Sippy Software, Inc. All rights reserved.
-#
-# All rights reserved.
+# Copyright (c) 2006-2025 Sippy Software, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
@@ -37,10 +35,8 @@ from sippy.Core.Exceptions import dump_exception
 from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import Timeout
 from sippy.Signal import Signal
-from sippy.SipFrom import SipFrom
-from sippy.SipTo import SipTo
 from sippy.UA import UA
-from sippy.CCEvents import CCEventRing, CCEventConnect, CCEventDisconnect, CCEventTry, CCEventUpdate, CCEventFail
+from sippy.CCEvents import CCEventDisconnect, CCEventTry,CCEventFail
 from sippy.SipConf import SipConf
 from sippy.SipHeader import SipHeader
 from sippy.RadiusAuthorisation import RadiusAuthorisation
@@ -52,15 +48,18 @@ from sippy.Rtp_proxy.Session.webrtc import Rtp_proxy_session_webrtc2sip, \
  Rtp_proxy_session_sip2webrtc
 from sippy.Rtp_proxy.client import Rtp_proxy_client
 from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2, SIGTERM
-from sippy.CLIManager import CLIConnectionManager, CLIManager
 from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
 from sippy.misc import daemonize
-from sippy.B2BRoute import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
+from sippy.B2B.Route import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
 from sippy.Wss_server import Wss_server, Wss_server_opts
 from sippy.SipURL import SipURL
 from sippy.Exceptions.SdpParseError import SdpParseError
+
+from sippy.B2B.States import CCStateIdle, CCStateWaitRoute, CCStateARComplete, \
+  CCStateConnected, CCStateDead, CCStateDisconnecting
+from sippy.B2B.SimpleAPI import B2BSimpleAPI
 
 import gc, getopt, os
 from re import sub
@@ -90,19 +89,6 @@ def re_replace(ptrn, s):
             break
         ptrn = ptrn[3:]
     return s
-
-class CCStateIdle(object):
-    sname = 'Idle'
-class CCStateWaitRoute(object):
-    sname = 'WaitRoute'
-class CCStateARComplete(object):
-    sname = 'ARComplete'
-class CCStateConnected(object):
-    sname = 'Connected'
-class CCStateDead(object):
-    sname = 'Dead'
-class CCStateDisconnecting(object):
-    sname = 'Disconnecting'
 
 class Rtp_proxy_session_default(Rtp_proxy_session): insert_nortpp = True
 
@@ -601,100 +587,24 @@ class CallMap(object):
         if len(gc.garbage) > 0:
             print(gc.garbage)
 
-    def recvCommand(self, clim, cmd):
-        args = cmd.split()
-        cmd = args.pop(0).lower()
-        if cmd == 'q':
-            clim.close()
-            return False
-        if cmd == 'l':
-            res = 'In-memory calls:\n'
-            total = 0
-            for cc in self.ccmap:
-                res += '%s: %s (' % (cc.cId, cc.state.sname)
-                if cc.uaA != None:
-                    (_h, _p), _t = cc.uaA.getRAddr0()
-                    res += '%s %s:%s:%d %s %s -> ' % (cc.uaA.state, _t, _h, \
-                      _p, cc.uaA.getCLD(), cc.uaA.getCLI())
-                else:
-                    res += 'N/A -> '
-                if cc.uaO != None:
-                    (_h, _p), _t = cc.uaA.getRAddr0()
-                    res += '%s %s:%s:%d %s %s)\n' % (cc.uaO.state, _t, _h, \
-                      _p, cc.uaO.getCLI(), cc.uaO.getCLD())
-                else:
-                    res += 'N/A)\n'
-                total += 1
-            res += 'Total: %d\n' % total
-            clim.send(res)
-            return False
-        if cmd == 'lt':
-            res = 'In-memory server transactions:\n'
-            for tid, t in self.global_config['_sip_tm'].tserver.iteritems():
-                res += '%s %s %s\n' % (tid, t.method, t.state)
-            res += 'In-memory client transactions:\n'
-            for tid, t in self.global_config['_sip_tm'].tclient.iteritems():
-                res += '%s %s %s\n' % (tid, t.method, t.state)
-            clim.send(res)
-            return False
-        if cmd in ('lt', 'llt'):
-            if cmd == 'llt':
-                mindur = 60.0
+    def getActiveCalls(self):
+        rr = []
+        for cc in self.ccmap:
+            r = [str(cc.cId), cc.state.sname]
+            if cc.uaA != None:
+                (_h, _p), _t = cc.uaA.getRAddr0()
+                r.append((cc.uaA.state.sname, _t, _h, _p,
+                          cc.uaA.getCLD(), cc.uaA.getCLI()))
             else:
-                mindur = 0.0
-            ctime = MonoTime()
-            res = 'In-memory server transactions:\n'
-            for tid, t in self.global_config['_sip_tm'].tserver.iteritems():
-                duration = ctime - t.rtime
-                if duration < mindur:
-                    continue
-                res += '%s %s %s %s\n' % (tid, t.method, t.state, duration)
-            res += 'In-memory client transactions:\n'
-            for tid, t in self.global_config['_sip_tm'].tclient.iteritems():
-                duration = ctime - t.rtime
-                if duration < mindur:
-                    continue
-                res += '%s %s %s %s\n' % (tid, t.method, t.state, duration)
-            clim.send(res)
-            return False
-        if cmd == 'd':
-            if len(args) != 1:
-                clim.send('ERROR: syntax error: d <call-id>\n')
-                return False
-            if args[0] == '*':
-                self.discAll()
-                clim.send('OK\n')
-                return False
-            dlist = [x for x in self.ccmap if str(x.cId) == args[0]]
-            if len(dlist) == 0:
-                clim.send('ERROR: no call with id of %s has been found\n' % args[0])
-                return False
-            for cc in dlist:
-                cc.disconnect()
-            clim.send('OK\n')
-            return False
-        if cmd == 'r':
-            if len(args) != 1:
-                clim.send('ERROR: syntax error: r [<id>]\n')
-                return False
-            idx = int(args[0])
-            dlist = [x for x in self.ccmap if x.id == idx]
-            if len(dlist) == 0:
-                clim.send('ERROR: no call with id of %d has been found\n' % idx)
-                return False
-            for cc in dlist:
-                if not cc.proxied:
-                    continue
-                if cc.state == CCStateConnected:
-                    cc.disconnect(MonoTime().getOffsetCopy(-60), origin = 'media_timeout')
-                    continue
-                if cc.state == CCStateARComplete:
-                    cc.uaO.disconnect(MonoTime().getOffsetCopy(-60), origin = 'media_timeout')
-                    continue
-            clim.send('OK\n')
-            return False
-        clim.send('ERROR: unknown command\n')
-        return False
+                r.append(None)
+            if cc.uaO != None:
+                (_h, _p), _t = cc.uaA.getRAddr0()
+                r.append((cc.uaO.state.sname, _t, _h, _p,
+                         cc.uaO.getCLI(), cc.uaO.getCLD()))
+            else:
+                r.append(None)
+            rr.append(tuple(r))
+        return tuple(rr)
 
 def reopen(signum, logfile):
     print('Signal %d received, reopening logs' % signum)
@@ -709,7 +619,6 @@ def usage(global_config, brief = False):
         print('\navailable options:\n')
         global_config.options_help()
     sys.exit(1)
-
 
 def main_func():
     global_config = MyConfigParser()
@@ -861,12 +770,12 @@ def main_func():
 
     global_config['_cmap'] = CallMap(global_config)
 
+    clis = B2BSimpleAPI(global_config)
+
     if len(rtp_proxy_clients) > 0:
-        def set_b2bua_socket(rtpp_nsock, rtpp_nsock_spec):
-            CLIManager(rtpp_nsock, global_config['_cmap'].recvCommand)
         global_config['_rtp_proxy_clients'] = []
         for address in rtp_proxy_clients:
-            kwa = {'nsetup_f': set_b2bua_socket} if address.startswith('rtp.io:') else {}
+            kwa = {'nsetup_f': clis.set_rtp_io_socket} if address.startswith('rtp.io:') else {}
             rtpc = Rtp_proxy_client(global_config, spath = address, **kwa)
             if not address.startswith('rtp.io:'):
                 rtpc.notify_socket = global_config['b2bua_socket']
@@ -896,11 +805,6 @@ def main_func():
 
     global_config['_sip_tm'] = stm
     global_config['_sip_tm'].nat_traversal = global_config.getdefault('nat_traversal', False)
-
-    cmdfile = global_config['b2bua_socket']
-    if cmdfile.startswith('unix:'):
-        cmdfile = cmdfile[5:]
-    cli_server = CLIConnectionManager(global_config['_cmap'].recvCommand, cmdfile)
 
     if not global_config['foreground']:
         open(global_config['pidfile'], 'w').write(str(os.getpid()) + '\n')

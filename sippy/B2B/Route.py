@@ -26,7 +26,7 @@
 
 from sippy.SipHeader import SipHeader
 from sippy.SipConf import SipConf
-from sippy.B2BTransforms import getTransProc
+from sippy.B2B.Transforms import getTransProc
 
 try:
     from urllib import unquote

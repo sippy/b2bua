@@ -1,5 +1,5 @@
 import unittest
-from sippy.B2BRoute import B2BRoute
+from sippy.B2B.Route import B2BRoute
 
 class TestB2BRoute(unittest.TestCase):
     test_route = '200110508667@b2bua.org;cli=16046288900;rid=-1;expires=30;np_expires=5;ash=Name%3AValue'
