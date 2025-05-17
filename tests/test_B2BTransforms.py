@@ -1,5 +1,5 @@
 import unittest
-from sippy.B2BTransforms import getTransProc
+from sippy.B2B.Transforms import getTransProc
 
 class FakeRequest():
     test: unittest.TestCase

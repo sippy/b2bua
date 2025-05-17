@@ -33,7 +33,7 @@ except ImportError:
     from configparser import RawConfigParser
     _boolean_states = RawConfigParser.BOOLEAN_STATES
 from sippy.SipConf import SipConf
-from sippy.B2BTransforms import getTransProc
+from sippy.B2B.Transforms import getTransProc
 
 SUPPORTED_OPTIONS = { \
  'acct_enable':       ('B', 'enable or disable Radius accounting'), \

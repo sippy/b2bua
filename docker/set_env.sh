@@ -7,7 +7,7 @@ platformopts() {
   case "${TARGETPLATFORM}" in
   linux/arm/v7)
     echo "RTPP_VERSION=production"
-    echo 'ARCH_CFLAGS="-mfloat-abi=soft"'
+    echo 'ARCH_CFLAGS="-mfloat-abi=hard"'
     ;;
   linux/s390x)
     echo "RTPP_VERSION=production"
