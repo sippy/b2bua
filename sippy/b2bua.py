@@ -57,10 +57,14 @@ from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
 from sippy.misc import daemonize
-from sippy.B2BRoute import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
+from sippy.B2B.Route import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
 from sippy.Wss_server import Wss_server, Wss_server_opts
 from sippy.SipURL import SipURL
 from sippy.Exceptions.SdpParseError import SdpParseError
+
+from sippy.B2B.States import CCStateIdle, CCStateWaitRoute, CCStateARComplete, \
+  CCStateConnected, CCStateDead, CCStateDisconnecting
+from sippy.B2B.SimpleAPI import B2BSimpleAPI
 
 import gc, getopt, os
 from re import sub
@@ -90,19 +94,6 @@ def re_replace(ptrn, s):
             break
         ptrn = ptrn[3:]
     return s
-
-class CCStateIdle(object):
-    sname = 'Idle'
-class CCStateWaitRoute(object):
-    sname = 'WaitRoute'
-class CCStateARComplete(object):
-    sname = 'ARComplete'
-class CCStateConnected(object):
-    sname = 'Connected'
-class CCStateDead(object):
-    sname = 'Dead'
-class CCStateDisconnecting(object):
-    sname = 'Disconnecting'
 
 class Rtp_proxy_session_default(Rtp_proxy_session): insert_nortpp = True
 
