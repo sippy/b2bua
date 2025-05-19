@@ -172,19 +172,6 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
             self.delay_flt.apply(rtime - preq.stime)
             #print('Rtp_proxy_client_udp.process_reply(): delay %f' % (rtime - preq.stime))
 
-    def reconnect(self, address, bind_address = None):
-        #print('reconnect', address)
-        address = self.getdestbyaddr(address, self.uopts.family)
-        self.rtpp_class._reconnect(self, address, bind_address)
-
-    def _reconnect(self, address, bind_address = None):
-        self.address = address
-        if bind_address != self.uopts.laddress:
-            self.uopts.laddress = bind_address
-            self.worker.shutdown()
-            self.worker = Udp_server(self.global_config, self.uopts)
-            self.delay_flt = recfilter(0.95, 0.25)
-
     def shutdown(self):
         self.worker.shutdown()
         self.worker = None
@@ -194,8 +181,9 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
 
 class selftest(object):
 
-    def gotreply(self, ED2, *args):
+    def gotreply(self, ED2, rtpc, *args):
         print(args)
+        rtpc.shutdown()
         ED2.breakLoop()
 
     def run(self, ED2):
@@ -203,21 +191,23 @@ class selftest(object):
         from functools import partial
         global_config = {}
         global_config['my_pid'] = os.getpid()
-        rtpc = Rtp_proxy_client_udp(global_config, ('127.0.0.1', 22226), None)
+        rtpp_sock_addr = ('127.0.0.1', 22226)
+        rtpc = Rtp_proxy_client_udp(global_config, rtpp_sock_addr, None)
         rtpc.rtpp_class = Rtp_proxy_client_udp
         os.system('sockstat | grep -w %d' % global_config['my_pid'])
-        gotreply = partial(self.gotreply, ED2)
+        gotreply = partial(self.gotreply, ED2, rtpc)
         rtpc.send_command('Ib', gotreply)
         ED2.loop()
-        rtpc.reconnect(('localhost', 22226), ('0.0.0.0', 34222))
+        rtpc = Rtp_proxy_client_udp(global_config, rtpp_sock_addr, ('0.0.0.0', 34222))
+        rtpc.rtpp_class = Rtp_proxy_client_udp
         os.system('sockstat | grep -w %d' % global_config['my_pid'])
         rtpc.send_command('V', gotreply)
         ED2.loop()
-        rtpc.reconnect(('localhost', 22226), ('127.0.0.1', 57535))
+        rtpc = Rtp_proxy_client_udp(global_config, rtpp_sock_addr, ('127.0.0.1', 57535))
+        rtpc.rtpp_class = Rtp_proxy_client_udp
         os.system('sockstat | grep -w %d' % global_config['my_pid'])
         rtpc.send_command('V', gotreply)
         ED2.loop()
-        rtpc.shutdown()
 
 if __name__ == '__main__':
     from sippy.Core.EventDispatcher import ED2

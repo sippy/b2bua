@@ -72,23 +72,6 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
             command += '\n'
         self.wi.put((command, result_callback, callback_parameters))
 
-    def reconnect(self, address, bind_address = None):
-        if not self.is_local:
-            address = self.getdestbyaddr(address, self.family)
-        self.rtpp_class._reconnect(self, address, bind_address)
-
-    def _reconnect(self, address, bind_address = None):
-        Rtp_proxy_client_stream.shutdown(self)
-        self.address = address
-        self.workers = []
-        for i in range(0, self.nworkers):
-            try:
-                self.workers.append(self.worker_class(self))
-            except:
-                break
-        self.nworkers_act = i + 1
-        self.delay_flt = recfilter(0.95, 0.25)
-
     def shutdown(self):
         self.wi.put(None)
         for rworker in self.workers:

@@ -201,9 +201,6 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
     def send_command(self, *args, **kwargs):
         self.rtpp_class.send_command(self, *args, **kwargs)
 
-    def reconnect(self, *args, **kwargs):
-        self.rtpp_class.reconnect(self, *args, **kwargs)
-
     def version_check(self):
         if self.shut_down:
             return
