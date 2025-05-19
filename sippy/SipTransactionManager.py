@@ -217,6 +217,11 @@ class local4remote(object):
         self.cache_r2l_old = self.cache_r2l
         self.cache_r2l = {}
 
+    def shutdown(self):
+        for userv in self.cache_l2s.values():
+            userv.shutdown()
+        self.cache_l2s = {}
+
 class SipTMRetransmitO(object):
     userv = None
     data = None
@@ -246,6 +251,7 @@ class SipTransactionManager(object):
     ploss_out_rate = 0.0
     pdelay_out_max = 0.0
     model_udp_server = (Udp_server, Udp_server_opts)
+    cp_timer = None
 
     def __init__(self, global_config, req_cb = None):
         self.global_config = global_config
@@ -258,7 +264,7 @@ class SipTransactionManager(object):
         self.l1rcache = {}
         self.l2rcache = {}
         self.req_consumers = {}
-        Timeout(self.rCachePurge, 32, -1)
+        self.cp_timer = Timeout(self.rCachePurge, 32, -1)
 
     def handleIncoming(self, data_in, ra:Remote_address, server, rtime):
         if len(data_in) < 32:
@@ -844,3 +850,9 @@ class SipTransactionManager(object):
             t.req_out_cb(t.ack)
         del self.tclient[t.tid]
         t.cleanup()
+
+    def shutdown(self):
+        self.cp_timer.cancel()
+        self.l4r.shutdown()
+        self.l1rcache = self.l2rcache = self.req_cb = self.req_consumers = None
+        self.global_config = self.cp_timer = self.tclient = self.tserver = None
