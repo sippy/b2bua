@@ -435,6 +435,7 @@ class CallMap(object):
     el = None
     debug_mode = False
     safe_restart = False
+    safe_stop = False
     global_config = None
     proxy = None
     #rc1 = None
@@ -473,6 +474,8 @@ class CallMap(object):
             # Request within dialog, but no such dialog
             return (req.genResponse(481, 'Call Leg/Transaction Does Not Exist'), None, None)
         if req.getMethod() == 'INVITE':
+            if self.safe_restart or self.safe_stop:
+                return (req.genResponse(503, 'Service Unavailable (restarting)'), None, None)
             # New dialog
             if req.countHFs('via') > 1:
                 via = req.getHFBody('via', 1)
@@ -588,7 +591,7 @@ class CallMap(object):
               (os.getpid(), len(self.global_config['_sip_tm'].tclient), len(self.global_config['_sip_tm'].tserver)))
         if self.safe_restart:
             if len(self.ccmap) == 0:
-                self.global_config['_sip_tm'].userv.close()
+                self.global_config['_sip_tm'].shutdown()
                 os.chdir(self.global_config['_orig_cwd'])
                 argv = [sys.executable,]
                 argv.extend(self.global_config['_orig_argv'])
