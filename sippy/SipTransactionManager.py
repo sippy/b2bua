@@ -41,6 +41,7 @@ from sippy.Network_server import Remote_address
 from datetime import datetime
 from hashlib import md5
 from functools import reduce
+from time import monotonic
 import sys, socket
 
 class NETS_1918(object):
@@ -252,6 +253,7 @@ class SipTransactionManager(object):
     pdelay_out_max = 0.0
     model_udp_server = (Udp_server, Udp_server_opts)
     cp_timer = None
+    init_time = None
 
     def __init__(self, global_config, req_cb = None):
         self.global_config = global_config
@@ -265,6 +267,7 @@ class SipTransactionManager(object):
         self.l2rcache = {}
         self.req_consumers = {}
         self.cp_timer = Timeout(self.rCachePurge, 32, -1)
+        self.init_time = monotonic()
 
     def handleIncoming(self, data_in, ra:Remote_address, server, rtime):
         if len(data_in) < 32:
@@ -379,7 +382,8 @@ class SipTransactionManager(object):
             except RtpProxyError as ex:
                 resp = ex.getResponse(req)
                 self.sendResponse(resp)
-                raise
+                # Give RTP proxy some time to warm up
+                if monotonic() - self.init_time > 5: raise
             except SdpParseError as ex:
                 resp = ex.getResponse(req)
                 self.sendResponse(resp)
