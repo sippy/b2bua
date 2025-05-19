@@ -151,10 +151,7 @@ class Rtp_proxy_client_stream(Rtp_proxy_client_net):
         self.nworkers = nworkers
         self.workers = []
         for i in range(0, self.nworkers):
-            try:
-                self.workers.append(_RTPPLWorker(self))
-            except:
-                break
+            self.workers.append(_RTPPLWorker(self))
         self.nworkers_act = i + 1
         self.delay_flt = recfilter(0.95, 0.25)
 
