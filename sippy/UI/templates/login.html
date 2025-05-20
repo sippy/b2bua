@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{{ title }} - {{ page }}</title>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="/static/login.css">
+    </head>
+    <body>
+        <form id="authForm">
+            <h2>{{ header }}</h2>
+            <input type="text" name="username" required placeholder="Username">
+            <input type="password" name="password" required placeholder="Password">
+            <button type="submit">{{ button_text }}</button>
+            <div id="message" class="msg-container" style="display:none;">
+                <div class="msg-title"></div>
+                <pre class="msg-detail"></pre>
+            </div>
+        </form>
+        <script>
+            function showMsg(type, title, detail) {
+                const msg = document.getElementById('message');
+                const msgTitle = msg.querySelector('.msg-title');
+                const msgDetail = msg.querySelector('.msg-detail');
+
+                msg.style.display = '';
+                msg.className = 'msg-container' + (type === 'error' ? ' error' : '');
+                msgTitle.textContent = title;
+                msgDetail.textContent = detail;
+            }
+            document.addEventListener('DOMContentLoaded', function () {
+                const msgText = localStorage.getItem('login_msg');
+                const userText = localStorage.getItem('login_username');
+                if (msgText) {
+                    showMsg('success', msgText, '');
+                    localStorage.removeItem('login_msg');
+                }
+                if (userText) {
+                    document.querySelector('input[name="username"]').value = userText;
+                    document.querySelector('input[name="password"]').focus();
+                    localStorage.removeItem('login_username');
+                }
+            });
+            document.getElementById('authForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const username = formData.get('username');
+                const password = formData.get('password');
+
+                fetch('{{ action }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                })
+                .then(res => {
+                    if (res.redirected) return window.location = res.url;
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.status === 'ok') {
+                        if ('{{ on_success }}' === '/login') {
+                            localStorage.setItem('login_msg', '{{ button_text }} successful. Please login.');
+                            localStorage.setItem('login_username', username);
+                        }
+                        window.location = '{{ on_success }}';
+                    } else {
+                        showMsg('error', '{{ button_text }} failed:', data.message);
+                    }
+                })
+                .catch(err => {
+                    let emsg;
+                    if (err.name === 'TypeError') {
+                        emsg = 'Network error: '+ err.message || 'Network error or server not reachable.';
+                    } else {
+                        emsg = String(err);
+                    }
+                    showMsg('error', '{{ button_text }} failed:', emsg);
+                });
+            });
+        </script>
+    </body>
+</html>

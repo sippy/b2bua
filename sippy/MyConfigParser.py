@@ -104,9 +104,13 @@ SUPPORTED_OPTIONS = { \
                              '"host:port:cert_file:key_file", where "cert_file" ' \
                              '/ "key_file" are paths to the TLS certificate ' \
                              'and key file respectively in the X.509 PEM format'),
- 'pre_auth_proc': ('S', 'internal routine to be executed before authentication '\
-                        'is being processed. E.g. "HDR2Xattrs[X-foo-hdr]."'), \
- 'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server')}
+ 'pre_auth_proc':     ('S', 'internal routine to be executed before authentication '\
+                             'is being processed. E.g. "HDR2Xattrs[X-foo-hdr]."'), \
+ 'xmpp_b2bua_id':     ('I', 'ID passed to the XMPP socket server'), \
+ 'ui':                ('B', 'enable Web management UI'), \
+ 'uiparams':          ('S', 'Semicolon-separated list of UI parameters corresponding to ' \
+                             'the flask\'s run() routine'), \
+}
 
 class MyConfigParser(RawConfigParser):
     _default_section = None
