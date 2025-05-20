@@ -123,6 +123,7 @@ class EventDispatcher2(Singleton):
     ed_inum = 0
     elp = None
     bands = None
+    _exception = None
 
     def __init__(self, freq = 100.0):
         EventDispatcher2.state_lock.acquire()
@@ -233,9 +234,10 @@ class EventDispatcher2(Singleton):
     def dispatchThreadCallback(self, thread_cb, cb_params):
         try:
             thread_cb(*cb_params)
-        except Exception as ex:
-            if isinstance(ex, SystemExit):
-                raise
+        except BaseException as ex:
+            if isinstance(ex, (SystemExit, KeyboardInterrupt)):
+                self._exception = ex
+                return
             dump_exception('EventDispatcher2: unhandled exception when processing from-thread-call')
         #print('dispatchThreadCallback dispatched', thread_cb, cb_params)
 
@@ -274,6 +276,10 @@ class EventDispatcher2(Singleton):
                 break
             self.elp.procrastinate()
             self.last_ts = MonoTime()
+            if self._exception is not None:
+                ex = self._exception
+                self._exception = None
+                raise ex
         return self.el_rval
 
     def breakLoop(self, rval=0):
