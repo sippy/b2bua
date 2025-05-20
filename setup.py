@@ -12,9 +12,7 @@ setup(
     packages = find_packages(),
 
     install_requires = requirements,
-    package_data = {
-        '': ['dictionary', '*.md']
-        },
+    include_package_data=True,
     test_suite = 'tests',
 
     entry_points = {
