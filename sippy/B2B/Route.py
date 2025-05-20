@@ -40,32 +40,69 @@ DST_SIP_UA = 'sip-ua'
 DST_WSS_UA = 'wss-ua'
 
 class B2BRoute(object):
-    rnum = None
-    addrinfo = None
-    cld = None
-    cld_set = False
-    hostport = None
-    hostonly = None
-    credit_time = None
     crt_set = False
-    expires = None
-    no_progress_expires = None
-    no_reply_expires = None
-    forward_on_fail = False
-    user = None
-    passw = None
-    pass_auth = True
-    cli = None
-    cli_set = False
     params = None
-    ainfo = None
     extra_headers = None
+    rnum = None
+    _ui_cats = {'auth': 'Outbound Digest Authentication', 'net': 'Network', 'lim': 'Limits',
+                      'num': 'Calling / Called Numbers', 'acct': 'Accounting'}
+    _ui_hints = {}
+#    _ui_hints['rnum'] = {'hidden': True}
+    addrinfo = None
+#    _ui_hints['addrinfo'] = {'readonly': True, 'category': _ui_cats['net'], 'hidden': True}
+    hostonly:str = None
+#    _ui_hints['hostonly'] = {'readonly': True, 'category': _ui_cats['net'], 'hidden': True}
+    ainfo = None
+#    _ui_hints['ainfo'] = {'readonly': True, 'category': _ui_cats['net'], 'hidden': True}
+    hostport:str = None
+    _ui_hints['hostport'] = {'name': 'Destination', 'description': 'Destination host:port',
+                                'category': _ui_cats['net']}
+    user:str = None
+    _ui_hints['user'] = {'name': 'SIP Username', 'category': _ui_cats['auth'],
+                'active': lambda o: not o.pass_auth}
+    passw:str = None
+    _ui_hints['passw'] = {'name': 'SIP Password', 'category': _ui_cats['auth'], 'password': True,
+                 'active': lambda o: not o.pass_auth}
+    pass_auth = True
+    _ui_hints['pass_auth'] = {'name': 'Mode', 'category': _ui_cats['auth'],
+                     'values': {False: 'Normal ("UAC")', True: 'Pass-through ("Proxy")'},}
+    _cld:str = None
+    _ui_hints['cld'] = {'name': 'Called Party (CLD)', 'description': 'Called party number',
+               'category': _ui_cats['num'], 'type': str}
+    cld_set = False
+    _ui_hints['cld_set'] = {'name': 'CLD Mode', 'description': 'Controls outbound CLD',
+                   'category': _ui_cats['num'], 'active': lambda o: not o.cld,
+                   'values': lambda o: {True: 'Erase', False: 'Pass-through'}
+                               if not o.cld else {True: 'Replace'}}
+    _cli:str = None
+    _ui_hints['cli'] = {'name': 'Calling Party (CLI)', 'description': 'Caller number',
+               'category': _ui_cats['num'], 'type': str}
+    cli_set = False
+    _ui_hints['cli_set'] = {'name': 'CLI Mode', 'description': 'Controls outbound CLI', 'category':
+                   _ui_cats['num'], 'active': lambda o: not o.cli,
+                   'values': lambda o: {True: 'Erase', False: 'Pass-through'}
+                               if not o.cli else {True: 'Replace'}}
+    credit_time:float = None
+    _ui_hints['credit_time'] = {'name': 'Credit Time', 'description': 'Allowed call duration, in seconds',
+                                   'category': _ui_cats['lim']}
+    expires:float = None
+    _ui_hints['expires'] = {'name': 'Route Expiry', 'description': 'Time to expire the route, in seconds',
+                               'category': _ui_cats['lim']}
+    no_progress_expires:float = None
+    _ui_hints['no_progress_expires'] = {'name': 'No Progress Timeout', 'category': _ui_cats['lim'],
+      'description': 'Time to expire the route if no 180 or 183 provisional response received, in seconds'}
+    no_reply_expires:float = None
+    _ui_hints['no_reply_expires'] = {'name': 'No Reply Timeout', 'category': _ui_cats['lim'],
+      'description': 'Time to expire the route if no provisional response received, in seconds'}
+    forward_on_fail = False
+    _ui_hints['forward_on_fail'] = {'name': 'Failed Calls', 'category': _ui_cats['acct'],
+                           'description': 'Emit accounting on SIP failures'}
 
     def __init__(self, sroute = None, cself = None):
         if cself != None:
             self.rnum = cself.rnum
             self.addrinfo = cself.addrinfo
-            self.cld = cself.cld
+            self._cld = cself.cld
             self.cld_set = cself.cld_set
             self.hostport = cself.hostport
             self.hostonly = cself.hostonly
@@ -78,7 +115,7 @@ class B2BRoute(object):
             self.user = cself.user
             self.passw = cself.passw
             self.pass_auth = cself.pass_auth
-            self.cli = cself.cli
+            self._cli = cself.cli
             self.cli_set = cself.cli_set
             self.params = dict(cself.params)
             self.ainfo = cself.ainfo
@@ -93,7 +130,6 @@ class B2BRoute(object):
                 # as opposed to the Routing:host, which means that CLD should be obtained
                 # from the incoming call leg.
                 self.cld = None
-            self.cld_set = True
         else:
             self.hostport = route[0]
         if not self.hostport.startswith('['):
@@ -147,7 +183,6 @@ class B2BRoute(object):
                 self.cli = v
                 if len(self.cli) == 0:
                     self.cli = None
-                self.cli_set = True
             elif a == 'cnam':
                 caller_name = unquote(v)
                 if len(caller_name) == 0:
@@ -175,9 +210,9 @@ class B2BRoute(object):
       pass_headers, max_credit_time):
         self.rnum = rnum
         if not self.cld_set:
-            self.cld = default_cld
+            self._cld = default_cld
         if not self.cli_set:
-            self.cli = default_cli
+            self._cli = default_cli
         if not self.crt_set:
             self.crt_set = default_credit_time
         if 'gt' in self.params:
@@ -210,3 +245,21 @@ class B2BRoute(object):
         if af == AF_INET6:
             return ((('[%s]' % amatch[0], amatch[1]), same_af))
         return (((amatch[0], amatch[1]), same_af))
+
+    @property
+    def cli(self):
+        return self._cli
+
+    @cli.setter
+    def cli(self, value):
+        self._cli = value
+        self.cli_set = True
+
+    @property
+    def cld(self):
+        return self._cld
+
+    @cld.setter
+    def cld(self, value):
+        self._cld = value
+        self.cld_set = True
