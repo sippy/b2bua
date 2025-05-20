@@ -1,0 +1,29 @@
+.config-box {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #f9f9f9;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+}
+.config-table {
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+.config-table th {
+    background-color: #e9f0fb;
+    font-weight: bold;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+}
+.config-table td {
+    padding: 3px 5px;
+    border: 1px solid #ccc;
+}
+h3 {
+    text-align: left;
+    margin-top: 20px;
+    font-size: 1.1em;
+}
