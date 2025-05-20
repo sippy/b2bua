@@ -540,11 +540,14 @@ class CallMap(object):
         self.global_config['_executeStop_count'] = 0
         self.er_timer = Timeout(self.executeStop, 0.5, -1)
 
+    def getActiveCalls(self):
+        return tuple(x for x in self.ccmap if x.state in (CCStateConnected, CCStateARComplete))
+
     def executeStop(self):
         if not self.safe_stop:
             return
         self.global_config['_executeStop_count'] += 1
-        acalls = [x for x in self.ccmap if x.state in (CCStateConnected, CCStateARComplete)]
+        acalls = self.getActiveCalls()
         nactive = len(acalls)
         print('[%d]: executeStop is invoked, %d calls in map, %d active' % \
           (self.global_config['_my_pid'], len(self.ccmap), nactive))
@@ -575,7 +578,7 @@ class CallMap(object):
             print('[%d]: %d client, %d server transactions in memory' % \
               (os.getpid(), len(self.global_config['_sip_tm'].tclient), len(self.global_config['_sip_tm'].tserver)))
         if self.safe_restart:
-            if len(self.ccmap) == 0:
+            if len(self.getActiveCalls()) == 0:
                 self.global_config['_sip_tm'].shutdown()
                 os.chdir(self.global_config['_orig_cwd'])
                 argv = [sys.executable,]
@@ -587,7 +590,7 @@ class CallMap(object):
         if len(gc.garbage) > 0:
             print(gc.garbage)
 
-    def getActiveCalls(self):
+    def listActiveCalls(self):
         rr = []
         for cc in self.ccmap:
             r = [str(cc.cId), cc.state.sname]

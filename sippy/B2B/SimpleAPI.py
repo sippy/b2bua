@@ -54,7 +54,7 @@ class B2BSimpleAPI(CLIConnectionManager):
         if cmd == 'l':
             res = 'In-memory calls:\n'
             total = 0
-            for (cid, sname), uaast, uaost in ccm.getActiveCalls():
+            for (cid, sname), uaast, uaost in ccm.listActiveCalls():
                 res += f'{cid}: {sname} ('
                 if uaast is not None:
                     _s, _t, _h, _p, _cld, _cli = uaast
