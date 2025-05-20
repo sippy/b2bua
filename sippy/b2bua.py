@@ -809,6 +809,10 @@ def main_func():
     global_config['_sip_tm'] = stm
     global_config['_sip_tm'].nat_traversal = global_config.getdefault('nat_traversal', False)
 
+    if 'ui' in global_config:
+        from sippy.UI.Controller import UIController
+        global_config['_ui_controller'] = UIController(global_config)
+
     if not global_config['foreground']:
         open(global_config['pidfile'], 'w').write(str(os.getpid()) + '\n')
         Signal(SIGUSR1, reopen, SIGUSR1, global_config['logfile'])

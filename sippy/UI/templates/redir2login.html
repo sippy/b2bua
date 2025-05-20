@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>{{ title }}</title>
+    </head>
+    <body>
+        <script>
+            localStorage.setItem('login_msg', {{ message|tojson|safe }});
+            localStorage.setItem('login_username', {{ username|tojson|safe }});
+            window.location = {{ url_for('/login')|tojson|safe }};
+        </script>
+    </body>
+</html>
