@@ -29,12 +29,13 @@ from __future__ import print_function
 from functools import partial
 from datetime import datetime
 from heapq import heappush, heappop, heapify
-from threading import Lock
+from threading import Lock, local as t_local
 from random import random
 import sys, traceback, signal
 from _thread import get_ident
 from sippy.Time.MonoTime import MonoTime
 from sippy.Core.Exceptions import dump_exception, StdException
+from queue import Queue
 
 from elperiodic.ElPeriodic import ElPeriodic
 
@@ -124,6 +125,7 @@ class EventDispatcher2(Singleton):
     elp = None
     bands = None
     _exception = None
+    tloc_data = None
 
     def __init__(self, freq = 100.0):
         EventDispatcher2.state_lock.acquire()
@@ -141,6 +143,7 @@ class EventDispatcher2(Singleton):
         self.elp = ElPeriodic(freq)
         self.elp.CFT_enable(signal.SIGURG)
         self.bands = [(freq, 0),]
+        self.tloc_data = t_local()
 
     def signal(self, signum, frame):
         self.signals_pending.append(signum)
@@ -239,11 +242,29 @@ class EventDispatcher2(Singleton):
                 self._exception = ex
                 return
             dump_exception('EventDispatcher2: unhandled exception when processing from-thread-call')
-        #print('dispatchThreadCallback dispatched', thread_cb, cb_params)
+
+    def dispatchThreadCallbackSync(self, res_cb_q, thread_cb, cb_params):
+        try:
+            res = thread_cb(*cb_params)
+        except BaseException as ex:
+            rval = (None, ex)
+        else:
+            rval = (res, None)
+        res_cb_q.put(rval)
 
     def callFromThread(self, thread_cb, *cb_params):
         self.elp.call_from_thread(self.dispatchThreadCallback, thread_cb, cb_params)
         #print('EventDispatcher2.callFromThread completed', str(self), thread_cb, cb_params)
+
+    def callFromThreadSync(self, thread_cb, *cb_params):
+        if not hasattr(self.tloc_data, 'res_cb_q'):
+            self.tloc_data.res_cb_q = Queue()
+        res_cb_q = self.tloc_data.res_cb_q
+        self.elp.call_from_thread(self.dispatchThreadCallbackSync, res_cb_q, thread_cb, cb_params)
+        res, ex = res_cb_q.get()
+        if ex is not None:
+            raise ex
+        return res
 
     def loop(self, timeout = None, freq = None):
         if freq != None and self.bands[0][0] != freq:
