@@ -115,27 +115,36 @@ class Rtp_proxy_session(object):
     def copy_callee(self, remote_ip, remote_port, result_callback = None, index = 0):
         return self.callee._copy(self, remote_ip, remote_port, result_callback, index)
 
-    def start_recording(self, rname = None, result_callback = None, index = 0):
+    def start_recording(self, rname=None, result_callback=None, index=0, rflags=None, only_a=False):
+        def make_command(side):
+            t1 = self.from_tag if side == 'a' else self.to_tag
+            t2 = self.to_tag if side == 'a' else self.from_tag
+            if rname is None:
+                assert side == 'a'
+                return f'R{rflags} {self.call_id}-{index} {t1} {t2}'
+            return f'C{rflags} {self.call_id}-{index} {rname}.{side} {t1} {t2}'
+        next_stage = result_callback if (only_a or rname is None) \
+          else partial(self._start_recording_o, make_command, result_callback)
+        first_stage = partial(self._start_recording_a, make_command, next_stage)
         if not self.caller.session_exists:
             up = update_params()
             up.rtpps = self
             up.index = index
-            up.result_callback = partial(self._start_recording, rname, result_callback, index)
+            up.result_callback = first_stage
             self.caller.update(up)
             return
-        self._start_recording(rname, result_callback, index, None, self)
+        first_stage(result='dummy', rtpps=None)
 
-    def _start_recording(self, rname, result_callback, index, result, rtpps):
-        if rname == None:
-            command = 'R %s %s %s' % ('%s-%d' % (self.call_id, index), self.from_tag, self.to_tag)
-            return self.rtpp_seq.send_command(command, result_callback)
-        command = 'C %s %s.a %s %s' % ('%s-%d' % (self.call_id, index), rname, self.from_tag, self.to_tag)
-        return self.rtpp_seq.send_command(command, self._start_recording1, \
-          (rname, result_callback, index))
+    def _start_recording_a(self, make_command, next_stage, result, rtpps):
+        if result is None:
+            return next_stage(None)
+        command = make_command('a')
+        return self.rtpp_seq.send_command(command, next_stage)
 
-    def _start_recording1(self, result, args):
-        rname, result_callback, index = args
-        command = 'C %s %s.o %s %s' % ('%s-%d' % (self.call_id, index), rname, self.to_tag, self.from_tag)
+    def _start_recording_o(self, make_command, result_callback, result):
+        if result is None:
+            return result_callback(None)
+        command = make_command('o')
         return self.rtpp_seq.send_command(command, result_callback)
 
     def delete(self):
