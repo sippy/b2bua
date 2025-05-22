@@ -122,11 +122,11 @@ class _rtpps_side(object):
     def __play(self, prompt_name, times, result_callback, index, result, rtpps):
         from_tag, to_tag = self.gettags(rtpps)
         command = 'P%d %s %s %s %s %s' % (times, '%s-%d' % (rtpps.call_id, index), prompt_name, self.codecs, from_tag, to_tag)
-        rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
+        rtpps.rtpp_seq.send_command(command, result_callback)
 
     def _play(self, rtpps, prompt_name, times = 1, result_callback = None, index = 0):
         if not self.session_exists:
-            ED2.callFromThread(rtpps.command_result, None, result_callback)
+            ED2.callFromThread(result_callback, None)
             return
         otherside = self.getother(rtpps)
         if not otherside.session_exists:
@@ -140,11 +140,11 @@ class _rtpps_side(object):
 
     def _stop_play(self, rtpps, result_callback = None, index = 0):
         if not self.session_exists:
-            ED2.callFromThread(rtpps.command_result, None, result_callback)
+            ED2.callFromThread(result_callback, None)
             return
         from_tag, to_tag = self.gettags(rtpps)
         command = 'S %s %s %s' % ('%s-%d' % (rtpps.call_id, index), from_tag, to_tag)
-        rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
+        rtpps.rtpp_seq.send_command(command, result_callback)
 
     def _on_sdp_change(self, rtpps, sdp_body, result_callback):
         sects = []
@@ -260,4 +260,4 @@ class _rtpps_side(object):
     def __copy(self, remote_ip, remote_port, result_callback, index, result, rtpps):
         from_tag, to_tag = self.gettags(rtpps)
         command = 'C %s udp:%s:%d %s %s' % ('%s-%d' % (rtpps.call_id, index), remote_ip, remote_port, from_tag, to_tag)
-        rtpps.rtpp_seq.send_command(command, rtpps.command_result, result_callback)
+        rtpps.rtpp_seq.send_command(command, result_callback)

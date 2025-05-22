@@ -128,7 +128,7 @@ class Rtp_proxy_session(object):
     def _start_recording(self, rname, result_callback, index, result, rtpps):
         if rname == None:
             command = 'R %s %s %s' % ('%s-%d' % (self.call_id, index), self.from_tag, self.to_tag)
-            return self.rtpp_seq.send_command(command, self.command_result, result_callback)
+            return self.rtpp_seq.send_command(command, result_callback)
         command = 'C %s %s.a %s %s' % ('%s-%d' % (self.call_id, index), rname, self.from_tag, self.to_tag)
         return self.rtpp_seq.send_command(command, self._start_recording1, \
           (rname, result_callback, index))
@@ -136,12 +136,7 @@ class Rtp_proxy_session(object):
     def _start_recording1(self, result, args):
         rname, result_callback, index = args
         command = 'C %s %s.o %s %s' % ('%s-%d' % (self.call_id, index), rname, self.to_tag, self.from_tag)
-        return self.rtpp_seq.send_command(command, self.command_result, result_callback)
-
-    def command_result(self, result, result_callback):
-        #print('%s.command_result(%s)' % (id(self), result))
-        if result_callback != None:
-            result_callback(result)
+        return self.rtpp_seq.send_command(command, result_callback)
 
     def delete(self):
         if self.rtp_proxy_client == None:
