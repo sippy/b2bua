@@ -44,6 +44,7 @@ class UaStateDead(UaStateGeneric):
         ua.expire_timer = None
         ua.no_progress_timer = None
         ua.credit_timer = None
+        ua.reqs = None
         # Keep this at the very end of processing
         for callback in ua.dead_cbs:
             callback(ua)

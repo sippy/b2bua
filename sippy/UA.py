@@ -316,7 +316,8 @@ class UA(object):
             req.appendHeaders(self.extra_headers)
         if extra_headers is not None:
             req.appendHeaders(extra_headers)
-        self.reqs[self.lCSeq] = req
+        if method == 'INVITE':
+            self.reqs[self.lCSeq] = req
         self.lCSeq += 1
         return req
 
