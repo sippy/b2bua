@@ -23,14 +23,22 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from secrets import token_hex
+
 from sippy.SipHeader import SipHeader
+from sippy.SipContentType import SipContentType
 
 class MultipartMixBody():
     parts = None
     boundary = None
+    mtype = SipContentType('multipart/mixed')
+    mtype.parse()
 
     def __init__(self, body = None, ctype = None):
+        self.parts = []
+        self.part_headers = []
         if body is None:
+            self.setBoundary(token_hex(16))
             return
         sep = f'--{ctype.params["boundary"]}'
         bparts = body.split(sep)
@@ -38,8 +46,6 @@ class MultipartMixBody():
         assert len(bparts[0]) == 0
         assert bparts[-1].strip() == '--'
         parts = [p.lstrip() for p in bparts[1:-1]]
-        self.parts = []
-        self.part_headers = []
         for sect in parts:
             headers = []
             ct = None
@@ -55,18 +61,24 @@ class MultipartMixBody():
             sect = MsgBody(sect, ct)
             self.parts.append(sect)
             self.part_headers.append(headers)
-        self.boundary = ctype.params["boundary"]
+        self.setBoundary(ctype.params["boundary"])
+
+    def setBoundary(self, bnd):
+        self.boundary = bnd
+        mtype = self.mtype.getCopy()
+        mtype.params["boundary"] = bnd
+        self.mtype = mtype
 
     def __str__(self):
         bnd = f'--{self.boundary}\r\n'
-        parts = [f'{bnd}Content-Type: {p.mtype}\r\n{p}' for p in self.parts]
+        parts = [f'{bnd}Content-Type: {p.mtype}\r\n\r\n{p}' for p in self.parts]
         s = ''.join(parts)
         s += f'{bnd[:-2]}--\r\n'
         return s
 
     def localStr(self, local_addr = None):
         bnd = f'--{self.boundary}\r\n'
-        parts = [f'{bnd}Content-Type: {p.mtype}\r\n{p.localStr(local_addr)}'
+        parts = [f'{bnd}Content-Type: {p.mtype}\r\n\r\n{p.localStr(local_addr)}'
                  for p in self.parts]
         s = ''.join(parts)
         s += f'{bnd[:-2]}--\r\n'
@@ -77,6 +89,9 @@ class MultipartMixBody():
         cself.parts = [p.getCopy() for p in self.parts]
         cself.boundary = self.boundary
         return cself
+
+    def getContentType(self):
+        return self.mtype.getCopy()
 
 if 'MsgBody' not in globals():
     from sippy.MsgBody import MsgBody
