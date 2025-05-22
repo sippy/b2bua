@@ -632,8 +632,8 @@ class SipTransactionManager(object):
             # Some ACK that doesn't match any existing transaction.
             # Drop and forget it - upper layer is unlikely to be interested
             # to seeing this anyway.
-            print(datetime.now(), 'unmatched ACK transaction - ignoring')
-            sys.stdout.flush()
+            #print(datetime.now(), 'unmatched ACK transaction - ignoring')
+            #sys.stdout.flush()
             self.l1rcache[checksum] = SipTMRetransmitO()
         elif msg.getMethod() == 'CANCEL':
             resp = msg.genResponse(481, 'Call Leg/Transaction Does Not Exist')
