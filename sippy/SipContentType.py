@@ -59,6 +59,8 @@ class SipContentType(SipGenericHF):
         return copy
 
     def __str__(self):
+        if not self.parsed:
+            return super().__str__()
         s = [self.name,]
         s += [f'{k}={v}' for k, v in self.params.items()]
         return ';'.join(s)
