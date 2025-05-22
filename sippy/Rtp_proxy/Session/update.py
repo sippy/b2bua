@@ -105,6 +105,7 @@ class update_params():
         else:
             ur.sendonly = False
         self.result_callback(ur, self.rtpps)
+        self.result_callback = None
         return ur
 
 class update_result():
