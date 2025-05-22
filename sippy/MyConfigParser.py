@@ -110,6 +110,7 @@ SUPPORTED_OPTIONS = { \
  'ui':                ('B', 'enable Web management UI'), \
  'uiparams':          ('S', 'Semicolon-separated list of UI parameters corresponding to ' \
                              'the flask\'s run() routine'), \
+ 'siprec_target':     ('S', 'SIPREC target address in the format host[:port]'), \
 }
 
 class MyConfigParser(RawConfigParser):
@@ -225,6 +226,10 @@ class MyConfigParser(RawConfigParser):
             self['_sip_port'] = _value
         elif key == 'pre_auth_proc':
             self['_pre_auth_proc'] = getTransProc(value)
+        elif key == 'siprec_target':
+            parts = value.split(':', 1)
+            port = SipConf.default_port if len(parts) == 1 else int(parts[1])
+            self['_siprec_target'] = (parts[0], port)
         self[key] = value
 
     def options_help(self):
