@@ -124,10 +124,8 @@ class UA(object):
         self.global_config = global_config
         self.event_cb = event_cb
         self.equeue = []
-        self.username = username
-        self.password = password
-        self.rAddr = (nh_address, nh_transport)
-        self.rAddr0 = self.rAddr
+        self.setAuth(username, password)
+        self.setNextHop(nh_address, nh_transport)
         self.credit_time = credit_time
         self.credit_times = {}
         if conn_cbs != None:
@@ -160,6 +158,16 @@ class UA(object):
         self.expire_time = expire_time
         self.no_progress_time = no_progress_time
         #print(self.username, self.password)
+
+    def setNextHop(self, nh_address, nh_transport=SipConf.my_transport):
+        assert self.state is None, "Cannot set next hop address after UA has been created"
+        self.rAddr = (nh_address, nh_transport)
+        self.rAddr0 = self.rAddr
+
+    def setAuth(self, username, password):
+        assert self.state is None, "Cannot set authentication after UA has been created"
+        self.username = username
+        self.password = password
 
     def recvRequest(self, req, sip_t):
         #print('Received request %s in state %s instance %s' % (req.getMethod(), self.state, self))
