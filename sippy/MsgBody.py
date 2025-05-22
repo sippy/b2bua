@@ -47,6 +47,7 @@ class MsgBody(object):
         if content != None:
             self.mtype = mtype
             self.content = content
+            self.parsed = type(content) not in str_types
             return
         if cself is not None:
             if type(cself.content) in str_types:
