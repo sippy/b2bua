@@ -25,9 +25,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import socket
-from functools import partial
-
-from sippy.CLIManager import CLIManager
 
 from .stream import Rtp_proxy_client_stream, test
 from .Worker.internal import RTPPLWorker_internal as _RTPPLWorker
