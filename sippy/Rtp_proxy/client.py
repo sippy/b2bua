@@ -34,7 +34,7 @@ from .Client.internal import Rtp_proxy_client_internal
 
 CAPSTABLE = {'20071218':'copy_supported', '20080403':'stat_supported', \
   '20081224':'tnot_supported', '20090810':'sbind_supported', \
-  '20150617':'wdnt_supported'}
+  '20150617':'wdnt_supported', '20250523':'copy_p_supported'}
 
 class Rtpp_caps_checker(object):
     caps_requested = 0
@@ -69,6 +69,7 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
     tnot_supported = False
     sbind_supported = False
     wdnt_supported = False
+    copy_p_supported = False
     shut_down = False
     proxy_address = None
     caps_done = False
