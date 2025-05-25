@@ -7,6 +7,7 @@ from sippy.SdpBody import SdpBody
 from sippy.Rtp_proxy.session import Rtp_proxy_session
 from sippy.SipConf import SipConf
 from sippy.SipCallId import SipCallId
+from sippy.SdpOrigin import SdpOrigin
 from sippy.CCEvents import CCEventTry, CCEventConnect, CCEventDisconnect
 from sippy.Exceptions.RtpProxyError import RtpProxyError
 
@@ -25,6 +26,8 @@ class SRSTarget():
             setattr(self, k, v)
 
 class SIPRecUAC(UA):
+    body_tmpl = '\r\n'.join(('v=0', f'o={SdpOrigin()}',
+                             's=Sippy_SRC', 't=0 0'))
     def __init__(self, global_config, ua1, ua2, rtps, cId=None):
         if not rtps.rtp_proxy_client.copy_p_supported:
             raise RtpProxyError('RTP proxy server is too old, version 3.2 or higher is required')
@@ -55,9 +58,9 @@ class SIPRecUAC(UA):
                 self.sidx2copy[ioff - 1] = copy_sect_cmd
                 rval.append(sect)
             return tuple(rval)
-        b = '\r\n'.join(('v=0', 'o=foo 123 456 IN IP4 1.2.3.4', 's=Sippy-SRC-Call', 't=0 0'))
         mbody = MultipartMixBody()
-        sdp = MsgBody(content=SdpBody(b))
+        sdp = MsgBody(content=SdpBody(self.body_tmpl))
+        sdp.content.o_header = SdpOrigin()
         sects = []
         for (ua, copy_cmd) in (x for x in ((self.ua1, self.rtps.copy_caller), (self.ua2, self.rtps.copy_callee))):
             sects += extract_media_sections(ua.lSDP, len(sects), copy_cmd)
