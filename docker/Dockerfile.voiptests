@@ -24,7 +24,7 @@ ENV PYTHON_CMD=python3
 RUN ${PYTHON_CMD} setup.py sdist
 RUN ${PYTHON_CMD} -m pip install dist/sippy*.gz
 RUN env -S "`${SET_ENV}`" \
-  ${PYTHON_CMD} -m pip install git+https://github.com/sippy/py-rtpproxy.git@wip
+  ${PYTHON_CMD} -m pip install rtp.io
 
 ENV MM_TYPE=b2bua
 ENV MM_BRANCH=master
