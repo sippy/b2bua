@@ -29,7 +29,7 @@ import socket
 from .stream import Rtp_proxy_client_stream, test
 from .Worker.internal import RTPPLWorker_internal as _RTPPLWorker
 
-try: from rtpproxy import rtpproxy
+try: from rtp.io import rtpproxy
 except ModuleNotFoundError as ex: rtpproxy = ex
 
 class Rtp_proxy_client_internal(Rtp_proxy_client_stream):
