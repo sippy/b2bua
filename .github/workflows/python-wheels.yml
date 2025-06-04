@@ -14,6 +14,7 @@ on:
 
 jobs:
   build:
+    name: Build
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -54,6 +55,7 @@ jobs:
       image: sippylabs/rtpproxy:latest
 
   voiptests:
+    name: Run VoIPTests
     runs-on: ubuntu-latest
     needs: [set_env, build]
     env:
@@ -98,6 +100,7 @@ jobs:
         platforms: ${{ env.TARGETPLATFORM }}
 
   publish_wheels:
+    name: Publish Puthon Wheels
     needs: [build, voiptests]
     runs-on: ubuntu-latest
     environment:
@@ -120,13 +123,14 @@ jobs:
         pip install -r requirements.txt
 
     - name: build
-      run: python setup.py build sdist
+      run: python setup.py sdist
 
     - name: Publish package distributions to PyPI
       if: github.event_name == 'release' && github.event.action == 'published'
       uses: pypa/gh-action-pypi-publish@release/v1
 
   roll_release:
+    name: Release
     needs: [publish_wheels]
     permissions:
       contents: write
