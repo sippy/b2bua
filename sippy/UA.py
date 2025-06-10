@@ -101,6 +101,7 @@ class UA(object):
     outbound_proxy = None
     pass_auth = False
     pending_tr = None
+    tr = None
     late_media = False
     godead_timeout = 32.0
     compact_sip = False
@@ -216,7 +217,7 @@ class UA(object):
         return True
 
     def recvResponse(self, resp, tr):
-        if self.state == None:
+        if self.state is None or self.state.dead:
             return
         self.update_ua(resp)
         code, reason = resp.getSCode()
