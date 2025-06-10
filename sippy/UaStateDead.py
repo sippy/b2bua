@@ -34,6 +34,8 @@ class UaStateDead(UaStateGeneric):
         super().__init__(None)
         if ua.cId != None:
             ua.global_config['_sip_tm'].unregConsumer(ua, str(ua.cId))
+        if ua.tr is not None:
+            ua.tr.resp_cb = None
         ua.tr = None
         ua.event_cb = None
         ua.conn_cbs = ()
