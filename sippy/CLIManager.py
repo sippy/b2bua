@@ -174,6 +174,11 @@ class _CLIManager_w(Thread):
                 except BrokenPipeError:
                     self.clim = None
                     return
+                except socket.error as why:
+                    if why.errno != EBADF:
+                        raise
+                    self.clim = None
+                    return
                 if res == len(wbuffer):
                     break
                 if res > 0:
