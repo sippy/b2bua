@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-22.04]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13-dev']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14-dev']
 
     steps:
     - uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
         ${PYTHON_CMD} -m unittest
 
   set_env:
-    uses: sippy/cimagic/.github/workflows/GetContainerPlatforms.yml@wip
+    uses: sippy/cimagic/.github/workflows/GetContainerPlatforms.yml@v2
     with:
       image: sippylabs/rtpproxy:latest
 
@@ -134,4 +134,4 @@ jobs:
     needs: [publish_wheels]
     permissions:
       contents: write
-    uses: sippy/cimagic/.github/workflows/RollReleaseDraft.yml@v1
+    uses: sippy/cimagic/.github/workflows/RollReleaseDraft.yml@v2
