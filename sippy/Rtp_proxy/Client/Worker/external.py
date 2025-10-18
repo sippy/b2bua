@@ -101,21 +101,23 @@ class RTPPLWorker_external(Thread):
             if wi == None:
                 break
             command, result_callback, callback_parameters = wi
+            ex = None
             try:
                 data, rtpc_delay = self.send_raw(command)
                 if len(data) == 0:
                     data, rtpc_delay = None, None
             except Exception as e:
+                data, rtpc_delay, ex = None, None, e
+            if result_callback is not None:
+                ED2.callFromThread(self.dispatch, result_callback, data, ex, callback_parameters)
+            elif ex is not None:
                 dump_exception('RTPPLWorker_external: unhandled exception I/O RTPproxy')
-                data, rtpc_delay = None, None
-            if result_callback != None:
-                ED2.callFromThread(self.dispatch, result_callback, data, callback_parameters)
-            if rtpc_delay != None:
+            if rtpc_delay is not None:
                 ED2.callFromThread(self.userv.register_delay, rtpc_delay)
         self.userv = None
 
-    def dispatch(self, result_callback, data, callback_parameters):
+    def dispatch(self, result_callback, data, ex, callback_parameters):
         try:
-            result_callback(data, *callback_parameters)
+            result_callback(data, *callback_parameters, ex=ex)
         except:
             dump_exception('RTPPLWorker_external: unhandled exception when processing RTPproxy reply')

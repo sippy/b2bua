@@ -62,8 +62,8 @@ class command_runner(object):
                 return
         self.rc.send_command(command, self.got_result)
 
-    def got_result(self, result):
-        if result == None:
+    def got_result(self, result, ex=None):
+        if result is None or ex is not None:
             if self.maxfails == 0:
                 self.rval = 2
                 ED2.breakLoop()
