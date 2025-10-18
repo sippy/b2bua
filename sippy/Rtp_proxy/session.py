@@ -94,7 +94,7 @@ class Rtp_proxy_session(object):
     def version(self, result_callback):
         self.rtp_proxy_client.send_command('V', self.version_result, result_callback)
 
-    def version_result(self, result, result_callback):
+    def version_result(self, result, result_callback, ex=None):
         result_callback(result)
 
     def play_caller(self, prompt_name, times = 1, result_callback = None, index = 0):
@@ -167,7 +167,7 @@ class Rtp_proxy_session(object):
         command = 'Q %s %s %s' % ('%s-%d' % (self.call_id, index), self.from_tag, self.to_tag)
         self.rtp_proxy_client.send_command(command, self.stats_result, (result_callback, callback_parameters))
 
-    def stats_result(self, result, args):
+    def stats_result(self, result, args, ex=None):
         t1 = result.split()
         result_callback, callback_parameters = args
         if len(t1) == 1:

@@ -48,7 +48,7 @@ class Rtpp_caps_checker(object):
             self.caps_requested += 1
             rtpc.send_command('VF %s' % vers, self.caps_query_done, vers)
 
-    def caps_query_done(self, result, vers):
+    def caps_query_done(self, result, vers, ex=None):
         self.caps_received += 1
         vname = CAPSTABLE[vers]
         if result == '1':
@@ -207,7 +207,7 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
             return
         self.send_command('V', self.version_check_reply)
 
-    def version_check_reply(self, version):
+    def version_check_reply(self, version, ex=None):
         if self.shut_down:
             return
         if version == '20040107':
@@ -225,7 +225,7 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
             return
         self.send_command('Ib', self.heartbeat_reply)
 
-    def heartbeat_reply(self, stats):
+    def heartbeat_reply(self, stats, ex=None):
         #print('heartbeat_reply', self.address, stats, self.online)
         if self.shut_down:
             return
@@ -293,8 +293,10 @@ class Rtp_proxy_client(Rtp_proxy_client_udp, Rtp_proxy_client_stream):
 def test(cmd = 'VF 123456', **kwargs):
     from sippy.Core.EventDispatcher import ED2
     from sippy.Time.Timeout import Timeout
-    def display(*args):
+    def display(*args, ex=None):
         print(args)
+        if ex:
+            print("Error:", ex)
         ED2.breakLoop()
     def waitonline(rpc):
         if rpc.online:

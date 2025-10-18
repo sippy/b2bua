@@ -88,15 +88,18 @@ def test(class_obj):
     class robj(object):
         rval = None
     r = robj()
-    def display(res, ro, arg):
+    def display(res, ro, arg, ex=None):
         print(res, arg)
-        ro.rval = (res, arg)
+        ro.rval = (res, arg, ex)
         ED2.breakLoop()
     rc = class_obj({'_sip_address':'1.2.3.4'})
     rc.send_command('VF 123456', display, r, 'abcd')
     ED2.loop()
     rc.shutdown()
-    assert(r.rval == (u'0', u'abcd'))
+    res, arg, ex = r.rval
+    if ex:
+        raise ex
+    assert((res, arg) == (u'0', u'abcd'))
     print('passed')
 
 if __name__ == '__main__':

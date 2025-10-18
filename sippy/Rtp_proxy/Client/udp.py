@@ -181,8 +181,10 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
 
 class selftest(object):
 
-    def gotreply(self, ED2, rtpc, *args):
+    def gotreply(self, ED2, rtpc, *args, ex=None):
         print(args)
+        if ex:
+            print("Error:", ex)
         rtpc.shutdown()
         ED2.breakLoop()
 

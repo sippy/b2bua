@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from sippy.Core.Exceptions import dump_exception
+
 class Rtp_proxy_cmd_sequencer(object):
     rtp_proxy_client = None
     comqueue = None
@@ -43,7 +45,9 @@ class Rtp_proxy_cmd_sequencer(object):
         self.inflight = (command, result_callback, callback_parameters)
         self.rtp_proxy_client.send_command(command, self.result_callback)
 
-    def result_callback(self, result):
+    def result_callback(self, result, ex=None):
+        if ex is not None:
+            dump_exception('Rtp_proxy_cmd_sequencer: unhandled exception I/O RTPproxy')
         command, result_callback, callback_parameters = self.inflight
         self.inflight = None
         if self.rtp_proxy_client != None and len(self.comqueue) > 0:
