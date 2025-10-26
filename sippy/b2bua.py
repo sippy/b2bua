@@ -818,6 +818,7 @@ def main_func():
     finally:
         if '_wss_server' in global_config:
             global_config['_wss_server'].shutdown()
+        clis.shutdown()
 
 if __name__ == '__main__':
     main_func()

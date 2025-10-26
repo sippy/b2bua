@@ -27,7 +27,7 @@
 
 from __future__ import print_function
 
-from os import remove, chown, chmod
+from os import remove, chown, chmod, pipe, read, write, close
 import socket
 from errno import EPIPE, ENOTCONN, EBADF, ECONNABORTED
 from select import poll, POLLIN, POLLNVAL
@@ -48,19 +48,30 @@ class _Acceptor(Thread):
     pollobj = None
     fileno = None
 
-    def __init__(self, clicm):
+    def __init__(self, clicm, wakeup_r):
         Thread.__init__(self)
         self.clicm = clicm
         self.pollobj = poll()
         self.fileno = self.clicm.serversock.fileno()
+        self.wakeup_r = wakeup_r
         self.pollobj.register(self.fileno, POLLIN)
+        self.pollobj.register(self.wakeup_r, POLLIN)
         self.start()
 
     def run(self):
         #print(self.run, 'enter')
         while True:
             #print(self.run, 'cycle')
-            pollret = dict(self.pollobj.poll()).get(self.fileno, 0)
+            revents = dict(self.pollobj.poll())
+            if self.wakeup_r in revents and (revents[self.wakeup_r] & POLLIN):
+                try:
+                    # drain the pipe (best-effort)
+                    read(self.wakeup_r, 1024)
+                except OSError:
+                    dump_exception('CLIConnectionManager: unhandled exception draining wakeup socket')
+                    pass
+                break
+            pollret = revents.get(self.fileno, 0)
             if pollret & POLLNVAL != 0:
                 break
             if pollret & POLLIN == 0:
@@ -74,16 +85,18 @@ class _Acceptor(Thread):
                     break
                 else:
                     raise
-            except Exception as e:
-                dump_exception('CLIConnectionManager: unhandled exception when accepting incoming connection')
+            except Exception:
+                dump_exception('CLIConnectionManager: unhandled exception accepting incoming connection')
                 break
             #print(self.run, 'handle_accept')
             ED2.callFromThread(self.clicm.handle_accept, clientsock, addr)
         self.clicm = None
+        close(self.wakeup_r)
         #print(self.run, 'exit')
 
 class CLIConnectionManager(object):
     command_cb = None
+    address = None
     tcp = False
     accept_list: list = None
     serversock = None
@@ -116,7 +129,9 @@ class CLIConnectionManager(object):
             if sock_mode != None:
                 chmod(address, sock_mode)
         self.serversock.listen(backlog)
-        self.atr = _Acceptor(self)
+        wakeup_r, self._wakeup_w = pipe()
+        self.atr = _Acceptor(self, wakeup_r)
+        self.address = address
 
     def handle_accept(self, conn, address):
         #print(self.handle_accept)
@@ -126,15 +141,23 @@ class CLIConnectionManager(object):
                 return
         try:
             cm = CLIManager(conn, self.command_cb)
-        except Exception as e:
-            dump_exception('CLIConnectionManager: unhandled exception when setting up incoming connection handler')
+        except Exception:
+            dump_exception('CLIConnectionManager: unhandled exception setting up incoming connection handler')
             conn.close()
             return
 
     def shutdown(self):
+        try:
+            write(self._wakeup_w, b'\x01')
+        except OSError:
+            dump_exception('CLIConnectionManager: unhandled exception waking up acceptor')
+            pass
+        close(self._wakeup_w)
         self.serversock.close()
         self.command_cb = None
         self.atr.join()
+        if not self.tcp:
+            remove(self.address)
 
 class _CLIManager_w(Thread):
     daemon = True
@@ -257,7 +280,7 @@ class CLIManager(object):
         try:
             self.command_cb(self, cmd)
         except:
-            dump_exception('CLIManager: unhandled exception when processing incoming data')
+            dump_exception('CLIManager: unhandled exception processing incoming data')
             self.close()
 
     def send(self, data):
