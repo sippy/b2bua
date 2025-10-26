@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-22.04]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14-dev']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14-dev']
 
     steps:
     - uses: actions/checkout@v4
@@ -95,8 +95,20 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Cache wheels
+      uses: actions/cache@v4
+      with:
+        path: dist_out/root/.cache
+        key: voiptests-${{ matrix.platform }}-pipcache-${{ github.run_id }}
+        restore-keys: |
+          voiptests-${{ matrix.platform }}-pipcache
+          voiptests-${{ matrix.platform }}-pipcache-${{ github.run_id }}
+
     - name: VoIP Tests
       uses: docker/build-push-action@v6
+      env:
+        DOCKER_BUILD_SUMMARY: false
+        DOCKER_BUILD_RECORD_UPLOAD: false
       with:
         context: .
         file: ./docker/Dockerfile.voiptests
@@ -104,6 +116,7 @@ jobs:
           RTPPC_TYPE=unix
           BASE_IMAGE=${{ env.BASE_IMAGE }}
         platforms: ${{ env.TARGETPLATFORM }}
+        outputs: type=local,dest=dist_out
 
   publish_wheels:
     name: Publish Puthon Wheels
@@ -120,7 +133,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.13'
 
     - name: Install dependencies
       run: |
