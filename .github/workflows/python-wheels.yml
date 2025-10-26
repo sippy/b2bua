@@ -104,6 +104,9 @@ jobs:
           voiptests-${{ matrix.platform }}-pipcache
           voiptests-${{ matrix.platform }}-pipcache-${{ github.run_id }}
 
+    - name: Small things
+      run: test -d dist_out || mkdir -d dist_out
+
     - name: VoIP Tests
       uses: docker/build-push-action@v6
       env:
