@@ -120,6 +120,8 @@ jobs:
           BASE_IMAGE=${{ env.BASE_IMAGE }}
         platforms: ${{ env.TARGETPLATFORM }}
         outputs: type=local,dest=dist_out
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
   publish_wheels:
     name: Publish Puthon Wheels
