@@ -19,10 +19,6 @@ RUN env -S "`${SET_ENV}`" sh -x docker/install_depends.sh
 
 COPY --exclude=.git --exclude=.github --exclude=dist_out . .
 
-ENV PYTHON_CMD=python3
-
-RUN ${PYTHON_CMD} setup.py sdist
-
 ENV CACHE_HOME="/root"
 ENV CACHE_ROOT="${CACHE_HOME}/.cache"
 
@@ -33,6 +29,9 @@ RUN test ! -d ${TROOT}${CACHE_ROOT} || \
   cp -a ${TROOT}${CACHE_ROOT} ${CACHE_HOME}/
 RUN rm -r ${TROOT}
 
+ENV PYTHON_CMD=python3
+RUN ${PYTHON_CMD} -m pip install --upgrade setuptools
+RUN ${PYTHON_CMD} setup.py sdist
 RUN ${PYTHON_CMD} -m pip install dist/sippy*.gz
 RUN env -S "`${SET_ENV}`" \
   ${PYTHON_CMD} -m pip install rtp.io
