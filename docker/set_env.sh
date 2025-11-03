@@ -5,6 +5,9 @@ set -x
 
 platformopts() {
   case "${TARGETPLATFORM}" in
+  linux/arm/v5)
+    echo "RTPP_VERSION=production"
+    ;;
   linux/arm/v7)
     echo "RTPP_VERSION=production"
     echo "OPENSSL_CONFIGURE_ARGS=linux-armv4"
@@ -16,11 +19,7 @@ platformopts() {
     echo "QEMU_CPU=cortex-a53"
     ;;
   esac
-#  if [ "${TARGETPLATFORM}" != "linux/amd64" -a "${TARGETPLATFORM}" != "linux/arm64" ]
-#  then
-    echo 'EXTRA_PACKAGES="build-essential git python3-dev"'
-#  fi
-
+  echo 'EXTRA_PACKAGES="build-essential libunwind-dev git python3-dev"'
 }
 
 case "${1}" in
