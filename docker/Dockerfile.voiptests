@@ -13,6 +13,8 @@ WORKDIR /tmp
 COPY docker/set_env.sh docker/install_depends.sh docker/
 
 ARG TARGETPLATFORM
+ARG BASE_IMAGE
+
 ENV SET_ENV="sh /tmp/docker/set_env.sh platformopts"
 
 RUN env -S "`${SET_ENV}`" sh -x docker/install_depends.sh
