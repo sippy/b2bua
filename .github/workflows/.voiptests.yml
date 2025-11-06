@@ -1,0 +1,84 @@
+name: VoIPTests in Docker
+
+on:
+  workflow_call:
+    inputs:
+      rtpp-image:
+        required: false
+        type: string
+        default: 'sippylabs/rtpproxy'
+      rtpp-image-tag:
+        required: false
+        type: string
+        default: 'latest-debian_13-slim'
+
+jobs:
+  set_env:
+    name: List Supported Arches
+    uses: sippy/cimagic/.github/workflows/GetContainerPlatforms.yml@v2
+    with:
+      image: ${{ inputs.rtpp-image }}:${{ inputs.rtpp-image-tag }}
+
+  run_voiptests:
+    name: Run VoIPTests
+    runs-on: ubuntu-latest
+    needs: [set_env]
+    env:
+      BASE_IMAGE: ${{ inputs.rtpp-image }}:${{ inputs.rtpp-image-tag }}
+      TARGETPLATFORM: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.set_env.outputs.build-matrix) }}
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Checkout VoIPTests repo
+      uses: actions/checkout@v5
+      with:
+        repository: 'sippy/voiptests'
+        path: dist/voiptests
+
+    - name: Checkout RTPProxy repo
+      uses: actions/checkout@v5
+      with:
+        repository: 'sippy/rtpproxy'
+        path: dist/rtpproxy
+
+    - name: Set up QEMU
+      if: matrix.platform != 'linux/386' && matrix.platform != 'linux/amd64'
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: ${{ env.TARGETPLATFORM }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Cache wheels
+      uses: actions/cache@v4
+      with:
+        path: dist_out/root/.cache
+        key: voiptests-${{ env.BASE_IMAGE}}-${{ matrix.platform }}-pipcache-${{ github.run_id }}
+        restore-keys: |
+          voiptests-${{ env.BASE_IMAGE}}-${{ matrix.platform }}-pipcache-${{ github.run_id }}
+          voiptests-${{ env.BASE_IMAGE}}-${{ matrix.platform }}-pipcache
+          voiptests-${{ matrix.platform }}-pipcache
+
+    - name: Small things
+      run: test -d dist_out || mkdir dist_out
+
+    - name: VoIP Tests
+      uses: docker/build-push-action@v6
+      env:
+        DOCKER_BUILD_SUMMARY: false
+        DOCKER_BUILD_RECORD_UPLOAD: false
+      with:
+        context: .
+        file: ./docker/Dockerfile.voiptests
+        build-args: |
+          RTPPC_TYPE=unix
+          BASE_IMAGE=${{ env.BASE_IMAGE }}
+        platforms: ${{ env.TARGETPLATFORM }}
+        outputs: type=local,dest=dist_out
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
