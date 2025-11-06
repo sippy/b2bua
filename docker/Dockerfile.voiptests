@@ -36,7 +36,7 @@ RUN ${PYTHON_CMD} -m pip install --upgrade setuptools
 RUN ${PYTHON_CMD} setup.py sdist
 RUN ${PYTHON_CMD} -m pip install dist/sippy*.gz
 RUN env -S "`${SET_ENV}`" \
-  ${PYTHON_CMD} -m pip install rtp.io
+  ${PYTHON_CMD} -m pip install git+https://github.com/sippy/rtp.io
 
 ENV MM_TYPE=b2bua
 ENV MM_BRANCH=master
