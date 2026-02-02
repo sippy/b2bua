@@ -1,4 +1,5 @@
 ElPeriodic>=1.1
+rtpsynth>=1.3.0
 pycryptodome
 websockets
 flask
