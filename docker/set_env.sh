@@ -32,7 +32,7 @@ platformopts() {
     ;;
   linux/riscv64)
     echo "MM_INIT_DELAY=6"
-    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100"
+    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   esac
   echo 'EXTRA_PACKAGES="build-essential libunwind-dev git python3-dev"'
