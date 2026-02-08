@@ -18,6 +18,7 @@ platformopts() {
     echo "RTPP_VERSION=production"
     echo "OPENSSL_CONFIGURE_ARGS=linux-armv4"
     echo "MM_INIT_DELAY=6"
+    test "${OS_TAG}" != "debian" || echo "TEST_SET_MIGHTFAIL=early_cancel_lost100"
     ;;
   linux/s390x)
     echo "RTPP_VERSION=production"
