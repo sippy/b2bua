@@ -37,7 +37,7 @@ platformopts() {
     echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   esac
-  echo 'EXTRA_PACKAGES="build-essential libunwind-dev git python3-dev"'
+  echo 'EXTRA_PACKAGES="build-essential libunwind-dev git python3-dev cmake ninja-build patchelf"'
 }
 
 case "${1}" in
