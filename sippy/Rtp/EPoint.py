@@ -4,7 +4,6 @@ from threading import Lock
 import errno
 
 from rtpsynth.RtpServer import RtpQueueFullError, RtpServer
-from sippy.misc import local4remote
 from sippy.Time.MonoTime import MonoTime
 
 from .Core.AudioChunk import AudioChunk
@@ -27,11 +26,12 @@ class RTPEPoint():
         self.id = uuid4()
         self.rtp_params = rtp_params
         self.handlers = handlers or RTPHandlers()
+        self._palloc = rc.palloc
         self._rtp_server = None
         self.state_lock = Lock()
         self.writer = None
         self.rsess = self.make_rtp_instream(rtp_params, audio_in)
-        rserv_opts = self.make_udp_server_opts(rc, rtp_params)
+        rserv_opts = self.make_udp_server_opts(rtp_params)
         self.rserv = self.make_udp_server(rserv_opts)
         if self.rtp_params.rtp_target is not None:
             self.writer_setup()
@@ -42,12 +42,9 @@ class RTPEPoint():
     def make_rtp_instream(self, rtp_params:RTPParams, audio_in:callable):
         return self.handlers.rtp_instream_cls(rtp_params, audio_in)
 
-    def make_udp_server_opts(self, rc:RTPConf, rtp_params:RTPParams):
-        if rtp_params.rtp_target is None:
-            rtp_laddr = '0.0.0.0'
-        else:
-            rtp_laddr = local4remote(rtp_params.rtp_target[0])
-        return (rtp_laddr, rc.palloc)
+    def make_udp_server_opts(self, rtp_params:RTPParams):
+        palloc = self._palloc if rtp_params.rtp_lport == 0 else rtp_params.rtp_lport
+        return (rtp_params.rtp_laddr, palloc)
 
     def make_udp_server(self, rserv_opts):
         rtp_laddr, palloc = rserv_opts
@@ -56,30 +53,10 @@ class RTPEPoint():
         channel = None
         self._rtp_server = rtp_server
         try:
-            if callable(palloc):
-                ntry = -1
-                while True:
-                    ntry += 1
-                    bind_port = int(palloc(ntry))
-                    try:
-                        channel = rtp_server.create_channel(
-                            pkt_in=self.rtp_received,
-                            bind_host=rtp_laddr,
-                            bind_port=bind_port,
-                        )
-                    except OSError as ex:
-                        if ex.errno == errno.EADDRINUSE:
-                            continue
-                        raise
-                    break
-            else:
-                channel = rtp_server.create_channel(
-                    pkt_in=self.rtp_received,
-                    bind_host=rtp_laddr,
-                    bind_port=int(palloc),
-                )
-            if self.rtp_params.rtp_target is not None:
-                channel.set_target(self.rtp_params.rtp_target[0], self.rtp_params.rtp_target[1])
+            channel = self._bind_channel(rtp_server, rtp_laddr, palloc)
+            target = self.rtp_params.rtp_target
+            if target is not None:
+                channel.set_target(target[0], target[1])
             return channel
         except Exception:
             release_rtp_server(rtp_server)
@@ -87,6 +64,51 @@ class RTPEPoint():
             if channel is not None:
                 channel.close()
             raise
+
+    def _create_channel(self, rtp_server:RtpServer, bind_host:str, bind_port:int):
+        bind_family = self.rtp_params.rtp_family
+        ch_kwargs = dict(pkt_in=self.rtp_received, bind_host=bind_host, bind_port=bind_port)
+        ch = rtp_server.create_channel(bind_family=bind_family, **ch_kwargs)
+        self.rtp_params.rtp_lport = bind_port
+        return ch
+
+    def _bind_channel(self, rtp_server:RtpServer, rtp_laddr:str, palloc, preferred_port:int=None):
+        if preferred_port is not None:
+            try:
+                return self._create_channel(rtp_server, rtp_laddr, preferred_port)
+            except OSError as ex:
+                if ex.errno != errno.EADDRINUSE:
+                    raise
+        if callable(palloc):
+            ntry = -1
+            while True:
+                ntry += 1
+                bind_port = int(palloc(ntry))
+                try:
+                    return self._create_channel(rtp_server, rtp_laddr, bind_port)
+                except OSError as ex:
+                    if ex.errno == errno.EADDRINUSE:
+                        continue
+                    raise
+        return self._create_channel(rtp_server, rtp_laddr, int(palloc))
+
+    def _swap_channel(self, old_channel, rtp_params:RTPParams):
+        with self.state_lock:
+            rtp_server = self._rtp_server
+            if rtp_server is None or self.rserv is not old_channel:
+                return
+        rtp_laddr, palloc = self.make_udp_server_opts(rtp_params)
+        preferred_port = old_channel.local_addr[1]
+        new_channel = self._bind_channel(rtp_server, rtp_laddr, palloc, preferred_port=preferred_port)
+        target = rtp_params.rtp_target
+        if target is not None:
+            new_channel.set_target(target[0], target[1])
+        with self.state_lock:
+            if self._rtp_server is None or self.rserv is not old_channel:
+                new_channel.close()
+                return
+            self.rserv = new_channel
+        old_channel.close()
 
     def writer_setup(self):
         assert self.writer is None
@@ -124,8 +146,11 @@ class RTPEPoint():
         old_writer = None
         need_new_writer = False
         target_changed = False
+        proto_changed = False
         with self.state_lock:
             target_changed = self.rtp_params.rtp_target != rtp_params.rtp_target
+            proto_changed = self.rtp_params.rtp_proto != rtp_params.rtp_proto
+            self.rtp_params.rtp_proto = rtp_params.rtp_proto
             self.rtp_params.rtp_target = rtp_params.rtp_target
             ptime_changed = self.rtp_params.out_ptime != rtp_params.out_ptime
             self.rtp_params.out_ptime = rtp_params.out_ptime
@@ -137,15 +162,18 @@ class RTPEPoint():
                 self.writer = None
             elif self.writer is None:
                 need_new_writer = True
-            elif ptime_changed:
+            elif ptime_changed or proto_changed:
                 old_writer = self.writer
                 self.writer = None
                 need_new_writer = True
-        if target_changed and channel is not None and self.rtp_params.rtp_target is not None:
-            channel.set_target(rtp_params.rtp_target[0], rtp_params.rtp_target[1])
         if old_writer is not None:
             old_writer.end()
             old_writer.join()
+        if proto_changed and channel is not None:
+            self._swap_channel(channel, rtp_params)
+        elif target_changed and channel is not None and self.rtp_params.rtp_target is not None:
+            target = self.rtp_params.rtp_target
+            channel.set_target(target[0], target[1])
         if need_new_writer:
             new_writer = self.make_writer(rtp_params)
             new_writer.set_pkt_send_f(self.send_pkt)
