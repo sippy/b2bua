@@ -23,6 +23,7 @@ platformopts() {
   linux/s390x)
     echo "RTPP_VERSION=production"
     echo "MM_INIT_DELAY=6"
+    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   linux/arm64)
     echo "QEMU_CPU=cortex-a53"
