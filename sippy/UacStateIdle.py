@@ -36,6 +36,7 @@ from sippy.SipURL import SipURL
 from sippy.SipTo import SipTo
 from sippy.SipFrom import SipFrom
 from sippy.SipCallId import SipCallId
+from sippy.SipCSeq import SipCSeq
 from sippy.SipHeader import SipHeader
 
 class UacStateIdle(UaStateGeneric):
@@ -66,7 +67,7 @@ class UacStateIdle(UaStateGeneric):
             lurl.port = lurl.transport = None
             self.ua.lUri = SipFrom(address = SipAddress(url = lurl, hadbrace = True, name = callingName))
             self.ua.lUri.setTag(self.ua.lTag)
-            self.ua.lCSeq = 200
+            self.ua.lCSeq = SipCSeq.genRandCSeq()
             if self.ua.lContact == None:
                 self.ua.lContact = SipContact()
             curl = self.ua.lContact.getUrl()

@@ -25,11 +25,15 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from sippy.SipGenericHF import SipGenericHF
+from secrets import randbelow
 
 class SipCSeq(SipGenericHF):
     hf_names = ('cseq',)
     cseq = None
     method = None
+    initial_min = 1
+    initial_max = (2 ** 31) - 1
+    initial_headroom = 1024
 
     def __init__(self, body = None, cseq = None, method = None):
         SipGenericHF.__init__(self, body)
@@ -71,3 +75,9 @@ class SipCSeq(SipGenericHF):
     def incCSeqNum(self):
         self.cseq += 1
         return self.cseq
+
+    @classmethod
+    def genRandCSeq(cls):
+        cseq_max = cls.initial_max - cls.initial_headroom
+        cseq_span = cseq_max - cls.initial_min + 1
+        return cls.initial_min + randbelow(cseq_span)

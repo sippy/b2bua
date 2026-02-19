@@ -32,6 +32,7 @@ from sippy.SipRoute import SipRoute
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventTry
 from sippy.SipContact import SipContact
+from sippy.SipCSeq import SipCSeq
 from sippy.SipFrom import SipFrom
 from sippy.SipTo import SipTo
 
@@ -45,7 +46,7 @@ class UasStateIdle(UaStateGeneric):
         self.ua.origin = 'caller'
         #print('INVITE received in the Idle state, going to the Trying state')
         self.ua.uasResp = req.genResponse(100, 'Trying', server = self.ua.local_ua)
-        self.ua.lCSeq = 100 # XXX: 100 for debugging so that incorrect CSeq generation will be easily spotted
+        self.ua.lCSeq = SipCSeq.genRandCSeq()
         if self.ua.lContact == None:
             self.ua.lContact = SipContact()
         self.ua.rTarget = req.getHFBody('contact').getUrl().getCopy()
