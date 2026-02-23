@@ -38,6 +38,7 @@ jobs:
       with:
         repository: 'sippy/voiptests'
         path: dist/voiptests
+        ref: 'wip'
 
     - name: Checkout RTPProxy repo
       uses: actions/checkout@v5
