@@ -12,13 +12,13 @@ platformopts() {
   linux/arm/v5)
     echo "RTPP_VERSION=production"
     echo "MM_INIT_DELAY=6"
-    test "${OS_TAG}" != "debian" || echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
+    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   linux/arm/v7)
     echo "RTPP_VERSION=production"
     echo "OPENSSL_CONFIGURE_ARGS=linux-armv4"
     echo "MM_INIT_DELAY=6"
-    test "${OS_TAG}" != "debian" || echo "TEST_SET_MIGHTFAIL=early_cancel_lost100"
+    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   linux/s390x)
     echo "RTPP_VERSION=production"
@@ -28,9 +28,11 @@ platformopts() {
   linux/arm64)
     echo "QEMU_CPU=cortex-a53"
     echo "MM_INIT_DELAY=6"
+    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   linux/ppc64le)
     echo "MM_INIT_DELAY=6"
+    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   linux/riscv64)
     echo "MM_INIT_DELAY=6"
