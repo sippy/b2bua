@@ -32,6 +32,7 @@ RUN test ! -d ${TROOT}${CACHE_ROOT} || \
 RUN rm -r ${TROOT}
 
 ENV PYTHON_CMD=python3
+ENV LIBG722_NO_NUMPY=1
 RUN ${PYTHON_CMD} -m pip install --upgrade setuptools
 RUN ${PYTHON_CMD} setup.py sdist
 RUN ${PYTHON_CMD} -m pip install dist/sippy*.gz

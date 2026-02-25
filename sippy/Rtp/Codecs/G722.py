@@ -15,7 +15,7 @@ class G722Codec(GenCodec):
 
     def __init__(self):
         super().__init__()
-        self.codec = G722(self.srate, self.default_br)
+        self.codec = G722(self.srate, self.default_br, use_numpy=False)
 
     def encode(self, chunk):
         pcm16 = pcm16_from(chunk.audio)
