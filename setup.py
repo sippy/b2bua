@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-requirements = [x.strip() for x in open("requirements.txt", "r").readlines()]
+requirements = [
+    line.strip()
+    for line in open("requirements.txt", "r", encoding="utf-8").readlines()
+    if line.strip() and not line.lstrip().startswith("#")
+]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -13,7 +17,6 @@ setup(
 
     install_requires = requirements,
     include_package_data=True,
-    test_suite = 'tests',
 
     entry_points = {
         'console_scripts': [
