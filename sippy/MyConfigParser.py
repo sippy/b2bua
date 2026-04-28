@@ -111,6 +111,7 @@ SUPPORTED_OPTIONS = { \
  'uiparams':          ('S', 'Semicolon-separated list of UI parameters corresponding to ' \
                              'the flask\'s run() routine'), \
  'siprec_target':     ('S', 'SIPREC target address in the format host[:port]'), \
+ 'registrar':         ('B', 'Enable built-in registrar'), \
 }
 
 class MyConfigParser(RawConfigParser):

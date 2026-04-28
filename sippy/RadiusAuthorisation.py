@@ -31,13 +31,14 @@ from functools import reduce
 
 class RadiusAuthorisation(Radius_client):
     def do_auth(self, username, caller, callee, sip_cid, remote_ip, res_cb, \
-      realm = None, nonce = None, uri = None, response = None, extra_attributes = None):
+      realm = None, nonce = None, uri = None, response = None, \
+      extra_attributes = None, method = 'INVITE', algorithm = 'MD5'):
         sip_cid = str(sip_cid)
         attributes = None
         if None not in (realm, nonce, uri, response):
             attributes = [('User-Name', username), ('Digest-Realm', realm), \
-              ('Digest-Nonce', nonce), ('Digest-Method', 'INVITE'), ('Digest-URI', uri), \
-              ('Digest-Algorithm', 'MD5'), ('Digest-User-Name', username), ('Digest-Response', response)]
+              ('Digest-Nonce', nonce), ('Digest-Method', method), ('Digest-URI', uri), \
+              ('Digest-Algorithm', algorithm), ('Digest-User-Name', username), ('Digest-Response', response)]
         else:
             attributes = [('User-Name', remote_ip), ('Password', 'cisco')]
         if caller == None:

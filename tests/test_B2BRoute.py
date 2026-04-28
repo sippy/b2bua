@@ -1,5 +1,5 @@
 import unittest
-from sippy.B2B.Route import B2BRoute
+from sippy.B2B.Route import B2BRoute, DST_REG_UA
 
 class TestB2BRoute(unittest.TestCase):
     test_route = '200110508667@b2bua.org;cli=16046288900;rid=-1;expires=30;np_expires=5;ash=Name%3AValue'
@@ -12,6 +12,11 @@ class TestB2BRoute(unittest.TestCase):
     def test_B2BRoute_with_po_proc(self):
         route = B2BRoute(self.test_po)
         self.assertIsInstance(route, B2BRoute)
+
+    def test_B2BRoute_with_reg_ua_destination(self):
+        route = B2BRoute(DST_REG_UA)
+        self.assertEqual(route.hostport, DST_REG_UA)
+        self.assertIsNone(route.ainfo)
 
     def test_B2BRoute_parameters(self):
         route = B2BRoute(self.test_po)

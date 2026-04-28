@@ -38,6 +38,7 @@ SRC_WSS = '[[WSS]]'
 SRC_PROXY = '[[PROXY]]'
 DST_SIP_UA = 'sip-ua'
 DST_WSS_UA = 'wss-ua'
+DST_REG_UA = 'reg-ua'
 
 class B2BRoute(object):
     crt_set = False
@@ -149,7 +150,7 @@ class B2BRoute(object):
             port = SipConf.default_port
         else:
             port = int(hostport[1])
-        if not hostport[0] in (DST_SIP_UA, DST_WSS_UA):
+        if not hostport[0] in (DST_SIP_UA, DST_WSS_UA, DST_REG_UA):
             self.ainfo = getaddrinfo(hostport[0], port, af, SOCK_STREAM)
         self.params = {}
         extra_headers = []

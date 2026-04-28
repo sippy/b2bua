@@ -556,6 +556,8 @@ class SipTransactionManager(object):
         #print('timerA', t)
         self.transmitData(t.userv, t.data, t.address)
         t.tout *= 2
+        if t.method != 'INVITE' and t.tout > 4.0:
+            t.tout = 4.0
         t.teA = Timeout(self.timerA, t.tout, 1, t)
 
     def timerB(self, t):

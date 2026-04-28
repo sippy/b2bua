@@ -51,8 +51,13 @@ from signal import SIGHUP, SIGPROF, SIGUSR1, SIGUSR2, SIGTERM
 from sippy.SipTransactionManager import SipTransactionManager
 from sippy.SipCallId import SipCallId
 from sippy.StatefulProxy import StatefulProxy
+from sippy.SipRegistrationServer import SipRegistrationServer
+from sippy.SipAddress import SipAddress
+from sippy.SipRoute import SipRoute
+from sippy.SipTo import SipTo
 from sippy.misc import daemonize
-from sippy.B2B.Route import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA
+from sippy.B2B.Route import B2BRoute, SRC_PROXY, SRC_WSS, DST_SIP_UA, DST_WSS_UA, \
+  DST_REG_UA
 from sippy.Wss_server import Wss_server, Wss_server_opts
 from sippy.SipURL import SipURL
 from sippy.Exceptions.SdpParseError import SdpParseError
@@ -90,6 +95,44 @@ def re_replace(ptrn, s):
         ptrn = ptrn[3:]
     return s
 
+class IncomingAuthContext(object):
+    source = None
+    req_source = None
+    remote_ip = None
+    challenge = None
+    response = None
+
+    def __init__(self, source = None, req_source = None, remote_ip = None,
+      challenge = None, response = None):
+        self.source = source
+        self.req_source = req_source
+        self.remote_ip = remote_ip
+        self.challenge = challenge
+        self.response = response
+
+class RegUaCCEventTry(CCEventTry):
+    aor = None
+    binding = None
+
+    def __init__(self, data, aor, binding):
+        CCEventTry.__init__(self, data)
+        self.aor = aor
+        self.binding = binding
+
+    def onUacSetupComplete(self, uac):
+        contact_url = self.binding.contact.getUrl().getCopy()
+        contact_taddr = contact_url.getTAddr()
+        uac.rTarget = contact_url
+        uac.rUri = SipTo(address = SipAddress(url = self.aor.getCopy(), \
+          hadbrace = True))
+        uac.rAddr0 = contact_taddr
+        uac.routes = tuple(SipRoute(address = x.address.getCopy()) \
+          for x in self.binding.paths)
+        if len(uac.routes) > 0:
+            uac.rAddr = uac.routes[0].getUrl().getTAddr()
+        else:
+            uac.rAddr = contact_taddr
+
 class Rtp_proxy_session_default(Rtp_proxy_session): insert_nortpp = True
 
 class CallController(object):
@@ -117,7 +160,8 @@ class CallController(object):
     req_target: SipURL
     extra_attributes = None
 
-    def __init__(self, remote_ip, source, req_source, req_target, global_config, pass_headers):
+    def __init__(self, remote_ip, source, req_source, req_target, global_config,
+      pass_headers):
         self.id = CallController.id
         CallController.id += 1
         if req_source == SRC_WSS: self.rtpps_cls = Rtp_proxy_session_webrtc2sip
@@ -285,6 +329,46 @@ class CallController(object):
         self.state = CCStateARComplete
         self.placeOriginate(self.routes.pop(0))
 
+    def getRegisteredAOR(self, cld):
+        aor = self.req_target.getCopy()
+        aor.username = cld
+        aor.password = None
+        aor.headers = None
+        return aor
+
+    def iterRegisteredAORs(self, cld):
+        seen = set()
+        aor = self.getRegisteredAOR(cld)
+        candidates = [aor]
+        if aor.port is not None or aor.transport is not None:
+            aor = aor.getCopy()
+            aor.port = None
+            aor.transport = None
+            candidates.append(aor)
+        for candidate in candidates:
+            key = str(candidate)
+            if key in seen:
+                continue
+            seen.add(key)
+            yield candidate
+
+    def lookupRegisteredBinding(self, cld):
+        registrar = self.global_config.getdefault('_registrar', None)
+        if registrar is None:
+            return None, None
+        for aor in self.iterRegisteredAORs(cld):
+            binding = registrar.lookupBinding(aor)
+            if binding is not None:
+                return aor, binding
+        return None, None
+
+    def failOriginate(self, scode):
+        if len(self.routes) > 0:
+            self.placeOriginate(self.routes.pop(0))
+            return
+        self.uaA.recvEvent(CCEventFail(scode))
+        self.state = CCStateDead
+
     def placeOriginate(self, oroute):
         cId, cli, cld, body, auth, caller_name = self.eTry.getData()
         cld = oroute.cld
@@ -292,12 +376,23 @@ class CallController(object):
         if 'static_tr_out' in self.global_config:
             cld = re_replace(self.global_config['static_tr_out'], cld)
         UA_kwa = {}
+        reg_aor = None
+        reg_binding = None
         if oroute.hostport == DST_SIP_UA:
             host = self.source[0]
             nh_address, same_af = self.source, True
-        if oroute.hostport == DST_WSS_UA:
+        elif oroute.hostport == DST_WSS_UA:
             host = self.req_target.host
             (nh_address, nh_transport), same_af = self.req_target.getTAddr(), True
+            UA_kwa['nh_transport'] = nh_transport
+        elif oroute.hostport == DST_REG_UA:
+            reg_aor, reg_binding = self.lookupRegisteredBinding(cld)
+            if reg_binding is None:
+                self.failOriginate((480, 'Temporarily Unavailable'))
+                return
+            contact_url = reg_binding.contact.getUrl()
+            host = contact_url.host
+            (nh_address, nh_transport), same_af = contact_url.getTAddr(), True
             UA_kwa['nh_transport'] = nh_transport
         else:
             host = oroute.hostonly
@@ -347,8 +442,12 @@ class CallController(object):
             cId = SipCallId(md5(str(cId).encode()).hexdigest() + ('-b2b_%d' % oroute.rnum))
         else:
             cId += '-b2b_%d' % oroute.rnum
-        event = CCEventTry((cId, oroute.cli, cld, body, auth, \
-          oroute.params.get('caller_name', self.caller_name)))
+        event_data = (cId, oroute.cli, cld, body, auth, \
+          oroute.params.get('caller_name', self.caller_name))
+        if reg_binding is None:
+            event = CCEventTry(event_data)
+        else:
+            event = RegUaCCEventTry(event_data, reg_aor, reg_binding)
         if self.eTry.max_forwards != None:
             event.max_forwards = self.eTry.max_forwards - 1
             if event.max_forwards <= 0:
@@ -423,6 +522,7 @@ class CallMap(object):
     safe_stop = False
     global_config = None
     proxy = None
+    registrar = None
     #rc1 = None
     #rc2 = None
 
@@ -449,6 +549,40 @@ class CallMap(object):
             req_source = stran[0][0]
         return req_source if (aips is None or req_source in aips) else None
 
+    def prepareIncomingAuth(self, req):
+        if req.countHFs('via') > 1:
+            via = req.getHFBody('via', 1)
+        else:
+            via = req.getHFBody('via', 0)
+        stran = req.getSource(ver = 2)
+
+        # First check if request comes from IP that
+        # we want to accept our traffic from.
+        req_source = self.remoteIPAuth(stran)
+        if req_source is None:
+            return IncomingAuthContext(response = req.genResponse(403, 'Forbidden'))
+
+        source, transport = stran
+        remote_ip = via.getTAddr()[0] if req_source != SRC_WSS else source[0]
+
+        challenge = None
+        if self.global_config['auth_enable']:
+            # Prepare challenge if no authorization header is present.
+            # Depending on configuration, we might try remote ip auth
+            # first and then challenge it or challenge immediately.
+            if self.global_config['digest_auth'] and \
+              req.countHFs('authorization') == 0:
+                challenge = SipHeader(name = 'www-authenticate')
+                challenge.getBody().realm = req.getRURI().host
+            # Send challenge immediately if digest is the
+            # only method of authenticating.
+            if challenge != None and self.global_config.getdefault('digest_auth_only', False):
+                resp = req.genResponse(401, 'Unauthorized')
+                resp.appendHeader(challenge)
+                return IncomingAuthContext(response = resp)
+
+        return IncomingAuthContext(source, req_source, remote_ip, challenge)
+
     def recvRequest(self, req, sip_t):
         try:
             to_tag = req.getHFBody('to').getTag()
@@ -462,37 +596,9 @@ class CallMap(object):
             if self.safe_restart or self.safe_stop:
                 return (req.genResponse(503, 'Service Unavailable (restarting)'), None, None)
             # New dialog
-            if req.countHFs('via') > 1:
-                via = req.getHFBody('via', 1)
-            else:
-                via = req.getHFBody('via', 0)
-            stran = req.getSource(ver=2)
-
-            # First check if request comes from IP that
-            # we want to accept our traffic from
-            req_source = self.remoteIPAuth(stran)
-            if req_source is None:
-                resp = req.genResponse(403, 'Forbidden')
-                return (resp, None, None)
-
-            source, transport = stran
-            remote_ip = via.getTAddr()[0] if req_source != SRC_WSS else source[0]
-
-            challenge = None
-            if self.global_config['auth_enable']:
-                # Prepare challenge if no authorization header is present.
-                # Depending on configuration, we might try remote ip auth
-                # first and then challenge it or challenge immediately.
-                if self.global_config['digest_auth'] and \
-                  req.countHFs('authorization') == 0:
-                    challenge = SipHeader(name = 'www-authenticate')
-                    challenge.getBody().realm = req.getRURI().host
-                # Send challenge immediately if digest is the
-                # only method of authenticating
-                if challenge != None and self.global_config.getdefault('digest_auth_only', False):
-                    resp = req.genResponse(401, 'Unauthorized')
-                    resp.appendHeader(challenge)
-                    return (resp, None, None)
+            auth = self.prepareIncomingAuth(req)
+            if auth.response != None:
+                return (auth.response, None, None)
 
             pass_headers = []
             for header in self.global_config['_pass_headers']:
@@ -500,16 +606,22 @@ class CallMap(object):
                 if len(hfs) > 0:
                     pass_headers.extend(hfs)
             req_target = req.getRURI()
-            cc = CallController(remote_ip, source, req_source, req_target, self.global_config, pass_headers)
+            cc = CallController(auth.remote_ip, auth.source, auth.req_source, req_target, \
+              self.global_config, pass_headers)
 
             if '_pre_auth_proc' in self.global_config:
                 self.global_config['_pre_auth_proc'](cc, req)
 
-            cc.challenge = challenge
+            cc.challenge = auth.challenge
             rval = cc.uaA.recvRequest(req, sip_t)
             self.ccmap.append(cc)
             return rval
-        if self.proxy != None and req.getMethod() in ('REGISTER', 'SUBSCRIBE'):
+        if req.getMethod() == 'REGISTER':
+            if self.registrar != None:
+                return self.registrar.recvRequest(req, sip_t)
+            if self.proxy != None:
+                return self.proxy.recvRequest(req)
+        if self.proxy != None and req.getMethod() == 'SUBSCRIBE':
             return self.proxy.recvRequest(req)
         if req.getMethod() in ('NOTIFY', 'PING'):
             # Whynot?
@@ -791,6 +903,12 @@ def main_func():
         else:
             global_config['_sip_proxy'] = (host_port[0], int(host_port[1]))
         global_config['_cmap'].proxy = StatefulProxy(global_config, global_config['_sip_proxy'])
+
+    if global_config.getdefault('registrar', False):
+        global_config['_registrar'] = SipRegistrationServer(global_config, \
+          global_config['_cmap'].prepareIncomingAuth)
+        global_config['_location_table'] = global_config['_registrar'].locations
+        global_config['_cmap'].registrar = global_config['_registrar']
 
     if global_config.getdefault('xmpp_b2bua_id', None) != None:
         global_config['_xmpp_mode'] = True
