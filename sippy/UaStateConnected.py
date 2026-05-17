@@ -150,93 +150,109 @@ class UaStateConnected(UaStateGeneric):
         self.ua.equeue.append(event)
         return None
 
-    def recvEvent(self, event):
-        eh = event.getExtraHeaders()
-        if isinstance(event, CCEventDisconnect) or isinstance(event, CCEventFail) or isinstance(event, CCEventRedirect):
-            #print('event', event, 'received in the Connected state sending BYE')
-            redirect = None
-            if isinstance(event, CCEventDisconnect):
-                redirect = event.getData()
-            elif isinstance(event, CCEventRedirect):
-                redirects = event.getData()
-                if redirects != None:
-                    redirect = redirects[0]
-            if redirect != None and self.ua.useRefer:
-                req = self.ua.genRequest('REFER', extra_headers = eh)
-                also = SipReferTo(address = redirect)
-                req.appendHeader(SipHeader(name = 'refer-to', body = also))
-                rby = SipReferredBy(address = SipAddress(url = self.ua.lUri.getUrl()))
-                req.appendHeader(SipHeader(name = 'referred-by', body = rby))
-                self.ua.newTransaction(req, resp_cb = self.rComplete)
-            else:
-                req = self.ua.genRequest('BYE', extra_headers = eh)
-                if redirect != None:
-                    also = SipAlso(address = redirect)
-                    req.appendHeader(SipHeader(name = 'also', body = also))
-                self.ua.newTransaction(req)
-            self.ua.cancelCreditTimer()
-            self.ua.disconnect_ts = event.rtime
-            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
-        if isinstance(event, CCEventUpdate):
-            body = event.getData()
-            fake_laddr = (('127.0.0.1', None), None)
-            if self.ua.lSDP.localStr(fake_laddr) == body.localStr(fake_laddr):
-                if self.ua.rSDP != None:
-                    self.ua.equeue.append(CCEventConnect((200, 'OK', self.ua.rSDP.getCopy()), \
-                        rtime = event.rtime, origin = event.origin))
-                else:
-                    self.ua.equeue.append(CCEventConnect((200, 'OK', None), rtime = event.rtime, \
-                      origin = event.origin))
-                return None
-            if body is not None and self.ua.on_local_sdp_change != None and body.needs_update:
-                try:
-                    self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
-                except SdpHandlingErrors as e:
-                    event = CCEventFail((e.code, e.msg), rtime = event.rtime)
-                    event.reason_rfc3326 = e.getReason()
-                    self.ua.equeue.append(event)
-                except Exception as e:
-                    event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
-                    event.setWarning(str(e))
-                    self.ua.equeue.append(event)
-                return None
-            if event.max_forwards != None:
-                if event.max_forwards <= 0:
-                    self.ua.equeue.append(CCEventFail((483, 'Too Many Hops'), rtime = event.rtime))
-                    return None
-                max_forwards_hf = SipMaxForwards(number = event.max_forwards - 1)
-            else:
-                max_forwards_hf = None
-            req = self.ua.genRequest('INVITE', body, extra_headers = eh, \
-              max_forwards = max_forwards_hf)
-            self.ua.lSDP = body
-            self.ua.newUacTransaction(req, req_extra_headers = eh)
-            return (self.ua.UacStateUpdating,)
-        if isinstance(event, CCEventInfo):
-            body = event.getData()
-            req = self.ua.genRequest('INFO', body, extra_headers = eh)
+    def _recvEventDisconnectFailRedirect(self, event, eh, redirect = None):
+        #print('event', event, 'received in the Connected state sending BYE')
+        if redirect is not None and self.ua.useRefer:
+            req = self.ua.genRequest('REFER', extra_headers = eh)
+            also = SipReferTo(address = redirect)
+            req.appendHeader(SipHeader(name = 'refer-to', body = also))
+            rby = SipReferredBy(address = SipAddress(url = self.ua.lUri.getUrl()))
+            req.appendHeader(SipHeader(name = 'referred-by', body = rby))
+            self.ua.newTransaction(req, resp_cb = self.rComplete)
+        else:
+            req = self.ua.genRequest('BYE', extra_headers = eh)
+            if redirect is not None:
+                also = SipAlso(address = redirect)
+                req.appendHeader(SipHeader(name = 'also', body = also))
             self.ua.newTransaction(req)
+        self.ua.cancelCreditTimer()
+        self.ua.disconnect_ts = event.rtime
+        return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
+
+    def _recvEventDisconnect(self, event, eh):
+        return self._recvEventDisconnectFailRedirect(event, eh, event.getData())
+
+    def _recvEventFail(self, event, eh):
+        return self._recvEventDisconnectFailRedirect(event, eh)
+
+    def _recvEventRedirect(self, event, eh):
+        redirect = None
+        redirects = event.getData()
+        if redirects is not None:
+            redirect = redirects[0]
+        return self._recvEventDisconnectFailRedirect(event, eh, redirect)
+
+    def _recvEventUpdate(self, event, eh):
+        body = event.getData()
+        fake_laddr = (('127.0.0.1', None), None)
+        if self.ua.lSDP.localStr(fake_laddr) == body.localStr(fake_laddr):
+            if self.ua.rSDP is not None:
+                self.ua.equeue.append(CCEventConnect((200, 'OK', self.ua.rSDP.getCopy()), \
+                    rtime = event.rtime, origin = event.origin))
+            else:
+                self.ua.equeue.append(CCEventConnect((200, 'OK', None), rtime = event.rtime, \
+                  origin = event.origin))
             return None
-        if self.ua.pending_tr != None and isinstance(event, CCEventConnect):
-            if self.ua.expire_timer != None:
-                self.ua.expire_timer.cancel()
-                self.ua.expire_timer = None
-            code, reason, body = event.getData()
-            if body is not None and self.ua.on_local_sdp_change != None and body.needs_update:
+        if body is not None and self.ua.on_local_sdp_change is not None and body.needs_update:
+            try:
                 self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
-                return None
-            self.ua.cancelCreditTimer() # prevent timer leak on body-less re-INVITE
-            self.ua.startCreditTimer(event.rtime)
-            self.ua.connect_ts = event.rtime
-            self.ua.lSDP = body
-            self.ua.pending_tr.ack.setBody(body)
-            self.ua.global_config['_sip_tm'].sendACK(self.ua.pending_tr)
-            self.ua.pending_tr = None
-            for callback in self.ua.conn_cbs:
-                callback(self.ua, event.rtime, self.ua.origin)
+            except SdpHandlingErrors as e:
+                event = CCEventFail((e.code, e.msg), rtime = event.rtime)
+                event.reason_rfc3326 = e.getReason()
+                self.ua.equeue.append(event)
+            except Exception as e:
+                event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
+                event.setWarning(str(e))
+                self.ua.equeue.append(event)
             return None
-        #print('wrong event %s in the Connected state' % event)
+        if event.max_forwards is not None:
+            if event.max_forwards <= 0:
+                self.ua.equeue.append(CCEventFail((483, 'Too Many Hops'), rtime = event.rtime))
+                return None
+            max_forwards_hf = SipMaxForwards(number = event.max_forwards - 1)
+        else:
+            max_forwards_hf = None
+        req = self.ua.genRequest('INVITE', body, extra_headers = eh, \
+          max_forwards = max_forwards_hf)
+        self.ua.lSDP = body
+        self.ua.newUacTransaction(req, req_extra_headers = eh)
+        return (self.ua.UacStateUpdating,)
+
+    def _recvEventInfo(self, event, eh):
+        body = event.getData()
+        req = self.ua.genRequest('INFO', body, extra_headers = eh)
+        self.ua.newTransaction(req)
         return None
+
+    def _recvEventConnect(self, event, eh):
+        if self.ua.pending_tr is None:
+            return None
+        if self.ua.expire_timer is not None:
+            self.ua.expire_timer.cancel()
+            self.ua.expire_timer = None
+        code, reason, body = event.getData()
+        if body is not None and self.ua.on_local_sdp_change is not None and body.needs_update:
+            self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
+            return None
+        self.ua.cancelCreditTimer() # prevent timer leak on body-less re-INVITE
+        self.ua.startCreditTimer(event.rtime)
+        self.ua.connect_ts = event.rtime
+        self.ua.lSDP = body
+        self.ua.pending_tr.ack.setBody(body)
+        self.ua.global_config['_sip_tm'].sendACK(self.ua.pending_tr)
+        self.ua.pending_tr = None
+        for callback in self.ua.conn_cbs:
+            callback(self.ua, event.rtime, self.ua.origin)
+        return None
+
+    recv_event_handlers = {
+      CCEventDisconnect: _recvEventDisconnect,
+      CCEventFail: _recvEventFail,
+      CCEventRedirect: _recvEventRedirect,
+      CCEventUpdate: _recvEventUpdate,
+      CCEventInfo: _recvEventInfo,
+      CCEventConnect: _recvEventConnect,
+    }
 
     def keepAlive(self):
         if self.ua.state != self:

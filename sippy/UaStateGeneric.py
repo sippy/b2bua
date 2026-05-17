@@ -29,6 +29,7 @@ class UaStateGeneric(object):
     ua = None
     connected = False
     dead = False
+    recv_event_handlers = {}
 
     def __init__(self, ua):
         self.ua = ua
@@ -40,6 +41,9 @@ class UaStateGeneric(object):
         return None
 
     def recvEvent(self, event):
+        handler = self.recv_event_handlers.get(event.__class__)
+        if handler is not None:
+            return handler(self, event, event.getExtraHeaders())
         return None
 
     def cancel(self, rtime, req):
