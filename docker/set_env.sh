@@ -16,7 +16,7 @@ platformopts() {
     ;;
   linux/arm/v7)
     echo "RTPP_VERSION=production"
-    echo "OPENSSL_CONFIGURE_ARGS=linux-armv4"
+    echo "OPENSSL_CONFIGURE_ARGS=linux-armv5"
     echo "MM_INIT_DELAY=6"
     echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
@@ -26,7 +26,7 @@ platformopts() {
     echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
   linux/arm64)
-    echo "QEMU_CPU=cortex-a53"
+    echo "QEMU_CPU=cortex-a72"
     echo "MM_INIT_DELAY=6"
     echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
     ;;
