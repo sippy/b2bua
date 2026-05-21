@@ -51,24 +51,14 @@ class UasStateRinging(UasStateProgressing):
       CCEventDisconnect: UasStateProgressing._recvEventDisconnect,
     }
 
-    def recvRequest(self, req):
-        if req.getMethod() == 'BYE':
-            self.ua.sendUasResponse(487, 'Request Terminated')
-            req.sendResponse(200, 'OK')
-            #print('BYE received in the Ringing state, going to the Disconnected state')
-            if req.countHFs('also') > 0:
-                also = req.getHFBody('also').getCopy()
-            else:
-                also = None
-            event = CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin)
-            try:
-                event.reason_rfc3326 = req.getHFBody('reason')
-            except:
-                pass
-            self.ua.equeue.append(event)
-            if self.ua.expire_timer != None:
-                self.ua.expire_timer.cancel()
-                self.ua.expire_timer = None
-            self.ua.disconnect_ts = req.rtime
-            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
-        return None
+    def _recvRequestBye(self, req):
+        self.ua.sendUasResponse(487, 'Request Terminated')
+        req.sendResponse(200, 'OK')
+        #print('BYE received in the Ringing state, going to the Disconnected state')
+        also = self._getRequestAlso(req)
+        self._cancelExpireTimer()
+        return self._disconnectFromRequest(req, also)
+
+    recv_request_handlers = {
+      'BYE': _recvRequestBye,
+    }

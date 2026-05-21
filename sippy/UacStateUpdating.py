@@ -35,25 +35,21 @@ class UacStateUpdating(UaStateGeneric):
     triedauth = False
     connected = True
 
-    def recvRequest(self, req):
-        if req.getMethod() == 'INVITE':
-            req.sendResponse(491, 'Request Pending')
-            return None
-        elif req.getMethod() == 'BYE':
-            self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr)
-            req.sendResponse(200, 'OK')
-            #print('BYE received in the Updating state, going to the Disconnected state')
-            event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
-            try:
-                event.reason_rfc3326 = req.getHFBody('reason')
-            except:
-                pass
-            self.ua.equeue.append(event)
-            self.ua.cancelCreditTimer()
-            self.ua.disconnect_ts = req.rtime
-            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
-        #print('wrong request %s in the state Updating' % req.getMethod())
+    def _recvRequestInvite(self, req):
+        req.sendResponse(491, 'Request Pending')
         return None
+
+    def _recvRequestBye(self, req):
+        self.ua.global_config['_sip_tm'].cancelTransaction(self.ua.tr)
+        req.sendResponse(200, 'OK')
+        #print('BYE received in the Updating state, going to the Disconnected state')
+        self.ua.cancelCreditTimer()
+        return self._disconnectFromRequest(req)
+
+    recv_request_handlers = {
+      'INVITE': _recvRequestInvite,
+      'BYE': _recvRequestBye,
+    }
 
     def recvResponse(self, resp, tr):
         body = resp.getBody()

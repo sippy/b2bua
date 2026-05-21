@@ -24,17 +24,23 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from sippy.CCEvents import CCEventDisconnect
+
 class UaStateGeneric(object):
     sname = 'Generic'
     ua = None
     connected = False
     dead = False
     recv_event_handlers = {}
+    recv_request_handlers = {}
 
     def __init__(self, ua):
         self.ua = ua
 
     def recvRequest(self, req):
+        handler = self.recv_request_handlers.get(req.getMethod())
+        if handler is not None:
+            return handler(self, req)
         return None
 
     def recvResponse(self, resp, tr):
@@ -45,6 +51,22 @@ class UaStateGeneric(object):
         if handler is not None:
             return handler(self, event, event.getExtraHeaders())
         return None
+
+    def _getRequestAlso(self, req):
+        if req.countHFs('also') > 0:
+            return req.getHFBody('also').getCopy()
+        return None
+
+    def _disconnectFromRequest(self, req, also = None, copy_reason = True):
+        event = CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin)
+        if copy_reason:
+            try:
+                event.reason_rfc3326 = req.getHFBody('reason')
+            except:
+                pass
+        self.ua.equeue.append(event)
+        self.ua.disconnect_ts = req.rtime
+        return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
 
     def cancel(self, rtime, req):
         return None
