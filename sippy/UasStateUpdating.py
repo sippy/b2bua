@@ -31,36 +31,32 @@ class UasStateUpdating(UasStateGeneric):
     sname = 'Updating(UAS)'
     connected = True
 
-    def recvRequest(self, req):
-        if req.getMethod() == 'INVITE':
-            req.sendResponse(491, 'Request Pending')
-            return None
-        elif req.getMethod() == 'BYE':
-            self.ua.sendUasResponse(487, 'Request Terminated')
-            req.sendResponse(200, 'OK')
-            #print('BYE received in the Updating state, going to the Disconnected state')
-            event = CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin)
-            try:
-                event.reason_rfc3326 = req.getHFBody('reason')
-            except:
-                pass
-            self.ua.equeue.append(event)
-            self.ua.cancelCreditTimer()
-            self.ua.disconnect_ts = req.rtime
-            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
-        elif req.getMethod() == 'REFER':
-            if req.countHFs('refer-to') == 0:
-                req.sendResponse(400, 'Bad Request')
-                return None
-            self.ua.sendUasResponse(487, 'Request Terminated')
-            req.sendResponse(202, 'Accepted')
-            also = req.getHFBody('refer-to').getCopy()
-            self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
-            self.ua.cancelCreditTimer()
-            self.ua.disconnect_ts = req.rtime
-            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
-        #print('wrong request %s in the state Updating' % req.getMethod())
+    def _recvRequestInvite(self, req):
+        req.sendResponse(491, 'Request Pending')
         return None
+
+    def _recvRequestBye(self, req):
+        self.ua.sendUasResponse(487, 'Request Terminated')
+        req.sendResponse(200, 'OK')
+        #print('BYE received in the Updating state, going to the Disconnected state')
+        self.ua.cancelCreditTimer()
+        return self._disconnectFromRequest(req)
+
+    def _recvRequestRefer(self, req):
+        if req.countHFs('refer-to') == 0:
+            req.sendResponse(400, 'Bad Request')
+            return None
+        self.ua.sendUasResponse(487, 'Request Terminated')
+        req.sendResponse(202, 'Accepted')
+        also = req.getHFBody('refer-to').getCopy()
+        self.ua.cancelCreditTimer()
+        return self._disconnectFromRequest(req, also, copy_reason = False)
+
+    recv_request_handlers = {
+      'INVITE': _recvRequestInvite,
+      'BYE': _recvRequestBye,
+      'REFER': _recvRequestRefer,
+    }
 
     def _recvEventConnect(self, event, eh):
         cdata = self._getConnectData(event)

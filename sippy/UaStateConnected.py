@@ -52,80 +52,79 @@ class UaStateConnected(UaStateGeneric):
         if self.ua.kaInterval > 0:
             Timeout(self.keepAlive, self.ua.kaInterval)
 
-    def recvRequest(self, req):
-        if req.getMethod() == 'REFER':
-            if req.countHFs('refer-to') == 0:
-                req.sendResponse(400, 'Bad Request')
-                return None
-            req.sendResponse(202, 'Accepted')
-            also = req.getHFBody('refer-to').getCopy()
-            self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
-            self.ua.recvEvent(CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin))
+    def _recvRequestRefer(self, req):
+        if req.countHFs('refer-to') == 0:
+            req.sendResponse(400, 'Bad Request')
             return None
-        if req.getMethod() == 'INVITE':
-            self.ua.uasResp = req.genResponse(100, 'Trying', server = self.ua.local_ua)
-            self.ua.global_config['_sip_tm'].sendResponse(self.ua.uasResp)
-            body = req.getBody()
-            if body is None:
-                # Some brain-damaged stacks use body-less re-INVITE as a means
-                # for putting session on hold. Quick and dirty hack to make this
-                # scenario working.
-                body = self.ua.rSDP.getCopy()
-                body.parse()
-                for sect in body.content.sections:
-                    sect.c_header.addr = '0.0.0.0'
-            elif str(self.ua.rSDP) == str(body):
-                self.ua.sendUasResponse(200, 'OK', self.ua.lSDP, (self.ua.lContact,))
-                return None
-            event = CCEventUpdate(body, rtime = req.rtime, origin = self.ua.origin)
-            try:
-                event.reason_rfc3326 = req.getHFBody('reason')
-            except:
-                pass
-            try:
-                event.max_forwards = req.getHFBody('max-forwards').getNum()
-            except:
-                pass
-            if body is not None:
-                if self.ua.on_remote_sdp_change != None:
-                    body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
-                    if body is None:
-                        return (self.ua.UasStateUpdating,)
-                self.ua.rSDP = body.getCopy()
-            else:
-                self.ua.rSDP = None
-            self.ua.equeue.append(event)
-            return (self.ua.UasStateUpdating,)
-        if req.getMethod() == 'BYE':
-            req.sendResponse(200, 'OK')
-            #print('BYE received in the Connected state, going to the Disconnected state')
-            if req.countHFs('also') > 0:
-                also = req.getHFBody('also').getCopy()
-            else:
-                also = None
-            event = CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin)
-            try:
-                event.reason_rfc3326 = req.getHFBody('reason')
-            except:
-                pass
-            self.ua.equeue.append(event)
-            self.ua.cancelCreditTimer()
-            self.ua.disconnect_ts = req.rtime
-            return (self.ua.UaStateDisconnected, self.ua.disc_cbs, req.rtime, self.ua.origin)
-        if req.getMethod() == 'INFO':
-            req.sendResponse(200, 'OK')
-            event = CCEventInfo(req.getBody(), rtime = req.rtime, origin = self.ua.origin)
-            try:
-                event.reason_rfc3326 = req.getHFBody('reason')
-            except:
-                pass
-            self.ua.equeue.append(event)
-            return None
-        if req.getMethod() == 'OPTIONS':
-            req.sendResponse(200, 'OK')
-            return None
-        #print('wrong request %s in the state Connected' % req.getMethod())
+        req.sendResponse(202, 'Accepted')
+        also = req.getHFBody('refer-to').getCopy()
+        self.ua.equeue.append(CCEventDisconnect(also, rtime = req.rtime, origin = self.ua.origin))
+        self.ua.recvEvent(CCEventDisconnect(rtime = req.rtime, origin = self.ua.origin))
         return None
+
+    def _recvRequestInvite(self, req):
+        self.ua.uasResp = req.genResponse(100, 'Trying', server = self.ua.local_ua)
+        self.ua.global_config['_sip_tm'].sendResponse(self.ua.uasResp)
+        body = req.getBody()
+        if body is None:
+            # Some brain-damaged stacks use body-less re-INVITE as a means
+            # for putting session on hold. Quick and dirty hack to make this
+            # scenario working.
+            body = self.ua.rSDP.getCopy()
+            body.parse()
+            for sect in body.content.sections:
+                sect.c_header.addr = '0.0.0.0'
+        elif str(self.ua.rSDP) == str(body):
+            self.ua.sendUasResponse(200, 'OK', self.ua.lSDP, (self.ua.lContact,))
+            return None
+        event = CCEventUpdate(body, rtime = req.rtime, origin = self.ua.origin)
+        try:
+            event.reason_rfc3326 = req.getHFBody('reason')
+        except:
+            pass
+        try:
+            event.max_forwards = req.getHFBody('max-forwards').getNum()
+        except:
+            pass
+        if body is not None:
+            if self.ua.on_remote_sdp_change is not None:
+                body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
+                if body is None:
+                    return (self.ua.UasStateUpdating,)
+            self.ua.rSDP = body.getCopy()
+        else:
+            self.ua.rSDP = None
+        self.ua.equeue.append(event)
+        return (self.ua.UasStateUpdating,)
+
+    def _recvRequestBye(self, req):
+        req.sendResponse(200, 'OK')
+        #print('BYE received in the Connected state, going to the Disconnected state')
+        also = self._getRequestAlso(req)
+        self.ua.cancelCreditTimer()
+        return self._disconnectFromRequest(req, also)
+
+    def _recvRequestInfo(self, req):
+        req.sendResponse(200, 'OK')
+        event = CCEventInfo(req.getBody(), rtime = req.rtime, origin = self.ua.origin)
+        try:
+            event.reason_rfc3326 = req.getHFBody('reason')
+        except:
+            pass
+        self.ua.equeue.append(event)
+        return None
+
+    def _recvRequestOptions(self, req):
+        req.sendResponse(200, 'OK')
+        return None
+
+    recv_request_handlers = {
+      'REFER': _recvRequestRefer,
+      'INVITE': _recvRequestInvite,
+      'BYE': _recvRequestBye,
+      'INFO': _recvRequestInfo,
+      'OPTIONS': _recvRequestOptions,
+    }
 
     def recvACK(self, req):
         body = req.getBody()
