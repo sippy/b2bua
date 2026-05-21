@@ -31,31 +31,31 @@ jobs:
       matrix:
         platform: ${{ fromJSON(needs.set_env.outputs.build-matrix) }}
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Checkout VoIPTests repo
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'sippy/voiptests'
         path: dist/voiptests
 
     - name: Checkout RTPProxy repo
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'sippy/rtpproxy'
         path: dist/rtpproxy
 
     - name: Set up QEMU
       if: matrix.platform != 'linux/386' && matrix.platform != 'linux/amd64'
-      uses: docker/setup-qemu-action@v3
+      uses: docker/setup-qemu-action@v4
       with:
         platforms: ${{ env.TARGETPLATFORM }}
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Cache wheels
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: dist_out/root/.cache
         key: voiptests-${{ env.BASE_IMAGE}}-${{ matrix.platform }}-pipcache-${{ github.run_id }}
@@ -68,7 +68,7 @@ jobs:
       run: test -d dist_out || mkdir dist_out
 
     - name: VoIP Tests
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       env:
         DOCKER_BUILD_SUMMARY: false
         DOCKER_BUILD_RECORD_UPLOAD: false
@@ -80,5 +80,5 @@ jobs:
           BASE_IMAGE=${{ env.BASE_IMAGE }}
         platforms: ${{ env.TARGETPLATFORM }}
         outputs: type=local,dest=dist_out
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,scope=voiptests-${{ env.BASE_IMAGE }}-${{ matrix.platform }}-dcache
+        cache-to: type=gha,scope=voiptests-${{ env.BASE_IMAGE }}-${{ matrix.platform }}-dcache,mode=max
