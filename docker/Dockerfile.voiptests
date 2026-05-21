@@ -17,7 +17,7 @@ ARG BASE_IMAGE
 
 ENV SET_ENV="sh /tmp/docker/set_env.sh platformopts"
 
-RUN env -S "`${SET_ENV}`" sh -x docker/install_depends.sh
+RUN eval "`${SET_ENV}`" && sh -x docker/install_depends.sh
 
 COPY --exclude=.git --exclude=.github --exclude=dist_out . .
 
@@ -46,20 +46,20 @@ ENV RTPPROXY_DIST=../../dist/rtpproxy
 WORKDIR dist/voiptests
 
 ENV RTPPC_TYPE=unix
-RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
 RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
 
 ENV RTPPC_TYPE=cunix
-RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
 RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
 
 ENV RTPPC_TYPE=udp
-RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
 RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
 
 ENV RTPPC_TYPE=tcp
-RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
 RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
 
 ENV RTPPC_TYPE=rtp.io
-RUN env -S "`${SET_ENV}`" sh -x ./test_run.sh
+RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh

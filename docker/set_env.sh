@@ -3,6 +3,10 @@
 set -e
 set -x
 
+fexport() {
+  echo "export ${1}"
+}
+
 platformopts() {
   local IMAGE_TAG="${BASE_IMAGE#*:}"
   local _OS_TAG="${IMAGE_TAG%%_*}"
@@ -10,36 +14,36 @@ platformopts() {
 
   case "${TARGETPLATFORM}" in
   linux/arm/v5)
-    echo "RTPP_VERSION=production"
-    echo "MM_INIT_DELAY=6"
-    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
+    fexport RTPP_VERSION=production
+    fexport MM_INIT_DELAY=6
+    fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   linux/arm/v7)
-    echo "RTPP_VERSION=production"
-    echo "OPENSSL_CONFIGURE_ARGS=linux-armv5"
-    echo "MM_INIT_DELAY=6"
-    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
+    fexport RTPP_VERSION=production
+    fexport OPENSSL_CONFIGURE_ARGS=linux-armv4
+    fexport MM_INIT_DELAY=6
+    fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   linux/s390x)
-    echo "RTPP_VERSION=production"
-    echo "MM_INIT_DELAY=6"
-    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
+    fexport RTPP_VERSION=production
+    fexport MM_INIT_DELAY=6
+    fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   linux/arm64)
-    echo "QEMU_CPU=cortex-a72"
-    echo "MM_INIT_DELAY=6"
-    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
+    fexport QEMU_CPU=cortex-a72
+    fexport MM_INIT_DELAY=6
+    fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   linux/ppc64le)
-    echo "MM_INIT_DELAY=6"
-    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
+    fexport MM_INIT_DELAY=6
+    fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   linux/riscv64)
-    echo "MM_INIT_DELAY=6"
-    echo "TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel"
+    fexport MM_INIT_DELAY=6
+    fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   esac
-  echo 'EXTRA_PACKAGES="build-essential libunwind-dev git python3-dev cmake ninja-build patchelf"'
+  fexport 'EXTRA_PACKAGES="build-essential libunwind-dev git python3-dev cmake ninja-build patchelf"'
 }
 
 case "${1}" in
