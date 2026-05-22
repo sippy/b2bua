@@ -39,8 +39,17 @@ platformopts() {
     fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   linux/riscv64)
-    fexport MM_INIT_DELAY=6
     fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
+    case "${OS_TAG}" in
+    ubuntu)
+      fexport 'CFLAGS_opt="-O1 -g3 -pipe -flto"'
+      fexport MM_WAITREADY=10
+      fexport MM_INIT_DELAY=12
+      ;;
+    *)
+      fexport MM_INIT_DELAY=6
+      ;;
+    esac
     ;;
   esac
   fexport 'EXTRA_PACKAGES="build-essential libunwind-dev git python3-dev cmake ninja-build patchelf"'
