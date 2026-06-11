@@ -11,26 +11,82 @@ on:
         required: false
         type: string
         default: 'latest-debian_13-slim'
+      buildkit-image:
+        required: false
+        type: string
+        default: 'moby/buildkit:buildx-stable-1'
+      qemu-image:
+        required: false
+        type: string
+        default: 'tonistiigi/binfmt:latest'
+      qemu-image-cache-key:
+        required: true
+        type: string
+      qemu-image-cache-path:
+        required: true
+        type: string
+      qemu-image-cache-tar:
+        required: true
+        type: string
+      buildkit-image-cache-key:
+        required: true
+        type: string
+      buildkit-image-cache-path:
+        required: true
+        type: string
+      buildkit-image-cache-tar:
+        required: true
+        type: string
 
 jobs:
   set_env:
     name: List Supported Arches
-    uses: sippy/cimagic/.github/workflows/GetContainerPlatforms.yml@v2
+    uses: sippy/cimagic/.github/workflows/GetContainerPlatforms.yml@v3
     with:
       image: ${{ inputs.rtpp-image }}:${{ inputs.rtpp-image-tag }}
 
-  run_voiptests:
-    name: Run VoIPTests
+  build_voiptests_image:
+    name: Build VoIPTests Image
     runs-on: ubuntu-latest
-    needs: [set_env]
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-cache-key: ${{ steps.image_meta.outputs.image-cache-key }}
+      image-ref: ${{ steps.image_meta.outputs.image-ref }}
+    needs:
+    - set_env
     env:
       BASE_IMAGE: ${{ inputs.rtpp-image }}:${{ inputs.rtpp-image-tag }}
-      TARGETPLATFORM: ${{ matrix.platform }}
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ${{ fromJSON(needs.set_env.outputs.build-matrix) }}
+      PLATFORMS: ${{ needs.set_env.outputs.platforms }}
     steps:
+    - name: Maximize build space
+      if: ${{ inputs.maximize_space }}
+      shell: sh -x -e {0}
+      run: &maximize_build_space |
+        echo "Memory and swap:"
+        sudo free -h
+        echo
+        sudo swapon --show
+        echo
+
+        echo "Available storage:"
+        sudo df -h
+        echo
+
+        PIDS=""
+        for d in /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+        do
+          sudo rm -rf "${d}" &
+          PIDS="${PIDS} ${!}"
+        done
+        sudo docker image prune --all --force &
+        PIDS="${PIDS} ${!}"
+        for pid in ${PIDS}
+        do
+          wait ${pid}
+        done
+
     - uses: actions/checkout@v6
 
     - name: Checkout VoIPTests repo
@@ -45,29 +101,165 @@ jobs:
         repository: 'sippy/rtpproxy'
         path: dist/rtpproxy
 
-    - name: Set up QEMU
-      if: matrix.platform != 'linux/386' && matrix.platform != 'linux/amd64'
-      uses: docker/setup-qemu-action@v4
+    - name: Restore QEMU binfmt image cache
+      id: qemu_image_cache
+      uses: actions/cache/restore@v5
       with:
-        platforms: ${{ env.TARGETPLATFORM }}
+        path: ${{ inputs.qemu-image-cache-path }}
+        key: ${{ inputs.qemu-image-cache-key }}
+
+    - name: Load or pull QEMU binfmt image
+      env:
+        QEMU_IMAGE: ${{ inputs.qemu-image }}
+      run: |
+        set -euo pipefail
+        if [ -s "${{ inputs.qemu-image-cache-tar }}" ]
+        then
+          docker load --input "${{ inputs.qemu-image-cache-tar }}"
+        else
+          docker pull "${QEMU_IMAGE}"
+          mkdir -p "${{ inputs.qemu-image-cache-path }}"
+          docker save --output "${{ inputs.qemu-image-cache-tar }}" "${QEMU_IMAGE}"
+        fi
+
+    - name: Save QEMU binfmt image cache
+      if: steps.qemu_image_cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ inputs.qemu-image-cache-path }}
+        key: ${{ inputs.qemu-image-cache-key }}
+      continue-on-error: true
+
+    - name: Set up QEMU
+      env:
+        QEMU_IMAGE: ${{ inputs.qemu-image }}
+      run: |
+        set -euo pipefail
+        docker image inspect "${QEMU_IMAGE}" >/dev/null
+        docker run --rm --privileged "${QEMU_IMAGE}" --version
+        docker run --rm --privileged "${QEMU_IMAGE}" --install all
+
+    - name: Restore BuildKit image cache
+      id: buildkit_image_cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ inputs.buildkit-image-cache-path }}
+        key: ${{ inputs.buildkit-image-cache-key }}
+
+    - name: Load or pull BuildKit image
+      env:
+        BUILDKIT_IMAGE: ${{ inputs.buildkit-image }}
+      run: |
+        set -euo pipefail
+        if [ -s "${{ inputs.buildkit-image-cache-tar }}" ]
+        then
+          docker load --input "${{ inputs.buildkit-image-cache-tar }}"
+        else
+          docker pull "${BUILDKIT_IMAGE}"
+          mkdir -p "${{ inputs.buildkit-image-cache-path }}"
+          docker save --output "${{ inputs.buildkit-image-cache-tar }}" "${BUILDKIT_IMAGE}"
+        fi
+
+    - name: Save BuildKit image cache
+      if: steps.buildkit_image_cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ inputs.buildkit-image-cache-path }}
+        key: ${{ inputs.buildkit-image-cache-key }}
+      continue-on-error: true
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
-
-    - name: Cache wheels
-      uses: actions/cache@v5
       with:
-        path: dist_out/root/.cache
-        key: voiptests-${{ env.BASE_IMAGE}}-${{ matrix.platform }}-pipcache-${{ github.run_id }}
-        restore-keys: |
-          voiptests-${{ env.BASE_IMAGE}}-${{ matrix.platform }}-pipcache-${{ github.run_id }}
-          voiptests-${{ env.BASE_IMAGE}}-${{ matrix.platform }}-pipcache
-          voiptests-${{ matrix.platform }}-pipcache
+        driver-opts: |
+          image=${{ inputs.buildkit-image }}
 
-    - name: Small things
-      run: test -d dist_out || mkdir dist_out
+    - name: Compute image metadata
+      id: image_meta
+      env:
+        BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      run: |
+        set -euo pipefail
+        tag_safe() {
+          echo "$1" | \
+            sed -E 's|[^A-Za-z0-9_.-]+|-|g; s|^[.-]+||; s|[.-]+$||' | \
+            cut -c1-100
+        }
+        BASE_SAFE="$(echo "${BASE_IMAGE}" | sed 's|[^a-zA-Z0-9_.-]|-|g')"
+        PLATFORMS="${PLATFORMS}"
+        if [ -z "${PLATFORMS}" ]
+        then
+          PLATFORMS="$(echo '${{ needs.set_env.outputs.build-matrix }}' | jq -r 'join(",")')"
+        fi
+        IMAGE_REF="voiptests-sippy:${BASE_SAFE}"
+        REPOSITORY_SAFE="$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+        BUILD_CACHE_REF="ghcr.io/${REPOSITORY_SAFE}/voiptests-build-cache:${BASE_SAFE}"
+        WHEELSET_REPOSITORY="ghcr.io/${REPOSITORY_SAFE}/sippy-wheelset"
+        WHEELSET_DEFAULT_TAG="$(tag_safe "${{ inputs.rtpp-image-tag }}")"
+        if [ "${BRANCH_NAME}" = "master" ]
+        then
+          WHEELSET_TAG="${WHEELSET_DEFAULT_TAG}"
+        else
+          BRANCH_SAFE="$(tag_safe "${BRANCH_NAME}")"
+          WHEELSET_TAG="$(echo "${WHEELSET_DEFAULT_TAG}-${BRANCH_SAFE}" | cut -c1-127 | sed -E 's|[.-]+$||')"
+        fi
+        IMAGE_CACHE_KEY="voiptests-image-${BASE_SAFE}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+        echo "platforms=${PLATFORMS}" >> "$GITHUB_OUTPUT"
+        echo "image-ref=${IMAGE_REF}" >> "$GITHUB_OUTPUT"
+        echo "build-cache-ref=${BUILD_CACHE_REF}" >> "$GITHUB_OUTPUT"
+        echo "wheelset-ref=${WHEELSET_REPOSITORY}:${WHEELSET_TAG}" >> "$GITHUB_OUTPUT"
+        echo "wheelset-default-ref=${WHEELSET_REPOSITORY}:${WHEELSET_DEFAULT_TAG}" >> "$GITHUB_OUTPUT"
+        echo "wheelset-untagged-ref=${WHEELSET_REPOSITORY}" >> "$GITHUB_OUTPUT"
+        echo "image-cache-key=${IMAGE_CACHE_KEY}" >> "$GITHUB_OUTPUT"
 
-    - name: VoIP Tests
+    - name: Configure BuildKit cache
+      run: |
+        if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]
+        then
+          echo "CACHE_FROM=type=registry,ref=${{ steps.image_meta.outputs.build-cache-ref }}" >> "${GITHUB_ENV}"
+          echo "CACHE_TO=type=registry,ref=${{ steps.image_meta.outputs.build-cache-ref }},mode=max,ignore-error=true" >> "${GITHUB_ENV}"
+        else
+          echo "CACHE_FROM=" >> "${GITHUB_ENV}"
+          echo "CACHE_TO=" >> "${GITHUB_ENV}"
+        fi
+
+    - name: Login to GHCR
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Probe wheels cache image
+      env:
+        WHEELSET_REF: ${{ steps.image_meta.outputs.wheelset-ref }}
+        WHEELSET_DEFAULT_REF: ${{ steps.image_meta.outputs.wheelset-default-ref }}
+        WHEELSET_UNTAGGED_REF: ${{ steps.image_meta.outputs.wheelset-untagged-ref }}
+      run: |
+        set -euo pipefail
+
+        WHEELSET_BIMAGE="scratch"
+        if docker manifest inspect "${WHEELSET_REF}" >/dev/null 2>&1
+        then
+          WHEELSET_BIMAGE="${WHEELSET_REF}"
+        elif [ "${WHEELSET_DEFAULT_REF}" != "${WHEELSET_REF}" ] && docker manifest inspect "${WHEELSET_DEFAULT_REF}" >/dev/null 2>&1
+        then
+          WHEELSET_BIMAGE="${WHEELSET_DEFAULT_REF}"
+        elif docker manifest inspect "${WHEELSET_UNTAGGED_REF}" >/dev/null 2>&1
+        then
+          WHEELSET_BIMAGE="${WHEELSET_UNTAGGED_REF}"
+        fi
+
+        if [ "${WHEELSET_BIMAGE}" = "scratch" ]
+        then
+          echo "No wheels cache image found."
+        else
+          echo "Restoring wheels cache from ${WHEELSET_BIMAGE}"
+        fi
+        echo "WHEELSET_BIMAGE=${WHEELSET_BIMAGE}" >> "${GITHUB_ENV}"
+
+    - name: Build VoIPTests OCI archive
       uses: docker/build-push-action@v7
       env:
         DOCKER_BUILD_SUMMARY: false
@@ -75,10 +267,154 @@ jobs:
       with:
         context: .
         file: ./docker/Dockerfile.voiptests
+        target: voiptests_base
+        tags: ${{ steps.image_meta.outputs.image-ref }}
         build-args: |
-          RTPPC_TYPE=unix
           BASE_IMAGE=${{ env.BASE_IMAGE }}
-        platforms: ${{ env.TARGETPLATFORM }}
-        outputs: type=local,dest=dist_out
-        cache-from: type=gha,scope=voiptests-${{ env.BASE_IMAGE }}-${{ matrix.platform }}-dcache
-        cache-to: type=gha,scope=voiptests-${{ env.BASE_IMAGE }}-${{ matrix.platform }}-dcache,mode=max
+          WHEELSET_IMAGE=${{ env.WHEELSET_BIMAGE }}
+        platforms: ${{ steps.image_meta.outputs.platforms }}
+        outputs: type=oci,dest=/tmp/voiptests-image.tar
+        cache-from: ${{ env.CACHE_FROM }}
+        cache-to: ${{ env.CACHE_TO }}
+
+    - name: Push wheels cache image
+      if: github.event_name != 'pull_request'
+      uses: docker/build-push-action@v7
+      env:
+        DOCKER_BUILD_SUMMARY: false
+        DOCKER_BUILD_RECORD_UPLOAD: false
+      with:
+        context: .
+        file: ./docker/Dockerfile.voiptests
+        target: export_wheelset
+        tags: ${{ steps.image_meta.outputs.wheelset-ref }}
+        build-args: |
+          BASE_IMAGE=${{ env.BASE_IMAGE }}
+          WHEELSET_IMAGE=${{ env.WHEELSET_BIMAGE }}
+        platforms: ${{ steps.image_meta.outputs.platforms }}
+        push: true
+        cache-from: ${{ env.CACHE_FROM }}
+        cache-to: ${{ env.CACHE_TO }}
+
+    - name: Save VoIPTests image cache
+      uses: actions/cache/save@v5
+      with:
+        path: /tmp/voiptests-image.tar
+        key: ${{ steps.image_meta.outputs.image-cache-key }}
+
+  run_voiptests:
+    name: Run VoIPTests
+    runs-on: ubuntu-latest
+    needs:
+    - set_env
+    - build_voiptests_image
+    env:
+      BASE_IMAGE: ${{ inputs.rtpp-image }}:${{ inputs.rtpp-image-tag }}
+      TARGETPLATFORM: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.set_env.outputs.build-matrix) }}
+        rtppc-type: [unix, cunix, udp, tcp, rtp.io]
+    steps:
+    - name: Restore QEMU binfmt image cache
+      id: qemu_image_cache
+      if: matrix.platform != 'linux/386' && matrix.platform != 'linux/amd64'
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ inputs.qemu-image-cache-path }}
+        key: ${{ inputs.qemu-image-cache-key }}
+
+    - name: Load or pull QEMU binfmt image
+      if: matrix.platform != 'linux/386' && matrix.platform != 'linux/amd64'
+      env:
+        QEMU_IMAGE: ${{ inputs.qemu-image }}
+      run: |
+        set -euo pipefail
+        if [ -s "${{ inputs.qemu-image-cache-tar }}" ]
+        then
+          docker load --input "${{ inputs.qemu-image-cache-tar }}"
+        else
+          docker pull "${QEMU_IMAGE}"
+        fi
+
+    - name: Set up QEMU
+      if: matrix.platform != 'linux/386' && matrix.platform != 'linux/amd64'
+      env:
+        QEMU_IMAGE: ${{ inputs.qemu-image }}
+      run: |
+        set -euo pipefail
+        docker image inspect "${QEMU_IMAGE}" >/dev/null
+        docker run --rm --privileged "${QEMU_IMAGE}" --version
+        docker run --rm --privileged "${QEMU_IMAGE}" --install all
+
+    - name: Restore VoIPTests image cache
+      uses: actions/cache/restore@v5
+      with:
+        path: /tmp/voiptests-image.tar
+        key: ${{ needs.build_voiptests_image.outputs.image-cache-key }}
+        fail-on-cache-miss: true
+
+    - name: Install OCI archive loader
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends skopeo
+
+    - name: Load ${{ env.TARGETPLATFORM }} VoIPTests image
+      run: |
+        target_os="${TARGETPLATFORM%%/*}"
+        target_arch_variant="${TARGETPLATFORM#*/}"
+        target_arch="${target_arch_variant%%/*}"
+        target_variant=""
+        if [ "${target_arch_variant}" != "${target_arch}" ]
+        then
+          target_variant="${target_arch_variant#*/}"
+        fi
+        copy_args="--override-os ${target_os} --override-arch ${target_arch}"
+        if [ -n "${target_variant:-}" ]
+        then
+          copy_args="${copy_args} --override-variant ${target_variant}"
+        fi
+        skopeo copy ${copy_args} \
+          oci-archive:/tmp/voiptests-image.tar \
+          docker-daemon:${{ needs.build_voiptests_image.outputs.image-ref }}
+
+    - name: Run tests in local image
+      id: run_tests
+      run: |
+        CTR_NAME="voiptests-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${{ strategy.job-index }}"
+        trap 'docker rm -f "${CTR_NAME}" >/dev/null 2>&1 || true' EXIT
+
+        docker create \
+          --platform "${TARGETPLATFORM}" \
+          --name "${CTR_NAME}" \
+          --privileged \
+          --sysctl net.ipv6.conf.all.disable_ipv6=0 \
+          -e BASE_IMAGE="${BASE_IMAGE}" \
+          -e TARGETPLATFORM="${TARGETPLATFORM}" \
+          -e RTPPC_TYPE="${{ matrix.rtppc-type }}" \
+          "${{ needs.build_voiptests_image.outputs.image-ref }}"
+
+        TEST_RES="ok"
+        docker start -a "${CTR_NAME}" || TEST_RES="fail"
+        rm -rf test.logs
+        docker cp "${CTR_NAME}:/tmp/dist/voiptests/test.logs" ./test.logs || true
+        test "${TEST_RES}" = "ok"
+      timeout-minutes: 3
+
+    - name: Build artifact name
+      id: artifact_name
+      if: always() && ( steps.run_tests.outcome == 'success' || steps.run_tests.outcome == 'failure' )
+      run: |
+        PLATFORM_SAFE="$(echo "${TARGETPLATFORM}" | sed 's|.*/||g')"
+        RTPPC_SAFE="$(echo "${{ matrix.rtppc-type }}" | sed 's|[^a-zA-Z0-9_.-]|.|g')"
+        BASE_SAFE="$(echo "${{ inputs.rtpp-image-tag }}" | sed 's|[^a-zA-Z0-9_.-]|-|g')"
+        echo "artname=test-logs_${BASE_SAFE}_${PLATFORM_SAFE}_${RTPPC_SAFE}" >> "$GITHUB_OUTPUT"
+
+    - name: Upload test logs
+      if: always() && ( steps.run_tests.outcome == 'success' || steps.run_tests.outcome == 'failure' )
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.artifact_name.outputs.artname }}
+        path: test.logs
+      continue-on-error: true

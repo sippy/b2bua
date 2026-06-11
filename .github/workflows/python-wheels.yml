@@ -24,8 +24,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14-dev']
+        os: [ubuntu-latest, ubuntu-24.04]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15-dev']
 
     steps:
     - uses: actions/checkout@v5
@@ -54,11 +54,38 @@ jobs:
         pip install dist/sippy*.gz
         ${PYTHON_CMD} -m unittest
 
+  cache_qemu_image:
+    name: Cache QEMU Image
+    uses: sippy/cimagic/.github/workflows/GetCachedContainer.yml@v3
+    with:
+      image: tonistiigi/binfmt:latest
+      platforms: host
+      cache-key-prefix: qemu-binfmt-image
+      cache-name: qemu-binfmt-image
+
+  cache_buildkit_image:
+    name: Cache BuildKit Image
+    uses: sippy/cimagic/.github/workflows/GetCachedContainer.yml@v3
+    with:
+      image: moby/buildkit:buildx-stable-1
+      platforms: host
+      cache-key-prefix: buildkit-image
+      cache-name: buildkit-image
+
   voiptests:
     name: VoIPTests
+    needs:
+    - cache_qemu_image
+    - cache_buildkit_image
     uses: ./.github/workflows/.voiptests.yml
     with:
       rtpp-image-tag: latest-${{ matrix.rtpp-image-tag }}
+      qemu-image-cache-key: ${{ needs.cache_qemu_image.outputs.image-cache-key }}
+      qemu-image-cache-path: ${{ needs.cache_qemu_image.outputs.image-cache-path }}
+      qemu-image-cache-tar: ${{ needs.cache_qemu_image.outputs.image-cache-tar }}
+      buildkit-image-cache-key: ${{ needs.cache_buildkit_image.outputs.image-cache-key }}
+      buildkit-image-cache-path: ${{ needs.cache_buildkit_image.outputs.image-cache-path }}
+      buildkit-image-cache-tar: ${{ needs.cache_buildkit_image.outputs.image-cache-tar }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,7 +106,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.13'
+        python-version: '3.14'
 
     - name: Install dependencies
       run: |
@@ -99,4 +126,4 @@ jobs:
     needs: [publish_wheels]
     permissions:
       contents: write
-    uses: sippy/cimagic/.github/workflows/RollReleaseDraft.yml@v2
+    uses: sippy/cimagic/.github/workflows/RollReleaseDraft.yml@v3

@@ -15,7 +15,8 @@ platformopts() {
   case "${TARGETPLATFORM}" in
   linux/arm/v5)
     fexport RTPP_VERSION=production
-    fexport MM_INIT_DELAY=6
+    fexport MM_WAITREADY=6
+    fexport MM_INIT_DELAY=8
     fexport TEST_SET_MIGHTFAIL=early_cancel_lost100,early_cancel
     ;;
   linux/arm/v7)

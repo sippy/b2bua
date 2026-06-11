@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1.7-labs
 
 ARG BASE_IMAGE="sippylabs/rtpproxy:latest"
-FROM $BASE_IMAGE AS test
+ARG WHEELSET_IMAGE="scratch"
+FROM $BASE_IMAGE AS voiptests_build
 LABEL maintainer="Maksym Sobolyev <sobomax@sippysoft.com>"
 
 USER root
@@ -23,13 +24,13 @@ COPY --exclude=.git --exclude=.github --exclude=dist_out . .
 
 ENV CACHE_HOME="/root"
 ENV CACHE_ROOT="${CACHE_HOME}/.cache"
-
-ENV TROOT=/tmp/dist_out
-COPY dist_out ${TROOT}
 RUN mkdir -p ${CACHE_ROOT}
-RUN test ! -d ${TROOT}${CACHE_ROOT} || \
-  cp -a ${TROOT}${CACHE_ROOT} ${CACHE_HOME}/
-RUN rm -r ${TROOT}
+
+FROM ${WHEELSET_IMAGE} AS wheelset
+COPY --from=voiptests_build /root/.cache/ /root/.cache/
+
+FROM voiptests_build AS voiptests_base
+COPY --from=wheelset /root/.cache /root/.cache
 
 ENV PYTHON_CMD=python3
 RUN ${PYTHON_CMD} -m pip install --upgrade setuptools
@@ -44,22 +45,7 @@ ENV MM_ROOT=../..
 ENV RTPP_BRANCH=DOCKER
 ENV RTPPROXY_DIST=../../dist/rtpproxy
 WORKDIR dist/voiptests
+ENTRYPOINT [ "sh", "/tmp/docker/voiptests_entrypoint.sh" ]
 
-ENV RTPPC_TYPE=unix
-RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
-RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
-
-ENV RTPPC_TYPE=cunix
-RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
-RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
-
-ENV RTPPC_TYPE=udp
-RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
-RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
-
-ENV RTPPC_TYPE=tcp
-RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
-RUN rm -f alice.log bob.log rtpproxy.log b2bua.log
-
-ENV RTPPC_TYPE=rtp.io
-RUN eval "`${SET_ENV}`" && sh -x ./test_run.sh
+FROM scratch AS export_wheelset
+COPY --from=voiptests_base /root/.cache /root/.cache
