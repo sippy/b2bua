@@ -27,11 +27,15 @@
 
 from functools import partial
 from base64 import b64encode, b64decode
+from hmac import compare_digest, new as hmac_new
+from secrets import token_bytes
 
-from Crypto import Random
 from Crypto.Cipher import AES
 
 from sippy.Time.clock_dtime import clock_getntime, CLOCK_MONOTONIC
+
+AES_BLOCK_SIZE = AES.block_size
+MAC_SIZE = 16
 
 to_bytes_be = partial(int.to_bytes, byteorder='big')
 from_bytes_be = partial(int.from_bytes, byteorder='big')
@@ -43,23 +47,30 @@ def bxor(ba1, ba2):
     return to_bytes_be(ba1 ^ ba2, olen)
 
 class AESCipher(object):
-    bpad = '='.encode()
     cipher = None
+    mac_key = None
 
     def __init__(self, key):
-        self.cipher = AES.new(key, AES.MODE_ECB)
+        self.cipher = AES.new(key[:AES_BLOCK_SIZE * 2], AES.MODE_ECB)
+        self.mac_key = key[AES_BLOCK_SIZE * 2:]
 
     def encrypt(self, raw):
-        iv = Random.new().read(AES.block_size)
+        iv = token_bytes(AES_BLOCK_SIZE)
         raw = bxor(raw, iv)
         eraw = self.cipher.encrypt(iv + raw)
-        return b64encode(eraw)[:-1]
+        eraw += hmac_new(self.mac_key, eraw, 'sha256').digest()[:MAC_SIZE]
+        return b64encode(eraw).rstrip(b'=')
 
     def decrypt(self, enc):
-        enc = b64decode(enc + self.bpad)
-        raw = self.cipher.decrypt(enc)
-        iv = raw[:AES.block_size]
-        return bxor(raw[AES.block_size:], iv)
+        enc = b64decode(enc + (b'=' * (-len(enc) % 4)))
+        data = enc[:-MAC_SIZE]
+        tag = enc[-MAC_SIZE:]
+        ctag = hmac_new(self.mac_key, data, 'sha256').digest()[:MAC_SIZE]
+        if not compare_digest(ctag, tag):
+            raise ValueError
+        raw = self.cipher.decrypt(data)
+        iv = raw[:AES_BLOCK_SIZE]
+        return bxor(raw[AES_BLOCK_SIZE:], iv)
 
 DGST_MD5        = (1 << 0)
 DGST_MD5SESS    = (1 << 1)
@@ -72,7 +83,7 @@ DGST_PRIOS = (DGST_SHA512, DGST_SHA512SESS, DGST_SHA256, DGST_SHA256SESS, DGST_M
 
 class HashOracle(object):
     try: key # pylint: disable=used-before-assignment
-    except: key = Random.new().read(AES.block_size * 2)
+    except: key = token_bytes(AES_BLOCK_SIZE * 4)
     ac = None
     vtime = 32 * 10**9
 
@@ -83,13 +94,16 @@ class HashOracle(object):
         ts128 = clock_getntime(CLOCK_MONOTONIC) << len(DGST_PRIOS)
         for ms in cmask:
             ts128 |= ms
-        cryptic = self.ac.encrypt(to_bytes_be(ts128, AES.block_size))
+        cryptic = self.ac.encrypt(to_bytes_be(ts128, AES_BLOCK_SIZE))
         #return cryptic
         return cryptic.decode()
 
     def validate_challenge(self, cryptic, cmask):
         new_ts = clock_getntime(CLOCK_MONOTONIC)
-        decryptic = from_bytes_be(self.ac.decrypt(cryptic.encode()))
+        try:
+            decryptic = from_bytes_be(self.ac.decrypt(cryptic.encode()))
+        except ValueError:
+            return False
         for ms in cmask:
             if (ms & decryptic) == 0:
                 return False
