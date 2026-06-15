@@ -26,6 +26,8 @@
 
 from functools import partial
 
+from sippy.SipHeader import SipHeader
+from sippy.SipReason import SipReason
 from sippy.UaStateGeneric import UaStateGeneric
 from sippy.CCEvents import CCEventDisconnect, CCEventRing, CCEventConnect, CCEventFail, CCEventRedirect
 from sippy.Exceptions.SdpParseError import SdpHandlingErrors
@@ -67,9 +69,13 @@ class UacStateUpdating(UaStateGeneric):
                     try:
                         body = self.ua.on_remote_sdp_change(body, cb_func)
                     except SdpHandlingErrors as e:
-                        event = CCEventFail((e.code, e.msg), rtime = resp.rtime)
-                        event.reason_rfc3326 = e.getReason()
-                        return self.updateFailed(event)
+                        event = CCEventFail((502, 'Bad Gateway'), rtime = resp.rtime)
+                        event.reason_rfc3326 = SipReason(protocol = 'SIP', cause = 502,
+                          reason = 'Malformed SDP Body received from downstream')
+                        disconnect_reason = SipReason(protocol = 'SIP', cause = 500,
+                          reason = 'Fatal Dialog Refresh Error')
+                        return self.updateFailed(event, bye_reason = e.getReason(),
+                          disconnect_reason = disconnect_reason)
                     except Exception as e:
                         event = CCEventFail((502, 'Bad Gateway'), rtime = resp.rtime)
                         event.setWarning('Malformed SDP Body received from ' \
@@ -109,14 +115,19 @@ class UacStateUpdating(UaStateGeneric):
         self.ua.equeue.append(event)
         return (self.ua.UaStateConnected,)
 
-    def updateFailed(self, event):
+    def updateFailed(self, event, bye_reason = None, disconnect_reason = None):
         self.ua.equeue.append(event)
-        req = self.ua.genRequest('BYE', extra_headers = event.getExtraHeaders())
+        if bye_reason is None:
+            bye_extra_headers = event.getExtraHeaders()
+        else:
+            bye_extra_headers = (SipHeader(body = bye_reason),)
+        req = self.ua.genRequest('BYE', extra_headers = bye_extra_headers)
         self.ua.newTransaction(req)
         self.ua.cancelCreditTimer()
         self.ua.disconnect_ts = event.rtime
-        self.ua.equeue.append(CCEventDisconnect(rtime = event.rtime, \
-          origin = self.ua.origin))
+        disconnect_event = CCEventDisconnect(rtime = event.rtime, origin = self.ua.origin)
+        disconnect_event.reason_rfc3326 = disconnect_reason
+        self.ua.equeue.append(disconnect_event)
         return (self.ua.UaStateDisconnected, self.ua.disc_cbs, event.rtime, event.origin)
 
     def recvEvent(self, event):
