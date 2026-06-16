@@ -24,9 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from hashlib import md5
-from random import random
-from time import time
+from secrets import token_hex
 
 from sippy.SipHeader import SipHeader
 from sippy.UasStateIdle import UasStateIdle
@@ -152,8 +150,7 @@ class UA(object):
         if ltag != None:
             self.lTag = ltag
         else:
-            salt = str((random() * 1000000000) + time())
-            self.lTag = md5(salt.encode()).hexdigest()
+            self.lTag = token_hex(16)
         self.reqs = {}
         self.extra_headers = extra_headers
         self.expire_time = expire_time

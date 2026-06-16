@@ -34,9 +34,7 @@ from sippy.Rtp_proxy.cmd import Rtp_proxy_cmd
 from sippy.Rtp_proxy.Client.net import Rtp_proxy_client_net
 
 from socket import SOCK_DGRAM, AF_INET
-from time import time
-from hashlib import md5
-from random import random
+from secrets import token_hex
 
 def getnretrans(first_rert, timeout):
     if first_rert <= 0:
@@ -93,8 +91,7 @@ class Rtp_proxy_client_udp(Rtp_proxy_client_net):
         self.delay_flt = recfilter(0.95, 0.25)
 
     def send_command(self, command, result_callback = None, *callback_parameters):
-        entropy = str(random()) + str(time())
-        cookie = md5(entropy.encode()).hexdigest()
+        cookie = token_hex(16)
         next_retr = self.delay_flt.lastval * 4.0
         exp_time = 3.0
         if isinstance(command, Rtp_proxy_cmd):

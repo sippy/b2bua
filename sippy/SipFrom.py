@@ -25,9 +25,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from random import random
-from hashlib import md5
-from time import time
 from math import floor
+from secrets import token_hex
 from sippy.SipAddressHF import SipAddressHF
 from sippy.SipAddress import SipAddress
 from sippy.SipURL import SipURL
@@ -57,8 +56,7 @@ class SipFrom(SipAddressHF):
         return self.address.getParam('tag')
 
     def genTag(self):
-        salt = str((random() * 1000000000) + time())
-        self.address.setParam('tag', md5(salt.encode()).hexdigest())
+        self.address.setParam('tag', token_hex(16))
 
     def setTag(self, value):
         self.address.setParam('tag', value)

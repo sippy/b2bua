@@ -25,9 +25,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from functools import partial
-from hashlib import md5
 from random import random
-from time import time
+from secrets import token_hex
 try:
     from _thread import get_ident
 except ImportError:
@@ -74,18 +73,15 @@ class Rtp_proxy_session(object):
         if call_id != None:
             self.call_id = call_id
         else:
-            salt = str(random()) + str(time())
-            self.call_id = md5(salt.encode()).hexdigest()
+            self.call_id = token_hex(16)
         if from_tag != None:
             self.from_tag = from_tag
         else:
-            salt = str(random()) + str(time())
-            self.from_tag = md5(salt.encode()).hexdigest()
+            self.from_tag = token_hex(16)
         if to_tag != None:
             self.to_tag = to_tag
         else:
-            salt = str(random()) + str(time())
-            self.to_tag = md5(salt.encode()).hexdigest()
+            self.to_tag = token_hex(16)
         self.notify_socket = self.rtp_proxy_client.notify_socket
         self.notify_tag = notify_tag
         self.caller = _rtpps_side('caller')

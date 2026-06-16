@@ -25,9 +25,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from random import random
-from hashlib import md5
-from time import time
 from math import floor
+from secrets import token_hex
 from sippy.SipConf import SipConf
 from sippy.SipGenericHF import SipGenericHF
 
@@ -58,8 +57,7 @@ class SipCallId(SipGenericHF):
         return SipCallId(self.body + str(other))
 
     def genCallId(self):
-        salt = str((random() * 1000000000) + time())
-        self.body = md5(salt.encode()).hexdigest()
+        self.body = token_hex(16)
 
     def getCanName(self, name, compact = False):
         if compact:

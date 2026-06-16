@@ -30,7 +30,7 @@ from sippy.SipAuthorization import SipAuthorization, IsDigestAlgSupported, \
   NameList2AlgMask
 from sippy.Security.SipNonce import HashOracle
 
-from Crypto import Random
+from secrets import token_hex
 
 class SipWWWAuthenticate(SipGenericHF):
     hf_names = ('www-authenticate',)
@@ -42,13 +42,6 @@ class SipWWWAuthenticate(SipGenericHF):
     opaque = None
     otherparams = None
     ho = HashOracle()
-    rng = Random.new()
-    try:
-        rng.read(1).hex()
-        readhex = lambda self, x: self.rng.read(x).hex()
-    except AttributeError:
-        # Python 2.7 shim
-        readhex = lambda self, x: self.rng.read(x).encode('hex')
 
     def __init__(self, body = None, realm = None, nonce = None, \
       algorithm = None):
@@ -143,7 +136,7 @@ class SipWWWAuthenticate(SipGenericHF):
         if self.qop is not None and qop is not None:
             auth.qop = qop
             auth.nc = '00000001'
-            auth.cnonce = self.readhex(4)
+            auth.cnonce = token_hex(4)
         if self.opaque != None:
             auth.otherparams.append(('opaque', f'"{self.opaque}"'))
         auth.genAuthResponse(password, method, body)

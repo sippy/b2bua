@@ -24,9 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from random import random
-from hashlib import md5
-from time import time
+from secrets import token_bytes
 from sippy.SipGenericHF import SipGenericHF
 
 class SipCiscoGUID(SipGenericHF):
@@ -41,9 +39,8 @@ class SipCiscoGUID(SipGenericHF):
         if ciscoGUID != None:
             self.ciscoGUID = ciscoGUID
         else:
-            salt = str((random() * 1000000000) + time())
-            s = md5(salt.encode()).hexdigest()
-            self.ciscoGUID = (int(s[0:8], 16), int(s[8:16], 16), int(s[16:24], 16), int(s[24:32], 16))
+            s = token_bytes(16)
+            self.ciscoGUID = tuple(int.from_bytes(s[i:i + 4], 'big') for i in range(0, 16, 4))
 
     def parse(self):
         self.ciscoGUID = tuple([int(x) for x in  self.body.split('-', 3)])

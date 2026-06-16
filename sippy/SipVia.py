@@ -25,8 +25,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from random import random
-from hashlib import md5
-from time import time
+from secrets import token_hex
 from sippy.SipGenericHF import SipGenericHF
 from sippy.SipConf import SipConf
 from sippy.ESipHeaderCSV import ESipHeaderCSV
@@ -131,8 +130,7 @@ class SipVia(SipGenericHF):
         return SipVia(cself=self)
 
     def genBranch(self):
-        salt = str((random() * 1000000000) + time())
-        self.params['branch'] = 'z9hG4bK' + md5(salt.encode()).hexdigest()
+        self.params['branch'] = 'z9hG4bK' + token_hex(16)
 
     def getBranch(self):
         return self.params.get('branch', None)
