@@ -28,6 +28,10 @@ from functools import partial
 from random import random
 from secrets import token_hex
 try:
+    from urllib import quote, unquote
+except ImportError:
+    from urllib.parse import quote, unquote
+try:
     from _thread import get_ident
 except ImportError:
     from thread import get_ident
@@ -51,6 +55,7 @@ class Rtp_proxy_session(object):
     max_index = -1
     notify_socket = None
     notify_tag = None
+    media_timeout_index = None
     global_config = None
     my_ident = None
     insert_nortpp = False
@@ -84,6 +89,7 @@ class Rtp_proxy_session(object):
             self.to_tag = token_hex(16)
         self.notify_socket = self.rtp_proxy_client.notify_socket
         self.notify_tag = notify_tag
+        self.media_timeout_index = None
         self.caller = _rtpps_side('caller')
         self.callee = _rtpps_side('callee')
 
@@ -143,12 +149,18 @@ class Rtp_proxy_session(object):
         command = make_command('o')
         return self.rtpp_seq.send_command(command, result_callback)
 
+    def get_notify_tag(self, index):
+        if index == 0:
+            return self.notify_tag
+        return quote('%s %d' % (unquote(self.notify_tag), index))
+
     def delete(self):
         if self.rtp_proxy_client == None:
             return
         while self.max_index >= 0:
-            command = 'D %s %s %s' % ('%s-%d' % (self.call_id, self.max_index), self.from_tag, self.to_tag)
-            self.rtpp_seq.send_command(command)
+            if self.media_timeout_index is None or self.max_index != self.media_timeout_index:
+                command = 'D %s %s %s' % ('%s-%d' % (self.call_id, self.max_index), self.from_tag, self.to_tag)
+                self.rtpp_seq.send_command(command)
             self.max_index -= 1
         self.rtp_proxy_client = None
         self.rtpp_seq.delete()

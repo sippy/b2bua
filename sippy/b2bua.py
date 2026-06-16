@@ -361,7 +361,9 @@ class CallController(object):
             po_proc(self, event)
         self.uaO.recvEvent(event)
 
-    def disconnect(self, rtime = None, origin = None):
+    def disconnect(self, rtime = None, origin = None, media_index = None):
+        if origin == 'media_timeout' and self.rtp_proxy_session is not None:
+            self.rtp_proxy_session.media_timeout_index = media_index
         self.uaA.disconnect(rtime = rtime, origin = origin)
 
     def oConn(self, ua, rtime, origin):

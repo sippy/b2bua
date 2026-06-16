@@ -90,9 +90,8 @@ class _rtpps_side(object):
             command += ' %s %s %d %s %s' % ('%s-%d' % (up.rtpps.call_id, up.index), up.remote_ip, up.remote_port, from_tag, to_tag)
         else:
             command += ' %s %s %d %s' % ('%s-%d' % (up.rtpps.call_id, up.index), up.remote_ip, up.remote_port, from_tag)
-        if up.rtpps.notify_socket != None and up.index == 0 and \
-          rtpc.tnot_supported:
-            command += ' %s %s' % (up.rtpps.notify_socket, up.rtpps.notify_tag)
+        if up.rtpps.notify_socket is not None and up.rtpps.notify_tag is not None and rtpc.tnot_supported:
+            command += ' %s %s' % (up.rtpps.notify_socket, up.rtpps.get_notify_tag(up.index))
         if len(up.subcommands) > 0:
             command = ' && '.join([command,] + [sc for subc in up.subcommands for sc in subc.commands])
         rtpq.send_command(command, self.update_result, up)

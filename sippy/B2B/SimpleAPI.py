@@ -116,10 +116,11 @@ class B2BSimpleAPI(CLIConnectionManager):
             clim.send('OK\n')
             return False
         if cmd == 'r':
-            if len(args) != 1:
-                clim.send('ERROR: syntax error: r [<id>]\n')
+            if len(args) not in (1, 2):
+                clim.send('ERROR: syntax error: r <id> [<media-index>]\n')
                 return False
             idx = int(args[0])
+            media_index = int(args[1]) if len(args) == 2 else 0
             dlist = [x for x in ccm.ccmap if x.id == idx]
             if len(dlist) == 0:
                 clim.send('ERROR: no call with id of %d has been found\n' % idx)
@@ -128,9 +129,12 @@ class B2BSimpleAPI(CLIConnectionManager):
                 if not cc.proxied:
                     continue
                 if cc.state == CCStateConnected:
-                    cc.disconnect(MonoTime().getOffsetCopy(-60), origin = 'media_timeout')
+                    cc.disconnect(MonoTime().getOffsetCopy(-60), origin = 'media_timeout',
+                      media_index = media_index)
                     continue
                 if cc.state == CCStateARComplete:
+                    if cc.rtp_proxy_session is not None:
+                        cc.rtp_proxy_session.media_timeout_index = media_index
                     cc.uaO.disconnect(MonoTime().getOffsetCopy(-60), origin = 'media_timeout')
                     continue
             clim.send('OK\n')
