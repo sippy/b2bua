@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 from uuid import uuid4, UUID
 from threading import Lock
 import errno
+import weakref
 
 from rtpsynth.RtpServer import RtpQueueFullError, RtpServer
 from sippy.Time.MonoTime import MonoTime
@@ -17,6 +18,8 @@ class RTPEPoint():
     id: UUID
     dl_file = None
     firstframe = True
+    writer = None
+    rserv = None
     rtp_params:RTPParams
     state_lock: Lock
     handlers: RTPHandlers
@@ -29,7 +32,6 @@ class RTPEPoint():
         self._palloc = rc.palloc
         self._rtp_server = None
         self.state_lock = Lock()
-        self.writer = None
         self.rsess = self.make_rtp_instream(rtp_params, audio_in)
         rserv_opts = self.make_udp_server_opts(rtp_params)
         self.rserv = self.make_udp_server(rserv_opts)
@@ -45,6 +47,28 @@ class RTPEPoint():
     def make_udp_server_opts(self, rtp_params:RTPParams):
         palloc = self._palloc if rtp_params.rtp_lport == 0 else rtp_params.rtp_lport
         return (rtp_params.rtp_laddr, palloc)
+
+    def _make_rtp_received_cb(self):
+        self_ref = weakref.ref(self)
+
+        def rtp_received_cb(data, address, rtime_ns=None):
+            self = self_ref()
+            if self is None:
+                return
+            return self.rtp_received(data, address, rtime_ns)
+
+        return rtp_received_cb
+
+    def _make_send_pkt_cb(self):
+        self_ref = weakref.ref(self)
+
+        def send_pkt_cb(pkt):
+            self = self_ref()
+            if self is None:
+                return
+            return self.send_pkt(pkt)
+
+        return send_pkt_cb
 
     def make_udp_server(self, rserv_opts):
         rtp_laddr, palloc = rserv_opts
@@ -67,7 +91,7 @@ class RTPEPoint():
 
     def _create_channel(self, rtp_server:RtpServer, bind_host:str, bind_port:int):
         bind_family = self.rtp_params.rtp_family
-        ch_kwargs = dict(pkt_in=self.rtp_received, bind_host=bind_host, bind_port=bind_port)
+        ch_kwargs = dict(pkt_in=self._make_rtp_received_cb(), bind_host=bind_host, bind_port=bind_port)
         ch = rtp_server.create_channel(bind_family=bind_family, **ch_kwargs)
         self.rtp_params.rtp_lport = bind_port
         return ch
@@ -113,7 +137,7 @@ class RTPEPoint():
     def writer_setup(self):
         assert self.writer is None
         writer = self.make_writer(self.rtp_params)
-        writer.set_pkt_send_f(self.send_pkt)
+        writer.set_pkt_send_f(self._make_send_pkt_cb())
         if self.dl_file is not None:
             writer.enable_datalog(self.dl_file)
         writer.start()
@@ -176,7 +200,7 @@ class RTPEPoint():
             channel.set_target(target[0], target[1])
         if need_new_writer:
             new_writer = self.make_writer(rtp_params)
-            new_writer.set_pkt_send_f(self.send_pkt)
+            new_writer.set_pkt_send_f(self._make_send_pkt_cb())
             if self.dl_file is not None:
                 new_writer.enable_datalog(self.dl_file)
             new_writer.start()
@@ -195,12 +219,10 @@ class RTPEPoint():
     def shutdown(self):
         with self.state_lock:
             writer, channel, rtp_server = self.writer, self.rserv, self._rtp_server
-            self.writer, self._rtp_server = (None, None)
+            self.writer, self.rserv, self._rtp_server = (None, None, None)
         if writer is not None:
             writer.end()
             writer.join()
-        with self.state_lock:
-            self.rserv = None
         if channel is not None:
             channel.close()
         if rtp_server is not None:
@@ -209,6 +231,7 @@ class RTPEPoint():
     def __del__(self):
         if self.debug:
             print('RTP.EPoint.__del__')
+        self.shutdown()
 
     def soundout(self, chunk:AudioChunk):
         if self.firstframe:
