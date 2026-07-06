@@ -15,6 +15,7 @@ from .Singletons import acquire_rtp_server, release_rtp_server
 
 class RTPEPoint():
     debug: bool = False
+    rtp_received_lock_timeout = 0.01
     id: UUID
     dl_file = None
     firstframe = True
@@ -158,12 +159,18 @@ class RTPEPoint():
             rtime = MonoTime().monot
         else:
             rtime = rtime_ns / 1_000_000_000.0
-        with self.state_lock:
+        if not self.state_lock.acquire(timeout=self.rtp_received_lock_timeout):
+            if self.debug:
+                print(f'RTP.EPoint.rtp_received[{str(self.id)[:6]}]: state lock timeout')
+            return
+        try:
             target = self.rtp_params.rtp_target
             if target is not None and address != target:
                 if self.debug:
                     print(f"InfernRTPIngest.rtp_received: address mismatch {address=} {self.rtp_params.rtp_target=}")
                 return
+        finally:
+            self.state_lock.release()
         self.rsess.rtp_received(data, address, rtime)
 
     def update(self, rtp_params:RTPParams):
