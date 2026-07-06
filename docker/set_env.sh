@@ -48,7 +48,8 @@ platformopts() {
       fexport MM_INIT_DELAY=12
       ;;
     *)
-      fexport MM_INIT_DELAY=6
+      fexport MM_WAITREADY=6
+      fexport MM_INIT_DELAY=8
       ;;
     esac
     ;;
