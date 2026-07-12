@@ -53,11 +53,10 @@ class RTPOutputWorker():
         self.pkt_send_f = pkt_send_f
 
     def start(self):
-        self.state_lock.acquire()
-        assert not self.has_started
-        assert not self.has_ended
-        self.has_started = True
-        self.state_lock.release()
+        with self.state_lock:
+            assert not self.has_started
+            assert not self.has_ended
+            self.has_started = True
         self._ensure_proc_channel()
 
     def join(self, timeout=None):
@@ -69,29 +68,22 @@ class RTPOutputWorker():
                 self._release_proc()
 
     def ended(self):
-        self.state_lock.acquire()
-        t = self.has_ended
-        self.state_lock.release()
-        return t
+        with self.state_lock:
+            return self.has_ended
 
     def end(self):
-        self.state_lock.acquire()
-        self.has_ended = True
-        self.state_lock.release()
+        with self.state_lock:
+            self.has_ended = True
 
     def update_frm_ctrs(self, rcvd_inc=0, prcsd_inc=0):
-        self.state_lock.acquire()
-        self.frames_rcvd += rcvd_inc
-        self.frames_prcsd += prcsd_inc
-        rval = (self.frames_rcvd, self.frames_prcsd)
-        self.state_lock.release()
-        return rval
+        with self.state_lock:
+            self.frames_rcvd += rcvd_inc
+            self.frames_prcsd += prcsd_inc
+            return (self.frames_rcvd, self.frames_prcsd)
 
     def get_frm_ctrs(self):
-        self.state_lock.acquire()
-        res = (self.frames_rcvd, self.frames_prcsd)
-        self.state_lock.release()
-        return res
+        with self.state_lock:
+            return (self.frames_rcvd, self.frames_prcsd)
 
     def soundout(self, chunk:AudioChunk):
         #print(f'soundout: {monotonic():4.3f}')
