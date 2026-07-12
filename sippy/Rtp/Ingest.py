@@ -16,6 +16,7 @@ class RTPInStream():
     last_output_lseq: Optional[int] = None
     codec: GenCodec
     npkts: int = 0
+    _lock_timeout: float
     def __init__(self, rtp_params:RTPParams, audio_in:callable):
         self.jbuf = RtpJBuf(self.jb_size)
         self.codec = rtp_params.codec()
@@ -23,11 +24,16 @@ class RTPInStream():
         self.out_chunk_sz_samples = int(rtp_params.out_sr / 10) # 0.1s
         self.ring_lock = Lock()
         self.audio_in = audio_in
+        self._lock_timeout = rtp_params.rtp_received_lock_timeout
 
     def rtp_received(self, data, address, rtime):
         #self.dprint(f"RTP.Ingest.rtp_received: len(data) = {len(data)}")
-        with self.ring_lock:
+        if not self.ring_lock.acquire(timeout=self._lock_timeout):
+            return
+        try:
             self.pkt_proc(data, address, rtime)
+        finally:
+            self.ring_lock.release()
 
     def stream_update(self):
         with self.ring_lock:

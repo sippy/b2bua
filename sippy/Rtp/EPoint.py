@@ -15,7 +15,6 @@ from .Singletons import acquire_rtp_server, release_rtp_server
 
 class RTPEPoint():
     debug: bool = False
-    rtp_received_lock_timeout = 0.01
     id: UUID
     dl_file = None
     firstframe = True
@@ -25,6 +24,7 @@ class RTPEPoint():
     state_lock: Lock
     handlers: RTPHandlers
     _rtp_server: Optional[RtpServer]
+    _lock_timeout: float
     def __init__(self, rc:RTPConf, rtp_params:RTPParams, audio_in:callable,
                  handlers:RTPHandlers=None):
         self.id = uuid4()
@@ -36,6 +36,7 @@ class RTPEPoint():
         self.rsess = self.make_rtp_instream(rtp_params, audio_in)
         rserv_opts = self.make_udp_server_opts(rtp_params)
         self.rserv = self.make_udp_server(rserv_opts)
+        self._lock_timeout = rtp_params.rtp_received_lock_timeout
         if self.rtp_params.rtp_target is not None:
             self.writer_setup()
 
@@ -129,10 +130,12 @@ class RTPEPoint():
         if target is not None:
             new_channel.set_target(target[0], target[1])
         with self.state_lock:
-            if self._rtp_server is None or self.rserv is not old_channel:
-                new_channel.close()
-                return
-            self.rserv = new_channel
+            if self._rtp_server is not None and self.rserv is old_channel:
+                self.rserv = new_channel
+                new_channel = None
+        if new_channel is not None:
+            new_channel.close()
+            return
         old_channel.close()
 
     def writer_setup(self):
@@ -159,18 +162,18 @@ class RTPEPoint():
             rtime = MonoTime().monot
         else:
             rtime = rtime_ns / 1_000_000_000.0
-        if not self.state_lock.acquire(timeout=self.rtp_received_lock_timeout):
+        if not self.state_lock.acquire(timeout=self._lock_timeout):
             if self.debug:
                 print(f'RTP.EPoint.rtp_received[{str(self.id)[:6]}]: state lock timeout')
             return
         try:
             target = self.rtp_params.rtp_target
-            if target is not None and address != target:
-                if self.debug:
-                    print(f"InfernRTPIngest.rtp_received: address mismatch {address=} {self.rtp_params.rtp_target=}")
-                return
         finally:
             self.state_lock.release()
+        if target is not None and address != target:
+            if self.debug:
+                print(f"InfernRTPIngest.rtp_received: address mismatch {address=} self.rtp_params.rtp_target={target}")
+            return
         self.rsess.rtp_received(data, address, rtime)
 
     def update(self, rtp_params:RTPParams):
@@ -192,18 +195,18 @@ class RTPEPoint():
                 old_writer = self.writer
                 self.writer = None
             elif self.writer is None:
-                need_new_writer = True
+                need_new_writer = rtp_params.rtp_target is not None
             elif ptime_changed or proto_changed:
                 old_writer = self.writer
                 self.writer = None
-                need_new_writer = True
+                need_new_writer = rtp_params.rtp_target is not None
         if old_writer is not None:
             old_writer.end()
             old_writer.join()
         if proto_changed and channel is not None:
             self._swap_channel(channel, rtp_params)
-        elif target_changed and channel is not None and self.rtp_params.rtp_target is not None:
-            target = self.rtp_params.rtp_target
+        elif target_changed and channel is not None and rtp_params.rtp_target is not None:
+            target = rtp_params.rtp_target
             channel.set_target(target[0], target[1])
         if need_new_writer:
             new_writer = self.make_writer(rtp_params)
@@ -212,12 +215,13 @@ class RTPEPoint():
                 new_writer.enable_datalog(self.dl_file)
             new_writer.start()
             with self.state_lock:
-                if self.rserv is None or self.rtp_params.rtp_target is None:
-                    # RTP endpoint has been shut down while swapping writer.
-                    new_writer.end()
-                    new_writer.join()
-                else:
+                if self.rserv is not None:
                     self.writer = new_writer
+                    new_writer = None
+            if new_writer is not None:
+                # RTP endpoint has been shut down while swapping writer.
+                new_writer.end()
+                new_writer.join()
         self.rsess.stream_update()
 
     def connect(self, ain:callable):
@@ -248,4 +252,5 @@ class RTPEPoint():
             self.firstframe = False
         with self.state_lock:
             if self.writer is None: return
-            return self.writer.soundout(chunk)
+            writer = self.writer
+        return writer.soundout(chunk)

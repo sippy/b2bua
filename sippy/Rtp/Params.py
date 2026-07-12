@@ -47,6 +47,7 @@ class RTPParams():
     default_ptime: int = 20
     default_sr: int = 16000
     codec: Type[Union[G711Codec, G722Codec]]
+    rtp_received_lock_timeout: float = 0.001
 
     def __init__(self, rtp_target:Optional[Tuple[str, int]], out_ptime:int=default_ptime,
                  out_sr:int=default_sr, rtp_proto:str=default_rtp_proto):
