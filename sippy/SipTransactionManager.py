@@ -478,8 +478,9 @@ class SipTransactionManager(object):
                 t.teB.cancel()
                 t.teB = None
 
-            if msg.getSCode()[0] < 200:
-                # Privisional response - leave everything as is, except that
+            code = msg.getSCode()[0]
+            if code < 200:
+                # Provisional response - leave everything as is, except that
                 # change state and reload timeout timer
                 if t.state == TRYING:
                     t.state = RINGING
@@ -493,64 +494,58 @@ class SipTransactionManager(object):
                         t.resp_cb(msg)
                     else:
                         t.resp_cb(msg, t)
-            else:
-                # Final response - notify upper layer and remove transaction
-                if t.needack:
-                    # Prepare and send ACK if necessary
-                    fcode = msg.getSCode()[0]
-                    tag = msg.getHFBody('to').getTag()
-                    if tag != None:
-                        t.ack.getHFBody('to').setTag(tag)
-                    rAddr = None
-                    if msg.getSCode()[0] >= 200 and msg.getSCode()[0] < 300:
-                        # Some hairy code ahead
-                        if msg.countHFs('contact') > 0:
-                            rTarget = msg.getHFBody('contact').getUrl().getCopy()
-                        else:
-                            rTarget = None
-                        routes = [x.getCopy() for x in msg.getHFBodys('record-route')]
-                        routes.reverse()
-                        if len(routes) > 0:
-                            if not routes[0].getUrl().lr:
-                                if rTarget != None:
-                                    routes.append(SipRoute(address = SipAddress(url = rTarget)))
-                                rTarget = routes.pop(0).getUrl()
-                                rAddr = rTarget.getTAddr()
-                            else:
-                                rAddr = routes[0].getTAddr()
-                        elif rTarget != None:
-                            rAddr = rTarget.getTAddr()
-                        if rTarget != None:
-                            t.ack.setRURI(rTarget)
-                        if rAddr != None:
-                            t.ack.setTarget(rAddr)
-                        t.ack.delHFs('route')
-                        t.ack.appendHeaders([SipHeader(name = 'route', body = x) for x in routes])
-                    if fcode >= 200 and fcode < 300:
-                        t.ack.getHFBody('via').genBranch()
-                    if rAddr == None:
-                        rAddr = (t.address, t.userv.transport)
-                    if not t.uack:
-                        self.transmitMsg(t.userv, t.ack, rAddr[0], checksum, t.compact)
-                        if t.req_out_cb != None:
-                            t.req_out_cb(t.ack)
-                    else:
-                        t.state = UACK
-                        t.ack_rAddr = rAddr
-                        t.ack_checksum = checksum
-                        self.l1rcache[checksum] = SipTMRetransmitO()
-                        t.teG = Timeout(self.timerG, 64, 1, t)
+                return
+            # Final response - notify upper layer and remove transaction
+            if t.resp_cb is not None:
+                if t.cb_ifver == 1:
+                    t.resp_cb(msg)
                 else:
-                    self.l1rcache[checksum] = SipTMRetransmitO()
-                if t.resp_cb != None:
-                    if t.cb_ifver == 1:
-                        t.resp_cb(msg)
+                    t.resp_cb(msg, t)
+            if t.needack:
+                # Prepare and send ACK if necessary
+                tag = msg.getHFBody('to').getTag()
+                if tag is not None:
+                    t.ack.getHFBody('to').setTag(tag)
+                rAddr = None
+                # Some hairy code ahead
+                if msg.countHFs('contact') > 0:
+                    rTarget = msg.getHFBody('contact').getUrl().getCopy()
+                else:
+                    rTarget = None
+                routes = [x.getCopy() for x in msg.getHFBodys('record-route')]
+                routes.reverse()
+                if len(routes) > 0:
+                    if not routes[0].getUrl().lr:
+                        if rTarget is not None:
+                            routes.append(SipRoute(address = SipAddress(url = rTarget)))
+                        rTarget = routes.pop(0).getUrl()
+                        rAddr = rTarget.getTAddr()
                     else:
-                        t.resp_cb(msg, t)
-                if t.state == UACK:
+                        rAddr = routes[0].getTAddr()
+                elif rTarget is not None:
+                    rAddr = rTarget.getTAddr()
+                if rTarget is not None:
+                    t.ack.setRURI(rTarget)
+                if rAddr is not None:
+                    t.ack.setTarget(rAddr)
+                t.ack.delHFs('route')
+                t.ack.appendHeaders([SipHeader(name = 'route', body = x) for x in routes])
+                if code < 300:
+                    t.ack.getHFBody('via').genBranch()
+                if rAddr is None:
+                    rAddr = (t.address, t.userv.transport)
+                if t.uack:
+                    t.state = UACK
+                    t.ack_rAddr = rAddr
+                    t.ack_checksum = checksum
+                    self.l1rcache[checksum] = SipTMRetransmitO()
+                    t.teG = Timeout(self.timerG, 64, 1, t)
                     return
-                del self.tclient[t.tid]
-                t.cleanup()
+                self.transmitReq(t, t.ack, rAddr[0], checksum)
+            else:
+                self.l1rcache[checksum] = SipTMRetransmitO()
+            del self.tclient[t.tid]
+            t.cleanup()
 
     def timerA(self, t):
         #print('timerA', t)
@@ -828,6 +823,11 @@ class SipTransactionManager(object):
         data = msg.localStr(userv.getSIPaddr(), compact = compact)
         self.transmitData(userv, data, address, cachesum)
 
+    def transmitReq(self, t, msg, *_, **__):
+        self.transmitMsg(t.userv, msg, *_, **__, compact = t.compact)
+        if t.req_out_cb != None:
+            t.req_out_cb(msg)
+
     def transmitData(self, userv, data, address, cachesum = None, \
       lossemul = 0):
         if lossemul == 0:
@@ -846,12 +846,17 @@ class SipTransactionManager(object):
 
     def sendACK(self, t):
         #print('sendACK', t.state)
+        assert t.uack, f'BUG: sendACK() wrong state: {t.state=}'
+        if t.state in (TRYING, RINGING):
+            # Upper layer has called sendACK earlier than we generated response
+            t.uack = False
+            return
+        assert t.state == UACK and getattr(t, 'teG', None) is not None, \
+          f'BUG: sendACK() wrong state: {t.state=}'
         if t.teG != None:
             t.teG.cancel()
             t.teG = None
-        self.transmitMsg(t.userv, t.ack, t.ack_rAddr[0], t.ack_checksum, t.compact)
-        if t.req_out_cb != None:
-            t.req_out_cb(t.ack)
+        self.transmitReq(t, t.ack, t.ack_rAddr[0], t.ack_checksum)
         del self.tclient[t.tid]
         t.cleanup()
 
