@@ -38,6 +38,13 @@ RFC3261_MARK = '-_.!~*\'()'
 
 USERNAME_SAFE = RFC3261_USER_UNRESERVED + RFC3261_MARK
 
+#below function disallow translation of CR and LF chars:
+def safe_unquote(v):
+    r = unquote(v)
+    r = r.replace("\n", "")
+    r = r.replace("\r", "")
+    return r
+
 class SipURL(object):
     scheme = None
     username = None
@@ -110,7 +117,7 @@ class SipURL(object):
             self.port = SipConf.my_port
             self.transport = SipConf.my_transport
         parts = url.split(';')
-        self.username = unquote(parts[0])
+        self.username = safe_unquote(parts[0])
         if len(parts) > 1:
             # parse userparams
             self.userparams = []
@@ -130,7 +137,7 @@ class SipURL(object):
             userdomain = userdomain[:ear] + userdomain_suff
             for header in headers.split('&'):
                 k, v = header.split('=')
-                self.headers[k] = unquote(v)
+                self.headers[k] = safe_unquote(v)
         if ear > 0:
             userpass = userdomain[:ear - 1]
             hostport = userdomain[ear:]
@@ -140,7 +147,7 @@ class SipURL(object):
             uparts = upparts[0].split(';')
             if len(uparts) > 1:
                 self.userparams = uparts[1:]
-            self.username = unquote(uparts[0])
+            self.username = safe_unquote(uparts[0])
         else:
             hostport = userdomain
         parseport = None
@@ -193,7 +200,7 @@ class SipURL(object):
                 self.headers = {}
                 for header in arr[1].split('&'):
                     k, v = header.split('=')
-                    self.headers[k] = unquote(v)
+                    self.headers[k] = safe_unquote(v)
 
     def setParams(self, params):
         self.usertype = None
