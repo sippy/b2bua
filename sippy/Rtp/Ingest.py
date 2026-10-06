@@ -57,7 +57,11 @@ class RTPInStream():
         for pkt in res:
             if pkt.content.type == RTPFrameType.ERS:
                 self.dprint(f"ERS packet received {pkt.content.lseq_start=}, {pkt.content.lseq_end=} {pkt.content.ts_diff=}")
-                self.last_output_lseq = pkt.content.lseq_end
+                ts_diff = self.codec.e2t(pkt.content.ts_diff)
+                try:
+                    assert ts_diff < 1.0, f'ERS too large: {ts_diff=}'
+                finally:
+                    self.last_output_lseq = None
                 rtp_data = self.codec.silence(pkt.content.ts_diff)
             else:
                 if self.npkts < 10:
