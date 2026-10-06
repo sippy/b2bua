@@ -12,7 +12,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name = "sippy",
-    version = "2.4.2",
+    version = "2.5.0",
     packages = find_packages(),
 
     install_requires = requirements,
