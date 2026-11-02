@@ -24,7 +24,7 @@ from sippy.Rtp.EPoint import RTPEPoint
 def main():
     parser = argparse.ArgumentParser(description='Loopback RTP G711 between two RTPEPoint instances')
     parser.add_argument('wav', help='path to WAV file')
-    parser.add_argument('--codec', default='g711', help='g711 or g722')
+    parser.add_argument('--codec', default='g711', help='g711/pcmu, g711a/pcma, or g722')
     parser.add_argument('--host', default='127.0.0.1', help='local host/address to bind')
     parser.add_argument('--ptime', type=int, default=20, help='RTP ptime in ms')
     parser.add_argument('--chunk-ms', type=int, default=None, help='chunk size in ms (default=ptime * 10)')

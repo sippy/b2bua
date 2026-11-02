@@ -5,7 +5,7 @@ from socket import AF_INET, AF_INET6
 
 from sippy.misc import local4remote
 
-from .Codecs.G711 import G711Codec
+from .Codecs.G711 import G711Codec, G711ALawCodec
 from .Codecs.G722 import G722Codec
 
 
@@ -46,7 +46,7 @@ class RTPParams():
     default_rtp_proto: str = 'IP4'
     default_ptime: int = 20
     default_sr: int = 16000
-    codec: Type[Union[G711Codec, G722Codec]]
+    codec: Type[Union[G711Codec, G711ALawCodec, G722Codec]]
     rtp_received_lock_timeout: float = 0.001
 
     def __init__(self, rtp_target:Optional[Tuple[str, int]], out_ptime:int=default_ptime,

@@ -21,7 +21,7 @@ def main():
     parser = argparse.ArgumentParser(description='Stream WAV via RTP/G711 using RTPEPoint')
     parser.add_argument('target', help='host:port destination for RTP')
     parser.add_argument('wav', help='path to WAV file')
-    parser.add_argument('--codec', default='g711', help='g711 or g722')
+    parser.add_argument('--codec', default='g711', help='g711/pcmu, g711a/pcma, or g722')
     parser.add_argument('--ptime', type=int, default=20, help='RTP ptime in ms')
     parser.add_argument('--chunk-ms', type=int, default=None, help='chunk size in ms (default=ptime * 10)')
     args = parser.parse_args()

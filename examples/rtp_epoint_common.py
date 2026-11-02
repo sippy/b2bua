@@ -6,7 +6,7 @@ from array import array
 from sippy.Rtp.Core.AudioChunk import AudioChunk
 from sippy.Rtp.OutputWorker import RTPOutputWorker
 from sippy.Rtp.Params import RTPParams
-from sippy.Rtp.Codecs.G711 import G711Codec
+from sippy.Rtp.Codecs.G711 import G711Codec, G711ALawCodec
 from sippy.Rtp.Codecs.G722 import G722Codec
 
 
@@ -113,8 +113,10 @@ class FeedingOutputWorker(RTPOutputWorker):
 
 def codec_from_name(name: str):
     lname = name.lower()
-    if lname == 'g711':
+    if lname == 'g711' or lname == 'pcmu':
         return G711Codec
+    if lname == 'g711a' or lname == 'pcma':
+        return G711ALawCodec
     if lname == 'g722':
         return G722Codec
     raise ValueError(f'Unsupported codec: {name}')
