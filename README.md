@@ -1,4 +1,5 @@
 [![Build Status@GitHub](https://github.com/sippy/b2bua/actions/workflows/python-wheels.yml/badge.svg?branch=master)](https://github.com/sippy/b2bua/actions/workflows/python-wheels.yml?query=branch%3Amaster++)
+[![PyPI version](https://img.shields.io/pypi/v/sippy.svg)](https://pypi.org/project/sippy/)
 
 # Sippy B2BUA
 
