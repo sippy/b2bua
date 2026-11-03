@@ -129,4 +129,4 @@ jobs:
     needs: [publish_wheels]
     permissions:
       contents: write
-    uses: sippy/cimagic/.github/workflows/RollReleaseDraft.yml@v3
+    uses: sippy/cimagic/.github/workflows/RollReleaseDraft.yml@wip
