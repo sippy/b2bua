@@ -31,7 +31,7 @@ from sippy.Rtp_proxy.Session.subcommand import subcommand
 
 ICE_ATTRS = ('ice-ufrag', 'ice-pwd')
 ICE_ATTRS_RM = ICE_ATTRS + ('candidate', 'ice-options', 'rtcp-mux',
-  'end-of-candidates', 'ice-options')
+  'end-of-candidates', 'ice-options', 'ice-lite')
 ICE_ATTRS_RM += ('extmap', 'extmap-allow-mixed', 'msid',
   'msid-semantic', 'mid', 'group', 'rtcp-fb')
 
@@ -58,7 +58,8 @@ class subcommand_ice(subcommand):
     def sdp_sect_fin(self, sdp_bc, sect):
         self._sdp_attrs_rm(sdp_bc, sect, ICE_ATTRS_RM)
         sect.addHeader('a', 'rtcp-mux')
-        sect.addHeader('a', 'ice-lite')
+        # RFC 8839 section 5.3: ice-lite is session-level only.
+        sdp_bc.addHeader('a', 'ice-lite')
         sect.addHeader('a', F'ice-ufrag:{self.ice_lufrag}')
         sect.addHeader('a', F'ice-pwd:{self.ice_lpwd}')
         for cand in self.ice_candidates:

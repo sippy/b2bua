@@ -47,11 +47,9 @@ class subcommand():
         return None
 
     def _sdp_attrs_rm(self, sdp_bc, sect, attrs_rm):
-        rmlist = []
+        # Remove every match at both scopes, including inherited duplicates.
         for obj in sect, sdp_bc:
-            for a_header in [x for x in obj.a_headers if x.name in attrs_rm and x.name not in rmlist]:
-                obj.a_headers.remove(a_header)
-                rmlist.append(a_header.name)
+            obj.a_headers[:] = [x for x in obj.a_headers if x.name not in attrs_rm]
 
     def fin_sdp_sect(self):
         pass
