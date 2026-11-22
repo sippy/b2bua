@@ -269,6 +269,40 @@ class SipTransactionManager(object):
         self.cp_timer = Timeout(self.rCachePurge, 32, -1)
         self.init_time = monotonic()
 
+    def _unparsed400(self, data):
+        """Minimal 400 Bad Request for a request that
+        failed to parse at the header level (no request object exists to
+        genResponse from).  Echoes the Via/From/To/Call-ID/CSeq fields
+        found in the raw octets so the peer can correlate the response.
+        Returns a SipResponse, or None when the fields are too mangled
+        to build a correlated 400."""
+        try:
+            callid = from_ = to_ = cseq = via = None
+            for line in data.split('\r\n'):
+                low = line.lower()
+                if low.startswith('call-id:') and callid is None:
+                    callid = line.split(':', 1)[1].strip()
+                elif low.startswith('from:') and from_ is None:
+                    from_ = line.split(':', 1)[1].strip()
+                elif low.startswith('to:') and to_ is None:
+                    to_ = line.split(':', 1)[1].strip()
+                elif low.startswith('cseq:') and cseq is None:
+                    cseq = line.split(':', 1)[1].strip()
+                elif low.startswith('via:') and via is None:
+                    via = line.split(':', 1)[1].strip()
+            if not (callid and from_ and to_ and cseq):
+                return None
+            hdrs = ['SIP/2.0 400 Bad Request']
+            if via is not None:
+                hdrs.append('Via: %s' % via)
+            hdrs += ['From: %s' % from_, 'To: %s' % to_,
+                     'Call-ID: %s' % callid, 'CSeq: %s' % cseq,
+                     'Content-Length: 0', '']
+            from sippy.SipResponse import SipResponse
+            return SipResponse('\r\n'.join(hdrs))
+        except Exception:
+            return None
+
     def handleIncoming(self, data_in, ra:Remote_address, server, rtime):
         if len(data_in) < 32:
             return
@@ -332,7 +366,14 @@ class SipTransactionManager(object):
                 tids = req.getTIds()
             except Exception as exception:
                 if isinstance(exception, SipParseError):
-                    resp = exception.getResponse()
+                    # A body-level parse error carries a pre-built 400
+                    # (SipRequest sets e.sip_response); for header-level
+                    # failures there is no request object to respond
+                    # from, so synthesize a minimal 400 from the raw text.
+                    if exception.sip_response is not None:
+                        resp = exception.sip_response
+                    else:
+                        resp = self._unparsed400(data)
                     if resp is not None:
                         self.transmitMsg(server, resp, ra.address, checksum)
                 dump_exception(f'can\'t parse SIP request from {ra}', extra = data)
