@@ -51,7 +51,7 @@ class UacStateRinging(UacStateTrying):
                 ring_cb(self.ua, resp.rtime, self.ua.origin, code)
             if body is not None:
                 if self.ua.on_remote_sdp_change != None:
-                    body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
+                    body = self.ua.filter_remote_sdp(body, partial(self.ua.delayed_remote_sdp_update, event))
                     if body is None:
                         return None
                 self.ua.rSDP = body.getCopy()
@@ -90,7 +90,7 @@ class UacStateRinging(UacStateTrying):
                 rval = (self.ua.UaStateConnected,)
             if body is not None:
                 if self.ua.on_remote_sdp_change != None:
-                    body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
+                    body = self.ua.filter_remote_sdp(body, partial(self.ua.delayed_remote_sdp_update, event))
                     if body is None:
                         return rval
                 self.ua.rSDP = body.getCopy()

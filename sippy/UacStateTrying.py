@@ -66,7 +66,7 @@ class UacStateTrying(UaStateGeneric):
             event = CCEventRing(scode, rtime = resp.rtime, origin = self.ua.origin)
             if body is not None:
                 if self.ua.on_remote_sdp_change != None:
-                    body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
+                    body = self.ua.filter_remote_sdp(body, partial(self.ua.delayed_remote_sdp_update, event))
                     if body is None:
                         self.ua.p1xx_ts = resp.rtime
                         return (self.ua.UacStateRinging, self.ua.ring_cbs, resp.rtime, self.ua.origin, code)
@@ -107,7 +107,7 @@ class UacStateTrying(UaStateGeneric):
                 rval = (self.ua.UaStateConnected,)
             if body is not None:
                 if self.ua.on_remote_sdp_change != None:
-                    body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
+                    body = self.ua.filter_remote_sdp(body, partial(self.ua.delayed_remote_sdp_update, event))
                     if body is None:
                         return rval
                 self.ua.rSDP = body.getCopy()

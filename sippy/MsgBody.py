@@ -28,59 +28,87 @@
 from sippy.SdpBody import SdpBody
 from sippy.SipContentType import SipContentType
 
-try:
-    # Python < 3
-    str_types = (str, unicode)
-except NameError:
-    str_types = (str,)
-
 DEFAULT_CTYPE = SipContentType('application/sdp')
 DEFAULT_CTYPE.parse()
 
-class MsgBody(object):
-    content = None
-    mtype = None
-    needs_update = True
-    parsed = False
+OCTET_STREAM_CTYPE = SipContentType('application/octet-stream')
+OCTET_STREAM_CTYPE.parse()
 
-    def __init__(self, content = None, mtype = DEFAULT_CTYPE, cself = None):
-        if content != None:
-            self.mtype = mtype
-            self.content = content
-            self.parsed = type(content) not in str_types
-            return
-        if cself is not None:
-            if type(cself.content) in str_types:
-                self.content = cself.content
-            else:
-                self.content = cself.content.getCopy()
-            self.mtype = cself.mtype.getCopy()
-            self.parsed = True
 
-    def parse(self):
-        b_types = {'application/sdp':SdpBody,
-                   'multipart/mixed':MultipartMixBody}
-        if not self.parsed:
-            mtype = self.getType()
-            if mtype in b_types:
-                self.content = b_types[mtype](self.content, ctype=self.mtype)
-            self.parsed = True
+class RawBody:
+    """Parsed representation of an opaque MIME body."""
+
+    def __init__(self, content):
+        self.content = content
 
     def __str__(self):
-        return str(self.content)
+        return self.localStr()
 
-    def localStr(self, local_addr = None):
-        if type(self.content) in str_types:
-            return self.content
-        return self.content.localStr(local_addr)
+    def localStr(self, local_addr = None, *, as_bytes = False):
+        return self.content if as_bytes else self.content.decode('utf-8')
+
+    def getCopy(self):
+        return RawBody(self.content)
+
+
+class MsgBody:
+    """A MIME body: wire bytes until explicitly parsed."""
+
+    content = None
+    mtype = None
+    parsed = False
+    needs_update = True
+
+    def __init__(self, content = None, mtype = DEFAULT_CTYPE, cself = None):
+        if cself is not None:
+            self.content = (cself.content if isinstance(cself.content, bytes)
+                            else cself.content.getCopy())
+            self.mtype = cself.mtype.getCopy()
+            self.parsed = cself.parsed
+        elif content is not None:
+            self.content = content.encode('utf-8') if isinstance(content, str) else content
+            self.mtype = DEFAULT_CTYPE if mtype is None else mtype
+            self.parsed = not isinstance(self.content, bytes)
+            if mtype is None and not self.parsed:
+                # Keep the SDP default for undeclared UTF-8 bodies only.
+                try:
+                    self.content.decode('utf-8')
+                except UnicodeDecodeError:
+                    self.mtype = OCTET_STREAM_CTYPE
+
+    def parse(self):
+        if self.parsed or self.content is None:
+            return
+        parser = self.b_types.get(self.getType(), RawBody)
+        if parser is RawBody:
+            self.content = RawBody(self.content)
+        else:
+            self.content = parser(self.content.decode('utf-8'), ctype=self.mtype)
+        self.parsed = True
+
+    def __str__(self):
+        return self.localStr() if isinstance(self.content, bytes) else str(self.content)
+
+    def localStr(self, local_addr = None, *, as_bytes = False):
+        """Render exact wire bytes or a strict UTF-8 text view."""
+        if isinstance(self.content, bytes):
+            return self.content if as_bytes else self.content.decode('utf-8')
+        if isinstance(self.content, (RawBody, MultipartMixBody)):
+            return self.content.localStr(local_addr, as_bytes=as_bytes)
+        text = self.content.localStr(local_addr)
+        return text.encode('utf-8') if as_bytes else text
 
     def getType(self):
         return self.mtype.name.lower()
 
     def getCopy(self):
-        if not self.parsed:
-            return MsgBody(self.content)
+        if self.content is None:
+            return MsgBody()
         return MsgBody(cself = self)
 
-if 'MultipartMixBody' not in globals():
-    from sippy.MultipartMixBody import MultipartMixBody
+
+from sippy.MultipartMixBody import MultipartMixBody
+
+MsgBody.b_types = {'application/sdp': SdpBody,
+                   'multipart/mixed': MultipartMixBody,
+                   'application/octet-stream': RawBody}

@@ -36,6 +36,7 @@ from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import Timeout
 from sippy.Signal import Signal
 from sippy.UA import UA
+from sippy.SdpBody import SdpBody
 from sippy.CCEvents import CCEventDisconnect, CCEventTry,CCEventFail
 from sippy.SipConf import SipConf
 from sippy.SipHeader import SipHeader
@@ -148,6 +149,8 @@ class CallController(object):
             if not is_spe:
                 dump_exception('can\'t parse SDP body', extra = body.content)
             raise SdpParseError(f'{exception}') from exception if not is_spe else exception
+        if not isinstance(body.content, SdpBody):
+            return body if prev_orc is None else prev_orc(body, done_cb)
         allowed_pts = self.global_config['_allowed_pts']
         for sect in body.content.sections:
             mbody = sect.m_header
@@ -179,7 +182,9 @@ class CallController(object):
                 if self.cld.startswith('nat-'):
                     self.cld = self.cld[4:]
                     if body is not None:
-                        body.content += 'a=nated:yes\r\n'
+                        body.parse()
+                        if isinstance(body.content, SdpBody):
+                            body.content += 'a=nated:yes'
                     event.data = (self.cId, self.cli, self.cld, body, auth, self.caller_name)
                 if 'static_tr_in' in self.global_config:
                     self.cld = re_replace(self.global_config['static_tr_in'], self.cld)

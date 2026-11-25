@@ -27,6 +27,7 @@
 from functools import partial
 
 from sippy.SdpOrigin import SdpOrigin
+from sippy.SdpBody import SdpBody
 from sippy.Core.Exceptions import dump_exception
 from sippy.Core.EventDispatcher import ED2
 from sippy.Exceptions.SdpParseError import SdpParseError
@@ -36,11 +37,6 @@ from sippy.Rtp_proxy.Session.subcommand import subcommand_dtls, \
   subcommand_dedtls, DTLS_TRANSPORTS
 from sippy.Rtp_proxy.Session.subcommand_ice import subcommand_ice, \
   subcommand_deice
-
-try:
-    strtypes = (str, unicode)
-except NameError:
-    strtypes = (str,)
 
 class _rtpps_side(object):
     session_exists = False
@@ -155,7 +151,7 @@ class _rtpps_side(object):
                 dump_exception('can\'t parse SDP body', extra = sdp_body.content)
             raise SdpParseError(f'{exception}') from exception if not is_spe else exception
         sdp_bc = sdp_body.content
-        if isinstance(sdp_bc, strtypes):
+        if not isinstance(sdp_bc, SdpBody):
             sdp_body.needs_update = False
             return sdp_body
         for i, sect in enumerate(sdp_bc.sections):

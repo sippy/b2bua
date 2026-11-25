@@ -76,13 +76,15 @@ class MultipartMixBody():
         s += f'{bnd[:-2]}--\r\n'
         return s
 
-    def localStr(self, local_addr = None):
-        bnd = f'--{self.boundary}\r\n'
-        parts = [f'{bnd}Content-Type: {p.mtype}\r\n\r\n{p.localStr(local_addr)}'
-                 for p in self.parts]
-        s = ''.join(parts)
-        s += f'{bnd[:-2]}--\r\n'
-        return s
+    def localStr(self, local_addr = None, *, as_bytes = False):
+        chunks = []
+        for part in self.parts:
+            header = f'--{self.boundary}\r\nContent-Type: {part.mtype}\r\n\r\n'
+            chunks.append(header.encode('utf-8') if as_bytes else header)
+            chunks.append(part.localStr(local_addr, as_bytes=as_bytes))
+        end = f'--{self.boundary}--\r\n'
+        chunks.append(end.encode('utf-8') if as_bytes else end)
+        return (b'' if as_bytes else '').join(chunks)
 
     def getCopy(self):
         cself = MultipartMixBody()

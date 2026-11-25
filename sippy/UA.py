@@ -34,6 +34,7 @@ from sippy.SipContentType import SipContentType
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventTry, CCEventFail, CCEventDisconnect, CCEventInfo
 from sippy.MsgBody import MsgBody
+from sippy.SdpBody import SdpBody
 from sippy.Time.MonoTime import MonoTime
 from sippy.Time.Timeout import TimeoutAbsMono
 from sippy.Exceptions.SdpParseError import SdpHandlingErrors
@@ -409,6 +410,19 @@ class UA(object):
         if self.rUri != None:
             rval[2] = self.rUri.getTag()
         return tuple(rval)
+
+    def filter_remote_sdp(self, body, cb):
+        if self.on_remote_sdp_change is not None and body is not None:
+            body.parse()
+            if isinstance(body.content, SdpBody):
+                return self.on_remote_sdp_change(body, cb)
+        return body
+
+    def should_update_local_sdp(self, body):
+        if self.on_local_sdp_change is None or body is None or not body.needs_update:
+            return False
+        body.parse()
+        return isinstance(body.content, SdpBody)
 
     def delayed_remote_sdp_update(self, event, remote_sdp_body, ex=None):
         if ex is not None:

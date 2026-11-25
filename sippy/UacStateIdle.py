@@ -49,7 +49,7 @@ class UacStateIdle(UaStateGeneric):
             self.ua.origin = 'callee'
             cId, callingID, calledID, body, auth, callingName = event.getData()
             if body is not None:
-                if self.ua.on_local_sdp_change != None and body.needs_update:
+                if self.ua.should_update_local_sdp(body):
                     self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
                     return None
             else:

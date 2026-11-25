@@ -35,6 +35,7 @@ from sippy.SipReferTo import SipReferTo
 from sippy.SipReferredBy import SipReferredBy
 from sippy.SipMaxForwards import SipMaxForwards
 from sippy.CCEvents import CCEventDisconnect, CCEventFail, CCEventRedirect, CCEventUpdate, CCEventInfo, CCEventConnect
+from sippy.SdpBody import SdpBody
 from sippy.Exceptions.SdpParseError import SdpHandlingErrors
 
 class UaStateConnected(UaStateGeneric):
@@ -70,11 +71,17 @@ class UaStateConnected(UaStateGeneric):
             # Some brain-damaged stacks use body-less re-INVITE as a means
             # for putting session on hold. Quick and dirty hack to make this
             # scenario working.
-            body = self.ua.rSDP.getCopy()
-            body.parse()
+            body = self.ua.rSDP
+            if body is not None and body.getType() == 'application/sdp':
+                body = body.getCopy()
+                body.parse()
+            if body is None or not isinstance(body.content, SdpBody):
+                req.sendResponse(488, 'Not Acceptable Here')
+                return None
             for sect in body.content.sections:
                 sect.c_header.addr = '0.0.0.0'
-        elif str(self.ua.rSDP) == str(body):
+        elif (self.ua.rSDP is not None and
+              self.ua.rSDP.localStr(as_bytes=True) == body.localStr(as_bytes=True)):
             self.ua.sendUasResponse(200, 'OK', self.ua.lSDP, (self.ua.lContact,))
             return None
         event = CCEventUpdate(body, rtime = req.rtime, origin = self.ua.origin)
@@ -87,10 +94,9 @@ class UaStateConnected(UaStateGeneric):
         except:
             pass
         if body is not None:
-            if self.ua.on_remote_sdp_change is not None:
-                body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
-                if body is None:
-                    return (self.ua.UasStateUpdating,)
+            body = self.ua.filter_remote_sdp(body, partial(self.ua.delayed_remote_sdp_update, event))
+            if body is None:
+                return (self.ua.UasStateUpdating,)
             self.ua.rSDP = body.getCopy()
         else:
             self.ua.rSDP = None
@@ -139,10 +145,9 @@ class UaStateConnected(UaStateGeneric):
         for callback in self.ua.conn_cbs:
             callback(self.ua, req.rtime, self.ua.origin)
         if body is not None:
-            if self.ua.on_remote_sdp_change != None:
-                body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
-                if body is None:
-                    return None
+            body = self.ua.filter_remote_sdp(body, partial(self.ua.delayed_remote_sdp_update, event))
+            if body is None:
+                return None
             self.ua.rSDP = body.getCopy()
         else:
             self.ua.rSDP = None
@@ -184,7 +189,8 @@ class UaStateConnected(UaStateGeneric):
     def _recvEventUpdate(self, event, eh):
         body = event.getData()
         fake_laddr = (('127.0.0.1', None), None)
-        if self.ua.lSDP.localStr(fake_laddr) == body.localStr(fake_laddr):
+        if (self.ua.lSDP.localStr(fake_laddr, as_bytes=True) ==
+            body.localStr(fake_laddr, as_bytes=True)):
             if self.ua.rSDP is not None:
                 self.ua.equeue.append(CCEventConnect((200, 'OK', self.ua.rSDP.getCopy()), \
                     rtime = event.rtime, origin = event.origin))
@@ -192,17 +198,19 @@ class UaStateConnected(UaStateGeneric):
                 self.ua.equeue.append(CCEventConnect((200, 'OK', None), rtime = event.rtime, \
                   origin = event.origin))
             return None
-        if body is not None and self.ua.on_local_sdp_change is not None and body.needs_update:
-            try:
+        try:
+            if self.ua.should_update_local_sdp(body):
                 self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
-            except SdpHandlingErrors as e:
-                event = CCEventFail((e.code, e.msg), rtime = event.rtime)
-                event.reason_rfc3326 = e.getReason()
-                self.ua.equeue.append(event)
-            except Exception as e:
-                event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
-                event.setWarning(str(e))
-                self.ua.equeue.append(event)
+                return None
+        except SdpHandlingErrors as e:
+            event = CCEventFail((e.code, e.msg), rtime = event.rtime)
+            event.reason_rfc3326 = e.getReason()
+            self.ua.equeue.append(event)
+            return None
+        except Exception as e:
+            event = CCEventFail((400, 'Malformed SDP Body'), rtime = event.rtime)
+            event.setWarning(str(e))
+            self.ua.equeue.append(event)
             return None
         if event.max_forwards is not None:
             if event.max_forwards <= 0:
@@ -230,7 +238,7 @@ class UaStateConnected(UaStateGeneric):
             self.ua.expire_timer.cancel()
             self.ua.expire_timer = None
         code, reason, body = event.getData()
-        if body is not None and self.ua.on_local_sdp_change is not None and body.needs_update:
+        if self.ua.should_update_local_sdp(body):
             self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
             return None
         self.ua.cancelCreditTimer() # prevent timer leak on body-less re-INVITE

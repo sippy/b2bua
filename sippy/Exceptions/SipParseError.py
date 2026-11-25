@@ -32,7 +32,7 @@ class SipParseError(SipHandlingError):
         super().__init__(arg)
         self.sip_response = sip_response
 
-    def getResponse(self, req):
-        if self.sip_response is not None:
+    def getResponse(self, req = None):
+        if self.sip_response is not None or req is None:
             return self.sip_response
         return super().getResponse(req)

@@ -269,40 +269,6 @@ class SipTransactionManager(object):
         self.cp_timer = Timeout(self.rCachePurge, 32, -1)
         self.init_time = monotonic()
 
-    def _unparsed400(self, data):
-        """Minimal 400 Bad Request for a request that
-        failed to parse at the header level (no request object exists to
-        genResponse from).  Echoes the Via/From/To/Call-ID/CSeq fields
-        found in the raw octets so the peer can correlate the response.
-        Returns a SipResponse, or None when the fields are too mangled
-        to build a correlated 400."""
-        try:
-            callid = from_ = to_ = cseq = via = None
-            for line in data.split('\r\n'):
-                low = line.lower()
-                if low.startswith('call-id:') and callid is None:
-                    callid = line.split(':', 1)[1].strip()
-                elif low.startswith('from:') and from_ is None:
-                    from_ = line.split(':', 1)[1].strip()
-                elif low.startswith('to:') and to_ is None:
-                    to_ = line.split(':', 1)[1].strip()
-                elif low.startswith('cseq:') and cseq is None:
-                    cseq = line.split(':', 1)[1].strip()
-                elif low.startswith('via:') and via is None:
-                    via = line.split(':', 1)[1].strip()
-            if not (callid and from_ and to_ and cseq):
-                return None
-            hdrs = ['SIP/2.0 400 Bad Request']
-            if via is not None:
-                hdrs.append('Via: %s' % via)
-            hdrs += ['From: %s' % from_, 'To: %s' % to_,
-                     'Call-ID: %s' % callid, 'CSeq: %s' % cseq,
-                     'Content-Length: 0', '']
-            from sippy.SipResponse import SipResponse
-            return SipResponse('\r\n'.join(hdrs))
-        except Exception:
-            return None
-
     def handleIncoming(self, data_in, ra:Remote_address, server, rtime):
         if len(data_in) < 32:
             return
@@ -312,12 +278,10 @@ class SipTransactionManager(object):
             lmsg = data_in
         self.global_config['_sip_logger'].write(f'RECEIVED message from {ra}:\n', \
           lmsg, ltime = rtime.realt)
-        if isinstance(data_in, bytes):
-            data = data_in.decode()
-            checksum = md5(data_in).digest()
-        else:
-            data = data_in
-            checksum = md5(data_in.encode('utf-8')).digest()
+        # Key both cache levels on the received octets, before parsing.
+        wire_bytes = data_in if isinstance(data_in, bytes) \
+            else data_in.encode('utf-8')
+        checksum = md5(wire_bytes).digest()
         retrans = self.l1rcache.get(checksum, None)
         if retrans == None:
             retrans = self.l2rcache.get(checksum, None)
@@ -327,17 +291,17 @@ class SipTransactionManager(object):
             self.transmitData(retrans.userv, retrans.data, retrans.address, \
               lossemul = retrans.lossemul)
             return
-        if data.startswith('SIP/2.0 '):
+        if wire_bytes.startswith(b'SIP/2.0 '):
             try:
-                resp = SipResponse(data)
+                resp = SipResponse(data_in)
                 tid = resp.getTId(True, True)
-            except Exception as exception:
-                dump_exception(f'can\'t parse SIP response from {ra}', extra = data)
+            except Exception:
+                dump_exception(f'can\'t parse SIP response from {ra}', extra = lmsg)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             if resp.getSCode()[0] < 100 or resp.getSCode()[0] > 999:
                 print(datetime.now(), f'invalid status code in SIP response from {ra}:')
-                print(data)
+                print(lmsg)
                 sys.stdout.flush()
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
@@ -362,21 +326,14 @@ class SipTransactionManager(object):
             self.incomingResponse(resp, t, checksum)
         else:
             try:
-                req = SipRequest(data)
+                req = SipRequest(data_in)
                 tids = req.getTIds()
             except Exception as exception:
                 if isinstance(exception, SipParseError):
-                    # A body-level parse error carries a pre-built 400
-                    # (SipRequest sets e.sip_response); for header-level
-                    # failures there is no request object to respond
-                    # from, so synthesize a minimal 400 from the raw text.
-                    if exception.sip_response is not None:
-                        resp = exception.sip_response
-                    else:
-                        resp = self._unparsed400(data)
+                    resp = exception.getResponse()
                     if resp is not None:
                         self.transmitMsg(server, resp, ra.address, checksum)
-                dump_exception(f'can\'t parse SIP request from {ra}', extra = data)
+                dump_exception(f'can\'t parse SIP request from {ra}', extra = lmsg)
                 self.l1rcache[checksum] = SipTMRetransmitO()
                 return
             call_id = tids[0][0]
@@ -398,8 +355,8 @@ class SipTransactionManager(object):
             def get_contact():
                 try:
                     return req.getHFBody('contact')
-                except Exception as exception:
-                    dump_exception(f'can\'t parse SIP request from {ra}', extra = data)
+                except Exception:
+                    dump_exception(f'can\'t parse SIP request from {ra}', extra = lmsg)
                     self.l1rcache[checksum] = SipTMRetransmitO()
                     return None
 
@@ -462,7 +419,8 @@ class SipTransactionManager(object):
                 raise RuntimeError(f'BUG: newTransaction() to unsupported transport: {transport}')
         else:
             t.userv = userv
-        t.data = msg.localStr(t.userv.getSIPaddr(), compact = t.compact)
+        t.data = msg.localStr(t.userv.getSIPaddr(), compact = t.compact,
+                            as_bytes = True)
         if t.method == 'INVITE':
             try:
                 t.expires = msg.getHFBody('expires').getNum()
@@ -769,7 +727,8 @@ class SipTransactionManager(object):
         toHF = resp.getHFBody('to')
         if scode > 100 and toHF.getTag() == None:
             toHF.genTag()
-        t.data = resp.localStr(t.userv.getSIPaddr(), compact = t.compact)
+        t.data = resp.localStr(t.userv.getSIPaddr(), compact = t.compact,
+                            as_bytes = True)
         t.address = resp.getHFBody('via').getTAddr()
         self.transmitData(t.userv, t.data, t.address, t.checksum, lossemul)
         if t.res_out_cb != None:
@@ -861,7 +820,9 @@ class SipTransactionManager(object):
         self.l4r.rotateCache()
 
     def transmitMsg(self, userv, msg, address, cachesum, compact = False):
-        data = msg.localStr(userv.getSIPaddr(), compact = compact)
+        # Send and cache the exact wire bytes from the message serializer.
+        data = msg.localStr(userv.getSIPaddr(), compact = compact,
+                            as_bytes = True)
         self.transmitData(userv, data, address, cachesum)
 
     def transmitReq(self, t, msg, *_, **__):
@@ -878,7 +839,8 @@ class SipTransactionManager(object):
             logop = 'DISCARDING'
         paddr = userv.addr2str(address)
         msg = f'{logop} message to {paddr}:\n'
-        self.global_config['_sip_logger'].write(msg, data)
+        lmsg = data.decode(errors = 'backslashreplace') if isinstance(data, bytes) else data
+        self.global_config['_sip_logger'].write(msg, lmsg)
         if cachesum != None:
             if lossemul > 0:
                 lossemul -= 1

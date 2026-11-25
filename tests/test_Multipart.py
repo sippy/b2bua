@@ -42,4 +42,19 @@ class TestMultipart(unittest.TestCase):
         self.assertEqual("content-disposition", h0[0].name)
         self.assertEqual("content-id", h0[1].name)
         # check that part body is without headers
-        self.assertEqual(ecall_part0, p0.content)
+        self.assertEqual(ecall_part0.encode('utf-8'), p0.content)
+
+    def test_byte_mode_preserves_binary_parts(self):
+        part_type = SipContentType('application/octet-stream')
+        part_type.parse()
+        mp = MultipartMixBody()
+        mp.setBoundary('part')
+        part = MsgBody(b'\xff\x00\r\n', part_type)
+        part.parse()
+        mp.parts.append(part)
+        body = MsgBody(mp, mp.getContentType())
+        self.assertEqual(body.localStr(as_bytes=True),
+                         b'--part\r\nContent-Type: application/octet-stream\r\n\r\n'
+                         b'\xff\x00\r\n--part--\r\n')
+        with self.assertRaises(UnicodeDecodeError):
+            body.localStr()

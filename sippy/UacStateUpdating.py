@@ -67,7 +67,7 @@ class UacStateUpdating(UaStateGeneric):
                 if self.ua.on_remote_sdp_change != None:
                     cb_func = partial(self.ua.delayed_remote_sdp_update, event)
                     try:
-                        body = self.ua.on_remote_sdp_change(body, cb_func)
+                        body = self.ua.filter_remote_sdp(body, cb_func)
                     except SdpHandlingErrors as e:
                         event = CCEventFail((502, 'Bad Gateway'), rtime = resp.rtime)
                         event.reason_rfc3326 = SipReason(protocol = 'SIP', cause = 502,

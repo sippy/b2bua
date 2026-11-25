@@ -36,7 +36,7 @@ class SipContentType(SipGenericHF):
 
     def parse(self):
         parts = self.body.split(';')
-        self.name = parts.pop(0)
+        self.name = parts.pop(0).rstrip()
         params = []
         for part in parts:
             param = part.split('=', 1)

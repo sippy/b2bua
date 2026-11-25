@@ -31,7 +31,7 @@ from sippy.UaStateGeneric import UaStateGeneric
 
 class UasStateGeneric(UaStateGeneric):
     def _delayLocalSdpUpdate(self, event, body):
-        if body is not None and self.ua.on_local_sdp_change is not None and body.needs_update:
+        if self.ua.should_update_local_sdp(body):
             self.ua.on_local_sdp_change(body, partial(self.ua.delayed_local_sdp_update, event))
             return True
         return False

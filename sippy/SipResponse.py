@@ -35,10 +35,10 @@ class SipResponse(SipMsg):
 
     def __init__(self, buf = None, scode = None, reason = None, sipver = None, to = None, fr0m = None, callid = None, vias = None,
                  cseq = None, body = None, rrs = (), server = None):
-        SipMsg.__init__(self, buf)
+        super().__init__(buf)
         if buf != None:
             if self.scode > 100 and self.scode < 400:
-                SipMsg.init_body(self)
+                self.init_body()
             return
         self.scode, self.reason, self.sipver = scode, reason, sipver
         if vias != None:

@@ -100,11 +100,10 @@ class UasStateIdle(UaStateGeneric):
         elif self.ua.expire_time != None:
             self.ua.expire_timer = TimeoutAbsMono(self.ua.expires, self.ua.expire_mtime)
         if body is not None:
-            if self.ua.on_remote_sdp_change != None:
-                body = self.ua.on_remote_sdp_change(body, partial(self.ua.delayed_remote_sdp_update, event))
-                if body is None:
-                    self.ua.setup_ts = req.rtime
-                    return (self.ua.UasStateTrying,)
+            body = self.ua.filter_remote_sdp(body, partial(self.ua.delayed_remote_sdp_update, event))
+            if body is None:
+                self.ua.setup_ts = req.rtime
+                return (self.ua.UasStateTrying,)
             self.ua.rSDP = body.getCopy()
         else:
             self.ua.rSDP = None

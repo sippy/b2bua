@@ -44,17 +44,26 @@ class SipRequest(SipMsg):
     def __init__(self, buf = None, method = None, ruri = None, sipver = 'SIP/2.0', to = None, fr0m = None, via = None, cseq = None, \
                  callid = None, maxforwards = None, body = None, contact = None, routes = (), target = None,
                  user_agent = None, expires = None):
-        SipMsg.__init__(self, buf)
-        if buf != None:
+        if buf is not None:
+            headers_parsed = False
             try:
-                SipMsg.init_body(self)
-            except SipParseError as e:
-                try:
-                    e.sip_response = self.genResponse(400, 'Bad Request - %s' % str(e))
-                except Exception as e1:
-                    print('BUG: Double exception, should not be happening:\n', str(e1))
-                raise e
+                super().__init__(buf)
+                headers_parsed = True
+                self.init_body()
+            except SipParseError as error:
+                if error.sip_response is not None:
+                    raise
+                if headers_parsed:
+                    try:
+                        error.sip_response = self.genResponse(400, 'Bad Request - %s' % error)
+                    except Exception:
+                        pass  # Fall back to the correlation headers in buf.
+                    else:
+                        raise
+                error.sip_response = self._unparsed400(buf)
+                raise
             return
+        super().__init__(buf)
         self.method = method
         self.ruri = ruri
         if target == None:
@@ -89,6 +98,42 @@ class SipRequest(SipMsg):
             self.appendHeader(SipHeader(name = 'user-agent'))
         if body is not None:
             self.setBody(body)
+
+    @staticmethod
+    def _unparsed400(data):
+        """Minimal 400 Bad Request for a request that
+        failed to parse at the header level (no request object exists to
+        genResponse from).  Echoes the Via/From/To/Call-ID/CSeq fields
+        found in the raw octets so the peer can correlate the response.
+        Returns a SipResponse, or None when the fields are too mangled
+        to build a correlated 400."""
+        if isinstance(data, bytes):
+            data = data.decode(errors = 'backslashreplace')
+        try:
+            callid = from_ = to_ = cseq = via = None
+            for line in data.split('\r\n'):
+                low = line.lower()
+                if low.startswith('call-id:') and callid is None:
+                    callid = line.split(':', 1)[1].strip()
+                elif low.startswith('from:') and from_ is None:
+                    from_ = line.split(':', 1)[1].strip()
+                elif low.startswith('to:') and to_ is None:
+                    to_ = line.split(':', 1)[1].strip()
+                elif low.startswith('cseq:') and cseq is None:
+                    cseq = line.split(':', 1)[1].strip()
+                elif low.startswith('via:') and via is None:
+                    via = line.split(':', 1)[1].strip()
+            if not (callid and from_ and to_ and cseq):
+                return None
+            hdrs = ['SIP/2.0 400 Bad Request']
+            if via is not None:
+                hdrs.append('Via: %s' % via)
+            hdrs += ['From: %s' % from_, 'To: %s' % to_,
+                     'Call-ID: %s' % callid, 'CSeq: %s' % cseq,
+                     'Content-Length: 0', '']
+            return SipResponse('\r\n'.join(hdrs))
+        except Exception:
+            return None
 
     def setSL(self, startline):
         self.method, ruri, self.sipver = startline.split()

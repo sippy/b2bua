@@ -148,7 +148,9 @@ if __name__ == '__main__':
         print(f'Got {sr=} from {address=}')
         for rr in (100, 'Trying'), (666, 'Busy Here'):
             res = sr.genResponse(rr[0], rr[1])
-            server.send_to(str(res), address)
+            # Bytes out the wire (same as the TM path);
+            # byte-identical to str(res) for body-less responses.
+            server.send_to(res.localStr(as_bytes = True), address)
         ED2.breakLoop()
     wopts = Wss_server_opts(laddr, data_callback, certfile = certfile, keyfile = keyfile)
     wserv = Wss_server(None, wopts)
