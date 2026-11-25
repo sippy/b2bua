@@ -116,11 +116,37 @@ class MyConfigParser(RawConfigParser):
     _default_section = None
     _private_keys = None
 
+    # Non-default configuration sections: section name -> option table
+    # in the same format as SUPPORTED_OPTIONS.  Values stay in their own
+    # section (not merged into the default one) and are validated by
+    # read().  Read them with get_sectiondefault().
+    SECTION_OPTIONS = {}
+
     def __init__(self, default_section = 'general'):
         self._default_section = default_section
         self._private_keys = {}
         RawConfigParser.__init__(self)
         self.add_section(self._default_section)
+
+    def check_section(self, section):
+        """Validate the options of a non-default section per SECTION_OPTIONS.
+        Values are read from (and remain in) that section."""
+        opts = self.SECTION_OPTIONS[section]
+        for key in tuple(self.options(section)):
+            if key not in opts:
+                raise ValueError('Unknown option in section [%s]: %s' % (section, key))
+            value = RawConfigParser.get(self, section, key).strip()
+            value_type = opts[key][0]
+            if value_type == 'B':
+                if value.lower() not in _boolean_states:
+                    raise ValueError('Not a boolean: %s' % value)
+            elif value_type == 'I':
+                int(value)
+
+    def get_sectiondefault(self, section, key, default_value = ''):
+        if self.has_section(section) and self.has_option(section, key):
+            return RawConfigParser.get(self, section, key).strip()
+        return default_value
 
     def __getitem__(self, key):
         if key.startswith('_'):
@@ -161,10 +187,13 @@ class MyConfigParser(RawConfigParser):
         return tuple([x + '=' for x in SUPPORTED_OPTIONS.keys()])
 
     def read(self, fname):
-        RawConfigParser.readfp(self, open(fname))
+        RawConfigParser.read(self, fname)
         for key in tuple(self.options(self._default_section)):
             self.check_and_set(key, RawConfigParser.get(self, \
               self._default_section, key), False)
+        for section in self.SECTION_OPTIONS:
+            if self.has_section(section):
+                self.check_section(section)
 
     def check_and_set(self, key, value, compat = True):
         value = value.strip()
